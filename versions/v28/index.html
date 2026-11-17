@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14121f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GemStash</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#14121f; --panel:#1e1b2e; --panel2:#272340; --text:#f3f1fb; --muted:#a39fbd;
+  --accent:#ffb84d; --accent2:#7c6cff; --danger:#ff5c7a; --ok:#3ed6a0;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid #3a3558;
+  border-radius:12px;padding:12px;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--accent2)}
+textarea{min-height:160px;resize:vertical}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);z-index:5}
+header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
+header h1 span{color:var(--accent)}
+.pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.pill.auto{font-weight:600}
+/* (v19) comments */
+.cmt{position:relative}
+.cmt .cc{position:absolute;top:0;right:0;background:var(--accent);color:#1b1408;border-radius:9px;font-size:11px;font-weight:700;padding:1px 5px;min-width:16px;line-height:1.2;text-align:center}
+.cmt .cc:empty{display:none}
+.cmts{max-height:45vh;overflow-y:auto;margin:6px 0 10px}
+.cm{background:var(--panel2);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.cm .who{font-size:13px;color:var(--accent);font-weight:600}
+.cm .when{font-size:12px;color:var(--muted);margin-left:6px;font-weight:400}
+.cm .txt{white-space:pre-wrap;margin-top:4px;line-height:1.45}
+.cm .del{float:right;font-size:13px;color:var(--muted)}
+.pill.auto.on{background:var(--accent);color:#1b1408}   /* (v18) auto-scroll is running */
+main{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
+.view.active{display:block}
+nav{display:flex;background:var(--panel);padding:6px 6px calc(var(--safe-b) + 6px);border-top:1px solid #2c2846}
+nav button{flex:1;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);border-radius:12px}
+nav button .ic{font-size:21px;line-height:1}
+nav button.on{color:var(--accent)}
+
+/* feed */
+#feed{padding:0;scroll-snap-type:y mandatory}
+.slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:8px 16px 16px;display:flex}
+.card{flex:1;border-radius:24px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 10px 30px #0006}
+.card .top{padding:22px 22px 18px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px}
+.card .topic{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;opacity:.85}
+.card h2{margin:0;font-size:24px;line-height:1.22}
+.card .body{padding:18px 22px;font-size:17px;line-height:1.6;flex:1;overflow-y:auto;color:#e6e3f3;white-space:pre-wrap}
+.card .src{padding:0 22px 6px;font-size:13px;color:var(--muted)}
+.card .src a{color:var(--muted)}
+.card .acts{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid #2c2846}
+.card .acts button{font-size:22px;padding:8px 14px;border-radius:12px}
+.card .acts button.saved{color:var(--accent)}
+.gem{display:inline-block;opacity:.4;filter:grayscale(.7)}   /* (v13) not in a stash yet */
+.saved .gem{opacity:1;filter:none;text-shadow:0 0 10px #7fd8ff}
+.endslide .card{align-items:center;justify-content:center;text-align:center;padding:30px;gap:14px}
+.big{font-size:54px}
+
+/* lists */
+.sec{margin:18px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.row{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{color:var(--muted)}
+.btn{background:var(--accent);color:#1b1408;font-weight:700;border-radius:14px;padding:13px 18px;width:100%;margin-top:10px}
+.btn.alt{background:var(--panel2);color:var(--text)}
+.btn.sm{width:auto;padding:9px 14px;margin:0;font-size:14px}
+.btn:disabled{opacity:.45}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--panel);border-radius:18px;padding:16px;text-align:left;min-height:96px;display:flex;flex-direction:column;gap:6px}
+.tile .e{font-size:26px}
+.tile small{color:var(--muted)}
+.mini{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.mini b{display:block;margin-bottom:6px}
+.mini p{margin:0;color:#d6d2e8;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mini .m{font-size:12px;color:var(--muted);margin-top:6px}
+.chk{display:flex;gap:12px;align-items:flex-start}
+.chk input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.search{display:flex;gap:8px;margin:12px 0}
+.status{color:var(--muted);font-size:14px;margin:10px 0;min-height:20px}
+.status.err{color:var(--danger)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0}
+.tabs button{background:var(--panel2);border-radius:999px;padding:8px 14px;white-space:nowrap;font-size:14px}
+.tabs button.on{background:var(--accent);color:#1b1408;font-weight:700}
+
+/* sheet */
+#sheet{position:fixed;inset:0;background:#0009;display:none;z-index:20;align-items:flex-end}
+#sheet.on{display:flex}
+#sheet .in{background:var(--panel);width:100%;max-height:88%;overflow-y:auto;border-radius:24px 24px 0 0;
+  padding:18px 16px calc(var(--safe-b) + 18px)}
+#sheet h3{margin:4px 0 12px}
+#toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 84px);transform:translateX(-50%);background:#000c;
+  padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30}
+#toast.on{opacity:1}
+
+.prog{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.shelfitem{background:var(--panel);border-radius:18px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;width:100%;text-align:left}
+.shelfitem .e{font-size:30px}
+.shelfitem.paused{opacity:.5}
+.step{display:flex;align-items:center;gap:14px}
+.step button{background:var(--panel2);width:44px;height:44px;border-radius:12px;font-size:22px}
+.step b{font-size:22px;min-width:30px;text-align:center}
+.seg{display:flex;background:var(--panel2);border-radius:12px;padding:4px}
+.seg button{flex:1;padding:10px;border-radius:9px}
+.seg button.on{background:var(--accent);color:#1b1408;font-weight:700}
+label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+
+/* (v13) text cards are as long as their text: the feed scrolls down through them, then snaps to the next item.
+   The buttons stay stuck to the bottom of the screen while you read. */
+.slide.tall{height:auto;min-height:100%}
+.slide.tall .card{overflow:clip}
+.slide.tall .card .body{overflow:visible;flex:1 0 auto}
+.slide.tall .card .acts{position:sticky;bottom:0;background:var(--panel);z-index:1}
+
+/* hearts (v6): double-tap or ❤️ saves to Favorites, TikTok style */
+.slide{position:relative}
+.card{-webkit-user-select:none;user-select:none}
+.card .acts button{padding:8px 10px}
+.burst{position:absolute;font-size:110px;line-height:1;pointer-events:none;z-index:9;opacity:0;
+  animation:burst .9s ease-out forwards;filter:drop-shadow(0 6px 18px #0009)}
+@keyframes burst{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-12deg);opacity:0}
+  15%{transform:translate(-50%,-50%) scale(1.25) rotate(-8deg);opacity:1}
+  30%{transform:translate(-50%,-50%) scale(.92) rotate(-8deg);opacity:1}
+  45%{transform:translate(-50%,-50%) scale(1.04) rotate(-8deg);opacity:1}
+  75%{transform:translate(-50%,-70%) scale(1.04) rotate(-8deg);opacity:1}
+  100%{transform:translate(-50%,-170%) scale(1.15) rotate(-8deg);opacity:0}}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+
+/* (v9) article photo + full-screen posters */
+.card .pic{width:calc(100% + 44px);height:170px;object-fit:cover;display:block;margin:-18px -22px 14px}   /* (v11) scrolls with the text */
+.card .body .bh{display:block;color:#fff;font-size:18px;line-height:1.35;margin:4px 0 8px}   /* (v11) headings in articles */
+.card .body .more{display:inline-block;background:var(--panel2);color:var(--accent);border-radius:12px;padding:10px 14px;font-size:15px;text-decoration:none}
+.card.pcard{position:absolute;inset:0;border-radius:0;background:#000;box-shadow:none}
+.pcard .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.45)}
+.pcard .strip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.pcard .strip::-webkit-scrollbar{display:none}
+.pcard .pg{flex:0 0 100%;height:100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always}
+.pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard .dots{position:absolute;left:0;right:0;bottom:78px;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
+.pcard .dots i{width:7px;height:7px;border-radius:50%;background:#fff5}
+.pcard .dots i.on{background:#fff}
+.pcard .count{position:absolute;top:12px;right:12px;background:#0009;border-radius:999px;padding:5px 11px;font-size:13px;pointer-events:none;z-index:2}
+.pcard .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
+.pcard .side button,.pcard .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
+  align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.pcard .side .saved{background:var(--accent)}
+.pcard .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;background:linear-gradient(transparent,#000b 40%)}
+.pcard .info b{display:block;font-size:17px}
+.pcard .info small{color:#fffb}
+
+/* BETA: layered card — series art / video / article picture */
+.card.lcard{position:absolute;inset:0;border-radius:0;background:#0b0a12;box-shadow:none;display:block}
+.lcard .series{position:absolute;left:0;right:0;top:0;height:30%;background-size:cover;background-position:center}
+.lcard .series video.art{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .series span{position:absolute;left:14px;bottom:10px;background:#000a;color:#fff;font-weight:700;font-size:15px;
+  letter-spacing:.3px;border-radius:999px;padding:5px 12px}
+.lcard .clipbox{position:absolute;left:0;right:0;top:30%;height:30%;background:#000;overflow:hidden}
+.lcard .clipbox video{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .lplay{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;
+  background:var(--accent);color:#1b1408;font-size:28px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
+.lcard.audio .hero{top:30%}
+.lcard.audio .lplay{top:58%}
+.lcard .lplay.lread{width:auto;height:auto;border-radius:26px;padding:12px 22px;flex-direction:column;gap:2px;text-decoration:none;color:#fff;font-size:30px;display:flex;align-items:center}
+.lcard .lplay.lread small{font-size:13px;font-weight:700}
+.lcard.noimg .hero{background-size:cover !important}
+.lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
+.lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero .ht{display:none}
+.lcard.noimg .hero img{display:none}   /* the nautilus art (hero background) shows instead */
+.lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
+.lcard .lmeta b{display:block;font-size:19px;line-height:1.3}
+.lcard .lmeta small{color:#fffb}
+.lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
+.lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
+.lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
+.lcard .side button,.lcard .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.lcard .side .saved{background:var(--accent)}
+
+/* watch (v5) */
+#watch{padding:0;overflow:hidden;background:#000}
+#wfeed{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory}
+#wtop{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;gap:8px;align-items:center;padding:10px 12px;
+  background:linear-gradient(#000a,transparent);pointer-events:none}
+#wtop *{pointer-events:auto}
+#wtop .n{flex:1;font-size:13px;color:#fffc;pointer-events:none}
+#wtop button{background:#0007;border-radius:999px;padding:7px 12px;font-size:13px}
+.vslide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;overflow:hidden;background:#000}
+.vslide .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.5)}
+.vslide video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.vslide.crop video{object-fit:cover}
+.vslide .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;
+  background:linear-gradient(transparent,#000b 40%)}
+.vslide .info b{display:block;font-size:17px;line-height:1.3;text-shadow:0 1px 4px #000}
+.vslide .info small{color:#fffb}
+.vslide .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
+.vslide .side button,.vslide .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
+  align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.vslide .side .saved{background:var(--accent)}
+.vslide .fsx{display:none;position:absolute;top:14px;right:14px;z-index:3;width:46px;height:46px;border-radius:50%;background:#0008;color:#fff;font-size:22px}
+.vslide:fullscreen .fsx{display:flex;align-items:center;justify-content:center}
+.vslide:fullscreen .side,.vslide:fullscreen .info,.vslide:fullscreen .note{display:none}
+.vslide:fullscreen video{object-fit:contain}
+.vslide .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);z-index:2}
+.vslide .note{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:#000a;border-radius:999px;
+  padding:8px 14px;font-size:14px;pointer-events:none;white-space:nowrap}
+.vslide .playi{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:70px;pointer-events:none;opacity:.85}
+.vslide.paused .playi{display:flex}
+.vslide.msg{display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;background:var(--bg);flex-direction:column;gap:14px}
+.vslide.msg p{color:var(--muted);margin:0;line-height:1.5}
+.chan{background:var(--panel);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.chan .opts{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.chan .opts select{width:auto;padding:8px}
+.chan .step button{width:36px;height:36px;font-size:18px}
+.chan .step b{font-size:18px;min-width:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Gem<span>Stash</span></h1>
+    <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
+    <span class="pill" id="streak">🔥 0</span>
+  </header>
+  <main>
+    <section class="view active" id="feed"></section>
+    <section class="view" id="shelf"></section>
+    <section class="view" id="library"></section>
+    <section class="view" id="add"></section>
+    <section class="view" id="more"></section>
+  </main>
+  <nav>
+    <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
+    <button data-v="shelf"><span class="ic">📖</span>Shelf</button>
+    <button data-v="library"><span class="ic">💎</span>Stashes</button>
+    <button data-v="add"><span class="ic">➕</span>Add</button>
+    <button data-v="more"><span class="ic">⚙️</span>More</button>
+  </nav>
+</div>
+<div id="sheet"><div class="in" id="sheetIn"></div></div>
+<div id="toast"></div>
+
+<script src="sources.js?v=26"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script>
+/* ================= storage ================= */
+const KEY = 'ideastash.v1';
+const READER = 'https://r.jina.ai/';
+const TOPICS = {
+  'Spiritual': ['#3b2a7a','#7c6cff'], 'Books': ['#7a3b1f','#ffb84d'], 'Wisdom': ['#0f5c4d','#3ed6a0'],
+  'Faith': ['#1f3f7a','#5aa9ff'], 'Self-Improvement': ['#7a1f45','#ff5c9a'], 'History': ['#5b4a2a','#d6b36a'],
+  'Science': ['#18506b','#4ad7ff'], 'Q&A': ['#22406e','#7cc4ff'], 'Other': ['#3a3558','#a39fbd']
+};
+TOPICS.Video = ['#5a1f3a','#ff6b8b'];   // (v5) videos saved from Watch
+TOPICS.Family = TOPICS.Family || ['#6b2f4a','#ff9db8']; TOPICS.History = TOPICS.History || ['#5c4a1e','#e8c26a'];   // (v9)
+function topicColors(t){ return TOPICS[t] || TOPICS.Other; }
+
+let db;
+function blank(){
+  return { ideas: [], stashes: [{id:'fav', name:'Favorites', emoji:'⭐'}],
+    daily: {date:'', ids:[]}, streak: {count:0, last:''}, seen: {}, shelf: [],
+    watch: {cats: [], seen: {}, daily: {date:'', items:[], done:{}}, sound: false},
+    limitMin: 20, usage: {} };   // (v8) daily scrolling time in minutes (0 = no limit)
+}
+function load(){
+  try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
+  return blank();   // (v21) no starter guide cards
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast('Storage full or blocked — export a backup'); } }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function welcomeIdeas(){
+  const mk = (title, body) => ({id:uid(), title, body, topic:'Other', source:'GemStash guide', url:'', created:Date.now(), stashes:[]});
+  return [
+    mk('Swipe up for the next idea', 'Today shows a fresh set of 5 ideas each day, pulled from everything you have imported. Keep going past them to explore more.'),
+    mk('Import a whole book in seconds', 'Tap Add → Books. Search Project Gutenberg (60,000+ free public-domain books), pick one, and GemStash breaks it into bite-size idea cards you can keep or skip.'),
+    mk('Bring in jw.org articles', 'Tap Add → Web / jw.org and paste any jw.org or wol.jw.org link, or tap "Today\'s Daily Text". The page is turned into idea cards you choose from.'),
+    mk('Stash what matters', 'Tap the bookmark on any card to put it in a stash. Make as many stashes as you like — by topic, project, or talk you are preparing.'),
+  ];
+}
+
+/* ================= helpers ================= */
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
+function openSheet(html){ document.getElementById('sheetIn').innerHTML = html; document.getElementById('sheet').classList.add('on'); }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
+document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const findIdea = id => db.ideas.find(i => i.id===id);
+const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*(jw\.org|gutenberg\.org)(\/|$)/i.test(i.url || '') || (i.topic === 'Books' && i.shelfId)));   // (v21) jw.org only; (v23) + your books
+
+/* ================= navigation ================= */
+let currentView = 'feed';
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v){
+  currentView = v;
+  document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
+  if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
+  ({feed:renderFeed, shelf:renderShelf, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
+}
+
+/* ================= daily + streak ================= */
+// (v3) the Daily Text is a permanent shelf item: always on, always first in Today
+const dailyShelf = () => db.shelf.find(it => it.kind === 'daily');
+function ensureDailyShelf(){
+  let it = dailyShelf();
+  if (!it) it = {id:uid(), kind:'daily', title:SHELF_KINDS.daily.title, sub:SHELF_KINDS.daily.sub, perDay:1, pos:0, total:0,
+    order:'seq', lastPull:'', paused:false, added:Date.now()};
+  it.paused = false;
+  db.shelf = [it, ...db.shelf.filter(x => x.kind !== 'daily')];
+  // (v4) Questions From Readers + Bible Questions Answered start on the shelf — once only, so Remove sticks
+  db.seeded = db.seeded || [];
+  Object.keys(KIND_LIST).forEach(kind => {   // (v9) all list sources start on
+    if (db.seeded.includes(kind)) return;
+    db.seeded.push(kind);
+    if (db.shelf.some(x => x.kind === kind)) return;
+    const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
+      total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
+    setOrder(s, 'random'); db.shelf.push(s);
+  });
+  // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
+  [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15]].forEach(([key, maxMin]) => {   // (v9) + experiences and our history
+    const tag = 'w:' + key;
+    if (db.seeded.includes(tag)) return;
+    db.seeded.push(tag);
+    if (!db.watch.cats.some(c => c.key === key)) db.watch.cats.push({key, perDay:1, maxMin});
+  });
+  save();
+}
+function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
+function dailyTextUrl(){ const d = new Date(); return `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+function ensureDaily(){
+  const t = today();
+  if (db.daily.date !== t) db.daily = {date:t, ids:[]};
+  const dt = todaysText();
+  // slot 1 is always today's text (or its retry card); 4 more ideas fill the rest
+  const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
+  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
+  if (ids.length < 4){
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id))).slice(0, 4-ids.length);
+    ids.push(...pick.map(i=>i.id));
+  }
+  db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
+}
+function bumpStreak(){
+  const t = today(); if (db.streak.last === t) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const ys = y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+  db.streak.count = db.streak.last === ys ? db.streak.count+1 : 1;
+  db.streak.last = t; save(); renderStreak();
+}
+function renderStreak(){ document.getElementById('streak').textContent = '🔥 ' + db.streak.count; }
+
+/* ================= card ================= */
+// (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
+function posterHTML(i){
+  const pics = i.pics || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
+  return `<div class="card pcard" data-id="${i.id}">
+    <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
+    <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
+      `<div class="pg"><img class="poster" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+    ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.url, i.title)}
+      <button title="Full size" onclick="openPic(this)">🔍</button>
+    </div>
+    <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+}
+function stripMoved(st){
+  const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
+  c.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === n));
+  const ct = c.querySelector('.count'); if (ct) ct.textContent = `${n + 1} / ${st.children.length}`;
+}
+function openPic(btn){
+  const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
+  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
+  window.open(src, '_blank', 'noopener');
+}
+// (v11) "## " lines are headings / highlighted questions
+const bodyHTML = b => esc(b).replace(/^## (.+)(\n\n)?/gm, '<b class="bh">$1</b>');
+/* ================= (v24) Was It Designed? cards (tested in the beta, promoted) ================= */
+// Everything comes from jw.org's own media service by document number (GETPUBMEDIALINKS): the narration MP3 and the
+// article's short MP4, plus the article picture on jw.org's image server. No article page is read or copied.
+// BETA 5: Was It Designed? articles that jw.org made into a full video play as a normal full-screen video
+async function widVideoCard(e){
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${e.v}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const mp4 = ((j.files || {}).E || {}).MP4 || [];
+  const pick = ['480p', '720p', '360p'].map(l => mp4.find(f => f.label === l)).find(Boolean);
+  if (!pick) throw new Error('no video');
+  const title = e.q.replace(/[—-]\s*Was It Designed\?$/, '');
+  return {id:uid(), title, body:'▶ Was It Designed? video', topic:'Science', source:'Was It Designed? — jw.org', url:e.u, created:Date.now(), stashes:[], full:true,
+    video:{lank:e.u, title, dur:Math.round(pick.duration || 0), pub:'', img:`https://cms-imgp.jw-cdn.org/img/p/${e.v}/univ/art/${e.v}_univ_lsr_xl.jpg`, src:pick.file.url, cat:'SERIES_wid'}};
+}
+function layeredCard(e){
+  return {id:uid(), title:e.q.replace(/[—-]\s*Was It Designed\?$/, ''), body:'', topic:'Science', source:'Was It Designed? — jw.org',
+    url:e.u, doc:e.doc, layered:true, clip: e.m !== 'audio', image:`https://cms-imgp.jw-cdn.org/img/p/${e.doc}/univ/art/${e.doc}_univ_sqr_xl.jpg`,
+    created:Date.now(), stashes:[], full:true};
+}
+// (v26): no article text is taken from jw.org any more. Questions From Readers, Bible Questions Answered, Bible Verses
+// Explained, Help for the Family and From Our Archives become "listen cards" like the Was It Designed? ones: the series
+// picture on top, the article's picture below with its title (jw.org's own title from its audio service), and jw.org's
+// own narration. Articles jw.org hasn't narrated show the picture and title with a "Read on jw.org" button.
+const JWIMG = 'https://cms-imgp.jw-cdn.org/img/p/';
+const LISTEN_SERIES = {
+  qfr:  {name:'Questions From Readers',   topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},   // the open Bible (jw.org has no QFR series picture)
+  bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},
+  bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'},
+  fam:  {name:'Help for the Family',      topic:'Family',    art:JWIMG + '1011205/univ/art/1011205_univ_lsr_xl.jpg'},
+  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'}};
+function listenCard(e, kind){
+  const S = LISTEN_SERIES[kind];
+  return {id:uid(), title:e.t || e.q, body:'', topic:S.topic, url:e.u, doc:e.doc || '', layered:true, clip:false, lkind:kind,
+    source: kind === 'qfr' ? 'Questions From Readers — ' + e.ref : S.name + ' — jw.org',
+    image:e.img || '', link:!e.doc, created:Date.now(), stashes:[], full:true};
+}
+// cards made before v26 still hold the article text: turn them into listen cards (keeping hearts and stashes)
+function toListenCards(){
+  if (db.listenB9) return;
+  const byUrl = {};
+  for (const k of Object.keys(LISTEN_SERIES)) for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
+  for (const i of db.ideas){
+    if (i.layered || i.video || i.image || i.pics || !byUrl[i.url]) continue;
+    const [e, k] = byUrl[i.url], n = listenCard(e, k);
+    Object.assign(i, n, {id:i.id, stashes:i.stashes || [], pulledOn:i.pulledOn, shelfId:i.shelfId, created:i.created});
+    delete i.pic;
+  }
+  db.listenB9 = true; save();
+}
+async function layerMedia(i){
+  if (i.audio && i.adur && typeof i.clip === 'boolean') return i;   // beta 6: older cards refresh their details once
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${i.doc}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const E = (j.files || {}).E || {}, mp3 = (E.MP3 || [])[0], mp4s = E.MP4 || [];
+  const clip = ['480p', '360p', '720p', '240p'].map(l => mp4s.find(f => f.label === l)).find(Boolean);
+  i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
+  return i;
+}
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art (fallback)
+// Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
+// jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
+const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
+function layeredHTML(i){
+  const saved = i.stashes && i.stashes.length;
+  const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
+  const S = LISTEN_SERIES[i.lkind];                        // (v26): a listen card from another series
+  const audioOnly = !!S || i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
+  const art = S ? S.art : WID_ART, cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
+  return `<div class="card lcard${cls}" data-id="${i.id}">
+    ${S ? `<div class="series" style="background-image:url('${art}')"><span>${S.name}</span></div>`
+        : `<div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>`}
+    ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
+    ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
+             : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
+    <div class="hero" style="background:url('${art}') center/cover">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
+      <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : 'narrated by jw.org'} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+        <div class="lbar"><i></i></div></div></div>
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.url, i.title)}
+      <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
+    </div></div>`;
+}
+// beta 7: the article picture — try jw.org's square, then wide, then tall version; none at all → the nautilus art shows
+function heroFallback(img){
+  const tries = ['_univ_sqr_xl.jpg', '_univ_lss_lg.jpg', '_univ_pnr_lg.jpg'], cur = tries.findIndex(t => img.src.endsWith(t));
+  if (cur > -1 && cur < tries.length - 1) img.src = img.src.slice(0, -tries[cur].length) + tries[cur + 1];
+  else img.closest('.lcard').classList.add('noimg');
+}
+let layer = null;                                           // the card that's playing: {id, a, v, stopping}
+// Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
+// out of view. Wait a moment and look again; only stop if the card is really gone.
+function layerStopIfGone(lc){
+  const id = lc.dataset.id;
+  setTimeout(() => {
+    if (!layer || layer.id !== id) return;
+    const f = document.getElementById('feed'), r = lc.getBoundingClientRect(), fr = f.getBoundingClientRect();
+    const seen = Math.max(0, Math.min(r.bottom, fr.bottom) - Math.max(r.top, fr.top));
+    if (seen < fr.height * 0.5) layerStop();
+  }, 900);
+}
+// when the screen changes size, put the feed back on the item you were looking at
+let resizeT = null;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
+  const f = document.getElementById('feed');
+  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')) f.scrollTop = feedCurrent.offsetTop;
+}, 150); });
+// coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
+document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
+function layerStop(){
+  if (!layer) return;
+  layer.stopping = true; layer.a.pause(); if (layer.v) layer.v.pause();
+  const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶';
+  layer = null;
+}
+async function layerToggle(id){
+  const c = document.querySelector(`.lcard[data-id="${id}"]`); if (!c) return;
+  if (layer && layer.id === id){ layerStop(); return; }
+  layerStop(); stopListening();
+  const i = findIdea(id), btn = c.querySelector('.lplay');
+  btn.textContent = '…';
+  try {
+    await layerMedia(i);
+    if (!i.audio) throw new Error('no narration');
+    const a = new Audio(i.audio), v = c.querySelector('video.clip');   // null on an audio-only card
+    const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0};   // no clip element on an audio card
+    if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
+    a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%'; };
+    a.onended = () => { c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
+      const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
+    a.onpause = () => {                                      // paused by the phone (not by you)? carry on
+      if (me.stopping || a.ended || layer !== me || me.resumes > 5) return;
+      me.resumes++; setTimeout(() => { if (layer === me && a.paused && !a.ended) a.play().catch(() => {}); }, 400);
+    };
+    c.dataset.started = '1'; delete c.dataset.ended;
+    await a.play();
+    btn.textContent = '❚❚';
+    c.querySelector('.ldur').textContent = i.adur ? '· ' + fmtDur(i.adur) : '';
+  } catch(e){ btn.textContent = '▶'; if (layer && layer.id === id) layer = null; toast('Couldn’t play the narration'); }
+}
+function cardHTML(i){
+  if (i.layered) return layeredHTML(i);
+  if (i.image || i.pics) return posterHTML(i);
+  const [c1,c2] = topicColors(i.topic);
+  const saved = i.stashes && i.stashes.length;
+  const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
+  return `<div class="card" data-id="${i.id}">
+    <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
+      <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
+    ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
+    <div class="src">${src ? '— ' + src : ''}</div>
+    <div class="acts">
+      ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.video ? finderUrl(i.video.lank) : i.url, i.title)}
+      <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
+    </div></div>`;
+}
+
+/* ================= feed ================= */
+let exploreQueue = [];
+function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
+// (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
+// then more cards and videos mixed, until the daily scrolling time runs out.
+let feedCore = -1, exploring = false, feedCurrent = null, feedGen = 0;   // (v12) feedGen: which feed is on screen
+async function renderFeed(){
+  const el0 = document.getElementById('feed');
+  const W = db.watch;
+  const gen = ++feedGen;
+  dedupeVideos();
+  const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
+  if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
+    el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
+      <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
+    if (shelfNeedsPull()) await pullShelf();
+    if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
+    if (currentView !== 'feed' || gen !== feedGen) return;
+  }
+  dedupeVideos();
+  // (v24) Was It Designed? cards delivered as text before v24: switch them to the new video / audio / composite style, once
+  if (!db.widV24){
+    for (const i of db.ideas.filter(x => !x.video && !x.layered && /^Was It Designed\?/.test(x.source || ''))){
+      const e = WID_LIST.find(x => x.u === i.url); if (!e || e.m === 'none') continue;
+      try { const n = e.v ? await widVideoCard(e) : e.doc ? layeredCard(e) : null;
+        if (n) Object.assign(i, n, {id: i.id, stashes: i.stashes, pulledOn: i.pulledOn, shelfId: i.shelfId, created: i.created}); } catch(err){}
+    }
+    db.widV24 = true; save();
+  }
+  toListenCards();                                       // (v26)
+  ensureDaily();
+  const el = document.getElementById('feed');
+  const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
+  const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
+  const qfr = ofKind('qfr'), bqa = ofKind('bqa');
+  const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
+  const vq = W.daily.items.map((v, n) => ({v, n})).filter(x => !x.v.series);   // (v9) series videos come with their card
+  const C = card => ({card}), V = vid => ({vid});
+  const seq = [dt ? C(dt) : {retry:true}];
+  vq.splice(0, 2).forEach(x => seq.push(V(x)));
+  qfr.forEach(i => seq.push(C(i)));
+  vq.splice(0, 1).forEach(x => seq.push(V(x)));
+  bqa.forEach(i => seq.push(C(i)));
+  feedCore = seq.length - 1;                      // reaching here keeps the streak going
+  while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
+  feedCurrent = null;
+  el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
+  el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
+  el.scrollTop = 0;
+  observeFeed();
+}
+function slideHTML(x, k){
+  if (x.retry) return dailyRetryHTML();
+  const core = k === feedCore ? ' data-core="1"' : '';
+  if (x.card && x.card.layered) return `<div class="vslide lslide"${core}>${cardHTML(x.card)}</div>`;   // BETA
+  if (x.card && (x.card.image || x.card.pics)) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
+  if (x.card && x.card.video){                                                                   // (v9) series video
+    const W = db.watch; let n = W.daily.items.findIndex(v => v.lank === x.card.video.lank);
+    if (n < 0){ W.daily.items.push({...x.card.video, extra:true, series:true}); n = W.daily.items.length - 1; save(); }
+    return videoSlideHTML(W.daily.items[n], n).replace('<div class="vslide', `<div${core} class="vslide`);
+  }
+  if (x.card) return `<div class="slide tall"${core}>${cardHTML(x.card)}</div>`;   // (v13) full length, no inner scroll box
+  return videoSlideHTML(x.vid.v, x.vid.n).replace('<div class="vslide', `<div${core} class="vslide`);
+}
+/* ---- (v8) daily scrolling time ---- */
+const LIMITS = [5, 10, 20, 30, 60, 0];
+const usedSecs = () => (db.usage && db.usage[today()]) || 0;
+const timeUp = () => db.limitMin > 0 && usedSecs() >= db.limitMin * 60;
+setInterval(() => {                               // counts only while Today is on screen
+  if (currentView !== 'feed' || document.hidden || !db) return;
+  const t = today(); if (!db.usage || !(t in db.usage)) db.usage = {[t]: 0};
+  db.usage[t]++; if (db.usage[t] % 10 === 0) save();
+}, 1000);
+function timeUpHTML(){
+  return `<div class="slide endslide timeup"><div class="card"><div class="big">⏳</div>
+    <h2>That's your time for today</h2>
+    <p style="color:var(--muted)">You've had your ${db.limitMin} minutes. New ideas and videos come tomorrow.</p>
+    <button class="btn sm alt" onclick="go('library')">💎 Open your stashes</button>
+    <p style="color:var(--muted);font-size:13px">You can change the limit in More.</p></div></div>`;
+}
+// time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
+function cutFeedAt(s){
+  const el = document.getElementById('feed');
+  while (s.nextElementSibling) s.nextElementSibling.remove();
+  s.remove();
+  el.insertAdjacentHTML('beforeend', timeUpHTML());
+  const t = el.lastElementChild; feedObs.observe(t); t.scrollIntoView({block:'start'});
+}
+// (v3) stands in for today's text when it couldn't be fetched (offline, reader busy)
+function dailyRetryHTML(){
+  const why = navigator.onLine === false ? 'You\'re offline right now.' : 'The page reader may be busy.';
+  return `<div class="slide endslide" id="dtRetry"><div class="card" onclick="retryDaily()" style="cursor:pointer">
+    <div class="big">📅</div><h2>Today's text couldn't load, tap to retry</h2>
+    <p style="color:var(--muted)">${why}</p>
+    <button class="btn sm" id="dtBtn">🔄 Retry</button>
+    <a href="${dailyTextUrl()}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--muted);font-size:14px">Or read it on wol.jw.org ↗</a>
+  </div></div>`;
+}
+async function retryDaily(){
+  const it = dailyShelf(), btn = document.getElementById('dtBtn');
+  if (!it || pulling) return;
+  if (btn){ btn.disabled = true; btn.textContent = 'Loading…'; }
+  it.lastPull = ''; await pullShelf();
+  if (todaysText()){ toast('Today\'s text is in'); if (currentView === 'feed') renderFeed(); return; }
+  if (btn){ btn.disabled = false; btn.textContent = '🔄 Retry'; }
+  toast('Still couldn\'t load. Try again in a minute.');
+}
+let feedObs;
+function observeFeed(){
+  const el = document.getElementById('feed');
+  if (feedObs) feedObs.disconnect();
+  feedObs = new IntersectionObserver(ents => ents.forEach(en => {
+    const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
+    // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
+    const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
+    if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStopIfGone(lc); return; }
+    if (s === feedCurrent) return;                  // already counted; keep reading
+    if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
+    feedCurrent = s;
+    const c = s.querySelector('.card[data-id]');
+    if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
+    if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
+    if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
+      const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
+    if (s.dataset.core) bumpStreak();
+    if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
+  }), {root: el, threshold: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1]});
+  el.querySelectorAll('.slide, .vslide').forEach(s => feedObs.observe(s));
+}
+// (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
+function upgradeCard(id){
+  return;                                                 // (v26): article text is no longer taken from jw.org
+  const i = findIdea(id);
+  if (i && i.full === true && PLAYER_JUNK.test(i.body || '')) i.full = false;   // (v15) re-read cards that caught video-player text
+  if (!i || i.full || i.video || i.image || i.pics || !i.url || !/jw\.org/.test(i.url)) return;
+  const it = db.shelf.find(x => x.id === i.shelfId);
+  const kind = it && (KIND_INFO[it.kind] || it.kind === 'qfr' || it.kind === 'bqa') ? it.kind
+    : /^Questions From Readers/.test(i.source) ? 'qfr' : /^Bible Questions Answered/.test(i.source) ? 'bqa' : '';
+  if (!kind) return;
+  i.full = 'pending';
+  const ref = (i.source.match(/— (.+)$/) || [])[1] || '';
+  articleCard({q: i.title, u: i.url, ref}, kind).then(c => {
+    if (c.video) { i.full = true; save(); return; }
+    i.body = c.body; if (c.pic && !i.pic) i.pic = c.pic; i.full = true; save(); refreshCard(id);
+  }).catch(() => { i.full = false; });
+}
+// (v8) past today's set: more cards with a short video after every second card
+async function appendExplore(){
+  if (exploring) return; exploring = true;
+  const el = document.getElementById('feed');
+  const gen = feedGen;
+  try {
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link));
+    const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
+    if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
+    cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
+    vids.forEach(vid => add.push({vid}));
+    add.forEach(x => {
+      if (x.vid && el.querySelector(`[data-lank="${CSS.escape(x.vid.v.lank)}"]`)) return;   // (v12) never the same video twice
+      if (x.card && el.querySelector(`.card[data-id="${x.card.id}"]`)) return;
+      el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
+      if (s.matches('.vslide')) wireVideoSlide(s); feedObs.observe(s); });
+  } finally { exploring = false; }
+}
+function refreshCard(id){
+  const i = findIdea(id);
+  document.querySelectorAll(`.card[data-id="${id}"]`).forEach(c => {
+    if (!i){ c.closest('.slide')?.remove(); return; }
+    c.outerHTML = cardHTML(i);
+  });
+  if (currentView==='library') renderLibrary();
+}
+
+/* ================= listen (v4) ================= */
+// reads a card aloud with the phone's own voice; tap again to stop
+let speakingId = null;
+const BOOKS = {Gen:'Genesis',Ex:'Exodus',Lev:'Leviticus',Num:'Numbers',Deut:'Deuteronomy',Josh:'Joshua',Judg:'Judges',
+  Sam:'Samuel',Ki:'Kings',Chron:'Chronicles',Neh:'Nehemiah',Esth:'Esther',Ps:'Psalm',Prov:'Proverbs',Eccl:'Ecclesiastes',
+  Song:'Song of Solomon',Isa:'Isaiah',Jer:'Jeremiah',Lam:'Lamentations',Ezek:'Ezekiel',Dan:'Daniel',Hos:'Hosea',Obad:'Obadiah',
+  Mic:'Micah',Nah:'Nahum',Hab:'Habakkuk',Zeph:'Zephaniah',Hag:'Haggai',Zech:'Zechariah',Mal:'Malachi',Matt:'Matthew',
+  Rom:'Romans',Cor:'Corinthians',Gal:'Galatians',Eph:'Ephesians',Phil:'Philippians',Col:'Colossians',Thess:'Thessalonians',
+  Tim:'Timothy',Philem:'Philemon',Heb:'Hebrews',Jas:'James',Pet:'Peter',Rev:'Revelation'};
+// (v22) the phone's voice skips what's in parentheses ("(Luke 12:29-31)") and the closing publication reference
+// ("w25.03 28-29 ¶10-11", "w24.12 12 ¶12-13", "ws17.01 8 ¶4"); jw.org's own recordings are left alone
+function forVoice(p){
+  let t = String(p || '');
+  for (let k = 0; k < 3 && /\([^()]*\)/.test(t); k++) t = t.replace(/\s*\([^()]*\)/g, '');   // nested ones too
+  t = t.replace(/\s*\b[a-z]{1,4}\d{2}(\.\d{1,2})?\s+\d+(?:[-–,]\s*\d+)*\s*(?:¶\s*\d+(?:[-–,]\s*\d+)*)?\.?\s*$/i, '');
+  return t.replace(/\s+([.,;:!?])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+}
+function speakable(s){
+  return s
+    .replace(/\b([1-3]) (Sam|Ki|Chron|Cor|Thess|Tim|Pet|John)\.?(?= \d)/g, (m,n,b) => ['','First','Second','Third'][n] + ' ' + (BOOKS[b]||b))
+    .replace(/\b([A-Z][a-z]{1,5})\.(?= \d)/g, (m,b) => BOOKS[b] || m)
+    .replace(/(\d+):(\d+)-(\d+)/g, '$1, verses $2 to $3')
+    .replace(/(\d+):(\d+)/g, '$1, verse $2')
+    .replace(/[—–]/g, ', ').replace(/¶/g, 'paragraph ');
+}
+// (v16) jw.org's own recordings: most jw.org articles have an MP3 reading. Each list entry carries its jw.org document
+// number (doc), found once from the page's <body id="midNNN">; jw.org's pub-media service gives the MP3 (open to apps).
+let DOC_BY_URL = null;
+function docFor(i){
+  if (!i || i.video || i.image || i.pics) return '';
+  if (i.doc) return i.doc;
+  if (!DOC_BY_URL){ DOC_BY_URL = {}; Object.values(KIND_LIST).forEach(f => f().forEach(e => { if (e.doc) DOC_BY_URL[e.u] = e.doc; })); }
+  return DOC_BY_URL[i.url] || '';
+}
+const listenIcon = i => docFor(i) ? '🎧' : '🔊';
+let jwAudio = null;
+async function jwAudioUrl(doc){
+  const r = await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${doc}&output=json&fileformat=MP3&alllangs=0&langwritten=E&txtCMSLang=E`, 20000);
+  const f = (await r.json()).files?.E?.MP3?.[0];
+  if (!f) throw new Error('no recording');
+  return f.file.url;
+}
+function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => {
+  const id = b.closest('.card').dataset.id; b.textContent = id === speakingId ? '⏹️' : listenIcon(findIdea(id)); }); }
+function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} if (jwAudio){ jwAudio.pause(); jwAudio = null; } setListenIcons(); }
+async function listen(id){
+  if (speakingId === id) return stopListening();
+  stopListening();
+  const i = findIdea(id); if (!i) return;
+  const doc = docFor(i);
+  if (doc){                                             // a real jw.org reader
+    speakingId = id; setListenIcons();
+    try {
+      const a = new Audio(i.audio || await jwAudioUrl(doc));
+      if (speakingId !== id) return;                    // stopped while we looked it up
+      jwAudio = a;
+      a.onended = () => { if (jwAudio === a){ jwAudio = null; speakingId = null; setListenIcons(); } };
+      a.onerror = () => { if (jwAudio === a){ jwAudio = null; i.audio = ''; toast('Couldn’t play the recording'); speakingId = null; setListenIcons(); } };
+      await a.play();
+      if (!i.audio){ i.audio = a.src; save(); }
+      return;
+    } catch(e){
+      if (speakingId !== id) return;
+      speakingId = null; toast('Recording not available, using the phone’s voice');
+    }
+  }
+  if (!('speechSynthesis' in window)) return toast('This browser can\'t read aloud');
+  // short pieces: Chrome on Android cuts off long speech
+  const parts = [i.title, ...i.body.split(/\n+/).map(x => x.replace(/^(## |• )/, ''))].map(forVoice).filter(Boolean).flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
+  const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
+                speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
+  speakingId = id; setListenIcons();
+  parts.forEach((p, n) => {
+    const u = new SpeechSynthesisUtterance(p);
+    if (voice) u.voice = voice;
+    u.rate = 1;
+    if (n === parts.length - 1) u.onend = () => { if (speakingId === id){ speakingId = null; setListenIcons(); } };
+    u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
+    speechSynthesis.speak(u);
+  });
+}
+
+/* ================= auto-scroll (v18) ================= */
+// Hands-off reading: text cards scroll down at reading pace then move on, videos play to the end, posters stay ~8 s,
+// picture stories turn their pages. Touching the screen pauses it for a few seconds. The daily time limit still applies.
+const READ_WPM = 200, POSTER_MS = 8000, PAGE_MS = 7000, START_MS = 1500, END_MS = 1500, TOUCH_PAUSE_MS = 6000;
+let autoOn = false, autoState = null, autoHold = 0, autoLast = 0;
+function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn); b.textContent = autoOn ? '⏸ Auto' : '▶ Auto'; }
+function toggleAuto(){
+  autoOn = !autoOn; db.auto = autoOn; save(); setAutoButton(); autoState = null; autoHold = 0;
+  toast(autoOn ? 'Auto-scroll on: touch the screen to pause' : 'Auto-scroll off');
+  if (autoOn){ autoLast = performance.now(); requestAnimationFrame(autoTick); }
+}
+['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(ev => document.addEventListener(ev, e => {
+  if (!autoOn || e.target.closest && e.target.closest('#autoBtn')) return;
+  autoHold = performance.now() + TOUCH_PAUSE_MS; autoState = null;            // you're in charge for a moment
+}, {passive: true}));
+function autoNext(s){
+  const f = document.getElementById('feed'), nx = s.nextElementSibling;
+  if (!nx) return;
+  f.scrollTo({top: nx.offsetTop, behavior: 'smooth'});
+  autoHold = performance.now() + 1200;                                     // let the feed settle on the next item
+}
+function readMs(s){
+  const words = (s.querySelector('.card')?.innerText || '').split(/\s+/).length;
+  return Math.max(5000, words / READ_WPM * 60000);
+}
+function autoTick(now){
+  if (!autoOn) return;
+  requestAnimationFrame(autoTick);
+  const dt = Math.min(200, now - autoLast); autoLast = now;
+  const f = document.getElementById('feed'), s = feedCurrent;
+  if (currentView !== 'feed' || document.hidden || now < autoHold || !s || !f.contains(s) ||
+      document.getElementById('sheet').classList.contains('on')) return;
+  if (!autoState || autoState.s !== s) autoState = {s, t: 0, page: 0};
+  const st = autoState; st.t += dt;
+  const vid = s.querySelector('video:not(.clip):not(.art)');   // BETA
+  if (vid){                                                                 // videos: to the end
+    if (vid.ended) autoNext(s);
+    else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
+    return;
+  }
+  const lc = s.querySelector('.lcard');                                    // BETA layered card
+  if (lc && lc.classList.contains('link')){ if (st.t > 6000) autoNext(s); return; }   // (v26): nothing to play
+  if (lc){ if (lc.dataset.ended) return autoNext(s); if (!lc.dataset.started && st.t > 1500){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); } return; }
+  const strip = s.querySelector('.pcard .strip');
+  if (strip && strip.children.length > 1){                                  // picture story: turn the pages
+    const pg = Math.floor(st.t / PAGE_MS);
+    if (pg >= strip.children.length) return autoNext(s);
+    if (pg !== st.page){ st.page = pg; strip.scrollTo({left: pg * strip.clientWidth, behavior: 'smooth'}); }
+    return;
+  }
+  if (s.querySelector('.pcard')) { if (st.t > POSTER_MS) autoNext(s); return; }   // single poster
+  if (!s.querySelector('.card[data-id]') || s.classList.contains('timeup')) return;   // end / retry screens: stop here
+  const total = readMs(s), extra = s.offsetHeight - f.clientHeight;         // text card
+  if (extra > 4){                                                           // longer than the screen: glide down while you read
+    const p = Math.min(1, Math.max(0, (st.t - START_MS) / (total - START_MS)));
+    const want = s.offsetTop + extra * p;
+    if (Math.abs(f.scrollTop - want) > 0.5) f.scrollTop = want;
+    if (st.t > total + END_MS) autoNext(s);
+  } else if (st.t > total) autoNext(s);
+}
+
+/* ================= friends & comments (v19) ================= */
+// A private circle of friends: create one, share its 6-letter code, friends join with it (no email, no passwords —
+// Firebase anonymous sign-in). Comments hang on the jw.org link, so the whole circle sees one thread per gem.
+// Firebase project "gemstash-10786" (Mike's Google account). These config values are public by design; the
+// Firestore rules (in HANDOFF.md) are what keep circles private. The Firebase code loads only once you're in a circle.
+const FB_CONFIG = {apiKey: "AIzaSyBTzUaSW_IUimPdQTzzdVCXxXMhi2pGCX4", authDomain: "gemstash-10786.firebaseapp.com",
+  projectId: "gemstash-10786", storageBucket: "gemstash-10786.firebasestorage.app", messagingSenderId: "837487552214",
+  appId: "1:837487552214:web:3b0c8f8f77eb56c1204b77"};
+const FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const APP_URL = 'https://pauljlinenfelser-prog.github.io/ideastash/';
+let fb = null, fbLoading = null;
+function fbInit(){
+  return fbLoading ||= (async () => {
+    const [A, U, F] = await Promise.all([import(FB_BASE + 'firebase-app.js'), import(FB_BASE + 'firebase-auth.js'), import(FB_BASE + 'firebase-firestore.js')]);
+    const app = A.initializeApp(FB_CONFIG), auth = U.getAuth(app);
+    await auth.authStateReady();
+    if (!auth.currentUser) await U.signInAnonymously(auth);
+    fb = {F, U, auth, fs: F.getFirestore(app), uid: auth.currentUser.uid};
+    return fb;
+  })().catch(e => { fbLoading = null; throw e; });
+}
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => CODE_ABC[b % CODE_ABC.length]).join('');
+function friendErr(e){ console.warn(e); toast(/permission|insufficient/i.test(e.message || '') ? 'Not allowed — are the Firebase rules published?' : 'Friends: ' + (e.message || e)); }
+// (v19) Sign in with Google: keeps your place (and owner rights) on a new phone or after clearing Chrome.
+// Upgrades the current anonymous sign-in, so the same identity stays in the circle.
+function googleHTML(){
+  return db.google
+    ? `<div class="row"><span class="t"><b>✔ Signed in with Google</b><small>${esc(db.google)} — your place in the circle is safe on any phone</small></span></div>`
+    : `<button class="btn alt" onclick="googleSignIn()"><b>G</b>&nbsp; Sign in with Google <small style="color:var(--muted)">(recommended)</small></button>
+       <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Without it, your place in the circle lives only in this phone’s Chrome.</p>`;
+}
+async function googleSignIn(){
+  try {
+    const f = await fbInit(), {U, auth} = f, prov = new U.GoogleAuthProvider();
+    try { await U.linkWithPopup(auth.currentUser, prov); }
+    catch(e){
+      if (e.code !== 'auth/credential-already-in-use') throw e;
+      await U.signInWithCredential(auth, U.GoogleAuthProvider.credentialFromError(e));   // this Google account was used before (e.g. old phone)
+    }
+    f.uid = auth.currentUser.uid;
+    const u = auth.currentUser, gname = (u.displayName || u.providerData[0]?.displayName || '').trim();
+    db.google = gname || 'your Google account'; if (!db.myName && gname) db.myName = gname.split(' ')[0];
+    if (db.circle){                                                     // make sure this identity is in the circle
+      const {F, fs} = f; await F.setDoc(F.doc(fs, 'circles', db.circle.code, 'members', f.uid), {name: db.circle.name, joined: F.serverTimestamp()});
+      const c = await F.getDoc(F.doc(fs, 'circles', db.circle.code)); db.circle.owner = c.data().owner === f.uid;
+    }
+    save(); renderMore(); toast('Signed in with Google');
+  } catch(e){ if (!/popup-closed|cancelled-popup/.test(e.code || '')) friendErr(e); }
+}
+function friendsHTML(){
+  const c = db.circle;
+  if (!c) return `<div class="sec">Friends</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">Start a private circle and talk about the gems with friends. They join with your code — no email, no passwords.</p>
+    ${googleHTML()}
+    <label class="l">Your name (what friends see)</label><input id="frName" maxlength="40" value="${esc(db.myName || '')}" placeholder="e.g. Mike">
+    <button class="btn" onclick="createCircle()">✨ Start a circle</button>
+    <label class="l">Or join a friend's circle</label>
+    <div class="search" style="margin-top:0"><input id="frCode" maxlength="6" placeholder="6-letter code" style="text-transform:uppercase" autocapitalize="characters">
+      <button class="btn sm" onclick="joinCircle()">Join</button></div>`;
+  return `<div class="sec">Friends</div>
+    <div class="row"><span class="t"><b>Circle ${esc(c.code)}${c.owner ? ' · you started it' : ''}</b><small>You are “${esc(c.name)}”. Tap 💬 on any gem to talk about it.</small></span></div>
+    <button class="btn" onclick="shareInvite()">📤 Invite a friend</button>
+    ${googleHTML()}
+    <div id="frMembers" class="mini" style="margin-top:10px"><small style="color:var(--muted)">Loading members…</small></div>
+    <button class="btn alt" onclick="leaveCircle()">Leave the circle</button>`;
+}
+async function loadMembers(){
+  const el = document.getElementById('frMembers'); if (!el || !db.circle) return;
+  try {
+    const {F, fs, uid} = await fbInit(), c = db.circle;
+    const snap = await F.getDocs(F.collection(fs, 'circles', c.code, 'members'));
+    el.innerHTML = '<b>Members</b>' + snap.docs.map(d => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+      <span style="flex:1">${esc(d.data().name)}${d.id === uid ? ' (you)' : ''}</span>
+      ${c.owner && d.id !== uid ? `<button class="btn sm alt" onclick="removeMember('${d.id}', this)">Remove</button>` : ''}</div>`).join('');
+  } catch(e){ el.innerHTML = '<small style="color:var(--danger)">Couldn’t load members</small>'; friendErr(e); }
+}
+function myName(){ const n = (document.getElementById('frName')?.value || db.myName || '').trim().slice(0, 40); return n; }
+async function createCircle(){
+  const name = myName(); if (!name) return toast('Type your name first');
+  try {
+    const {F, fs, uid} = await fbInit(), code = newCode();
+    await F.setDoc(F.doc(fs, 'circles', code), {owner: uid, created: F.serverTimestamp(), name: 'GemStash circle'});
+    await F.setDoc(F.doc(fs, 'circles', code, 'members', uid), {name, joined: F.serverTimestamp()});
+    db.myName = name; db.circle = {code, name, owner: true}; save(); renderMore(); toast('Circle started — invite your friends');
+  } catch(e){ friendErr(e); }
+}
+async function joinCircle(){
+  const name = myName(), code = (document.getElementById('frCode').value || '').trim().toUpperCase();
+  if (!name) return toast('Type your name first');
+  if (!/^[A-Z0-9]{6}$/.test(code)) return toast('The code has 6 letters/numbers');
+  try {
+    const {F, fs, uid} = await fbInit();
+    const c = await F.getDoc(F.doc(fs, 'circles', code));
+    if (!c.exists()) return toast('No circle with that code');
+    await F.setDoc(F.doc(fs, 'circles', code, 'members', uid), {name, joined: F.serverTimestamp()});
+    db.myName = name; db.circle = {code, name, owner: c.data().owner === uid}; save(); renderMore(); toast('You joined the circle');
+  } catch(e){ friendErr(e); }
+}
+async function removeMember(muid, btn){
+  try { const {F, fs} = await fbInit(); await F.deleteDoc(F.doc(fs, 'circles', db.circle.code, 'members', muid)); btn.closest('div').remove(); toast('Removed'); }
+  catch(e){ friendErr(e); }
+}
+async function leaveCircle(){
+  if (!confirm('Leave this circle? You can rejoin later with the code.')) return;
+  try { const {F, fs, uid} = await fbInit(); await F.deleteDoc(F.doc(fs, 'circles', db.circle.code, 'members', uid)); } catch(e){ console.warn(e); }
+  db.circle = null; save(); renderMore(); toast('You left the circle');
+}
+function shareInvite(){
+  const c = db.circle;
+  shareLink(`Join my GemStash circle! Open the app, tap More → Friends, and enter the code ${c.code}`, APP_URL);
+}
+// ---- comments ----
+function commentBtn(url, title){
+  if (!db.circle || !url) return '';
+  return `<button title="Comments" class="cmt" data-url="${esc(url)}" data-title="${esc(title || '')}" onclick="openComments(this)">💬<span class="cc"></span></button>`;
+}
+const threadCache = {}, countCache = {};
+async function threadId(url){
+  if (threadCache[url]) return threadCache[url];
+  const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(url));
+  return threadCache[url] = Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, '0')).join('');
+}
+const commentsCol = async url => { const {F, fs} = await fbInit(); return F.collection(fs, 'circles', db.circle.code, 'threads', await threadId(url), 'comments'); };
+async function loadCount(btn){
+  const url = btn.dataset.url, show = n => document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = n || ''; });
+  if (url in countCache) return show(countCache[url]);
+  try { const {F} = await fbInit(); const r = await F.getCountFromServer(await commentsCol(url)); countCache[url] = r.data().count; show(countCache[url]); } catch(e){ console.warn(e); }
+}
+function ago(d){
+  if (!d) return 'now';
+  const s = (Date.now() - d.getTime()) / 1000;
+  return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : d.toLocaleDateString();
+}
+async function openComments(btn){
+  const url = btn.dataset.url, title = btn.dataset.title;
+  document.querySelectorAll('#feed video').forEach(v => v.pause());
+  openSheet(`<h3>💬 ${esc(title)}</h3>
+    <div class="cmts" id="cmList"><small style="color:var(--muted)">Loading…</small></div>
+    <textarea id="cmText" maxlength="500" placeholder="Share a thought with your circle…" style="min-height:80px"></textarea>
+    <button class="btn" id="cmPost">Post</button><button class="btn alt" onclick="closeSheet()">Close</button>`);
+  document.getElementById('cmPost').onclick = () => postComment(url, title);
+  try {
+    const {F, uid} = await fbInit(), col = await commentsCol(url);
+    window._unsubComments = F.onSnapshot(F.query(col, F.orderBy('at')), snap => {
+      const el = document.getElementById('cmList'); if (!el) return;
+      countCache[url] = snap.size; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = snap.size || ''; });
+      el.innerHTML = snap.size ? snap.docs.map(d => { const c = d.data({serverTimestamps: 'estimate'});
+        const mine = c.uid === uid, can = mine || db.circle.owner;
+        return `<div class="cm">${can ? `<button class="del" onclick="delComment('${esc(url)}','${d.id}')">Delete</button>` : ''}
+          <div class="who">${esc(c.name)}<span class="when">${ago(c.at && c.at.toDate())}</span></div><div class="txt">${esc(c.text)}</div></div>`; }).join('')
+        : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
+      el.scrollTop = el.scrollHeight;
+    }, e => { friendErr(e); });
+  } catch(e){ friendErr(e); }
+}
+async function postComment(url, title){
+  const t = document.getElementById('cmText'), text = t.value.trim().slice(0, 500);
+  if (!text) return;
+  try {
+    const {F, uid} = await fbInit();
+    await F.addDoc(await commentsCol(url), {uid, name: db.circle.name, text, at: F.serverTimestamp(), title: (title || '').slice(0, 200), url});
+    t.value = '';
+  } catch(e){ friendErr(e); }
+}
+async function delComment(url, id){
+  try { const {F} = await fbInit(); await F.deleteDoc(F.doc(await commentsCol(url), id)); } catch(e){ friendErr(e); }
+}
+
+/* ================= share (v17) ================= */
+// Opens the phone's share menu (Messages, WhatsApp, email…) with jw.org's direct link. No phone share menu → copy the link.
+function shareLink(title, url){
+  if (navigator.share) return navigator.share({title, text: title, url}).catch(() => {});
+  const txt = url ? `${title}\n${url}` : title;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Link copied — paste it in a message'), () => toast('Sharing isn’t available here'));
+}
+function shareIdea(id){
+  const i = findIdea(id); if (!i) return;
+  const url = i.video ? finderUrl(i.video.lank) : i.url;
+  if (url) return shareLink(i.title, url);
+  shareLink(`${i.title}\n\n${i.body.slice(0, 600)}${i.body.length > 600 ? '…' : ''}${i.source ? '\n— ' + i.source : ''}`, '');   // own notes: share the text
+}
+function shareVideo(n){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
+  shareLink(v.title, finderUrl(v.lank));
+}
+
+/* ================= actions ================= */
+function copyIdea(id){
+  const i = findIdea(id); const txt = `${i.title}\n\n${i.body}\n\n— ${i.source||''}${i.url?' '+i.url:''}`;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('Copied'), ()=>toast('Copy not allowed here'));
+}
+function delIdea(id){
+  openSheet(`<h3>Delete this idea?</h3><p style="color:var(--muted)">${esc(findIdea(id).title)}</p>
+    <button class="btn" style="background:var(--danger);color:#fff" onclick="reallyDel('${id}')">Delete</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+function reallyDel(id){ db.ideas = db.ideas.filter(i=>i.id!==id); save(); closeSheet(); refreshCard(id); toast('Deleted'); }
+function editIdea(id){
+  const i = findIdea(id);
+  openSheet(`<h3>Edit idea</h3>
+    <label class="l">Title</label><input id="eT" value="${esc(i.title)}">
+    <label class="l">Idea</label><textarea id="eB">${esc(i.body)}</textarea>
+    <label class="l">Topic</label>${topicSelect('eP', i.topic)}
+    <label class="l">Source</label><input id="eS" value="${esc(i.source)}">
+    <button class="btn" onclick="saveEdit('${id}')">Save</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+function saveEdit(id){
+  const i = findIdea(id);
+  i.title = document.getElementById('eT').value.trim() || i.title;
+  i.body = document.getElementById('eB').value.trim() || i.body;
+  i.topic = document.getElementById('eP').value; i.source = document.getElementById('eS').value.trim();
+  save(); closeSheet(); refreshCard(id); toast('Saved');
+}
+function topicSelect(idAttr, val){
+  return `<select id="${idAttr}">${Object.keys(TOPICS).map(t=>`<option ${t===val?'selected':''}>${t}</option>`).join('')}</select>`;
+}
+function stashSheet(id){
+  const i = findIdea(id); i.stashes = i.stashes || [];
+  openSheet(`<h3>Save to stash</h3>
+    ${db.stashes.map(s=>`<label class="row chk"><input type="checkbox" ${i.stashes.includes(s.id)?'checked':''}
+      onchange="toggleStash('${id}','${s.id}',this.checked)"><span class="t"><b>${esc(s.emoji)} ${esc(s.name)}</b></span></label>`).join('')}
+    <div class="search"><input id="newStash" placeholder="New stash name"><button class="btn sm" onclick="newStash('${id}')">Add</button></div>
+    <button class="btn alt" onclick="closeSheet()">Done</button>`);
+}
+function toggleStash(id, sid, on){
+  const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on) i.stashes.push(sid);
+  save(); refreshCard(id);
+}
+/* ---- hearts (v6) ---- */
+const isHearted = i => !!i && (i.stashes || []).includes('fav');
+function ensureFav(){ if (!db.stashes.some(s => s.id === 'fav')) db.stashes.unshift({id:'fav', name:'Favorites', emoji:'⭐'}); }
+function heartBurst(host, x, y){
+  const b = document.createElement('div'); b.className = 'burst'; b.textContent = '❤️';
+  b.style.left = x + 'px'; b.style.top = y + 'px'; host.appendChild(b); setTimeout(() => b.remove(), 950);
+  try { navigator.vibrate && navigator.vibrate(15); } catch(e){}
+}
+function popHeart(sel){ document.querySelectorAll(sel).forEach(b => { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }); }
+function heartIdea(id){
+  const on = !isHearted(findIdea(id));
+  ensureFav(); toggleStash(id, 'fav', on);
+  if (on){
+    const c = document.querySelector(`.card[data-id="${id}"]`), host = c && c.parentElement;
+    if (host){ const r = c.getBoundingClientRect(), h = host.getBoundingClientRect(); heartBurst(host, r.left - h.left + r.width/2, r.top - h.top + r.height/2); }
+    toast('❤️ Saved to Favorites');
+  }
+  popHeart(`.card[data-id="${id}"] .heart`);
+}
+// double-tap a card anywhere (not on a button) = heart it. Like TikTok, a double-tap never un-hearts.
+let lastTap = {t:0};
+document.addEventListener('click', e => {
+  const card = e.target.closest('.card[data-id]');
+  if (!card || e.target.closest('button,a,video,input,textarea,select,label')) return;
+  const now = Date.now(), id = card.dataset.id;
+  if (lastTap.id === id && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40){
+    lastTap = {t:0};
+    const host = card.parentElement, h = host.getBoundingClientRect();
+    heartBurst(host, e.clientX - h.left, e.clientY - h.top);
+    if (!isHearted(findIdea(id))){ ensureFav(); toggleStash(id, 'fav', true); popHeart(`.card[data-id="${id}"] .heart`); }
+  } else lastTap = {t:now, id, x:e.clientX, y:e.clientY};
+});
+function newStash(id){
+  const n = document.getElementById('newStash').value.trim(); if (!n) return;
+  const emojis = ['📘','🕊️','💡','🌿','🔥','🧭','🏛️','🎯','🪔','📜'];
+  const s = {id:uid(), name:n, emoji: emojis[db.stashes.length % emojis.length]};
+  db.stashes.push(s); if (id) toggleStash(id, s.id, true); save();
+  id ? stashSheet(id) : (closeSheet(), renderLibrary());
+}
+
+/* ================= library ================= */
+let libFilter = 'all';
+function renderLibrary(){
+  const el = document.getElementById('library');
+  const counts = id => db.ideas.filter(i => (i.stashes||[]).includes(id)).length;
+  let list = libFilter==='all' ? db.ideas : db.ideas.filter(i => (i.stashes||[]).includes(libFilter));
+  const q = (el.querySelector('#libQ')||{}).value || '';
+  if (q) list = list.filter(i => (i.title+' '+i.body+' '+i.source).toLowerCase().includes(q.toLowerCase()));
+  list = [...list].sort((a,b)=>b.created-a.created);
+  el.innerHTML = `
+    <div class="sec">Stashes</div>
+    <div class="grid">
+      <button class="tile" onclick="libFilter='all';renderLibrary()" style="${libFilter==='all'?'outline:2px solid var(--accent)':''}">
+        <span class="e">🗂️</span><b>All ideas</b><small>${db.ideas.length} ideas</small></button>
+      ${db.stashes.map(s=>`<button class="tile" onclick="libFilter='${s.id}';renderLibrary()" style="${libFilter===s.id?'outline:2px solid var(--accent)':''}">
+        <span class="e">${esc(s.emoji)}</span><b>${esc(s.name)}</b><small>${counts(s.id)} ideas</small></button>`).join('')}
+      <button class="tile" onclick="newStashSheet()">
+        <span class="e">➕</span><b>New stash</b><small>Group ideas</small></button>
+    </div>
+    <div class="search"><input id="libQ" placeholder="Search ideas…" value="${esc(q)}" oninput="clearTimeout(window._q);window._q=setTimeout(()=>{renderLibrary();const x=document.getElementById('libQ');x.focus();x.setSelectionRange(x.value.length,x.value.length)},250)"></div>
+    ${libFilter!=='all' && libFilter!=='fav' ? `<button class="btn alt sm" onclick="delStash('${libFilter}')">Delete this stash</button>`:''}
+    <div class="sec">${list.length} ideas</div>
+    ${list.slice(0,300).map(i=>`<div class="mini" onclick="viewIdea('${i.id}')"><b>${esc(i.title)}</b><p>${esc(i.body)}</p>
+      <div class="m">${esc(i.topic)} · ${esc(i.source||'')}</div></div>`).join('')}
+    ${list.length>300?'<div class="status">Showing newest 300 — use search to narrow.</div>':''}`;
+}
+function newStashSheet(){ openSheet(`<h3>New stash</h3><input id="newStash" placeholder="Name"><button class="btn" onclick="newStash()">Create</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`); }
+function delStash(sid){
+  db.stashes = db.stashes.filter(s=>s.id!==sid);
+  db.ideas.forEach(i => i.stashes = (i.stashes||[]).filter(x=>x!==sid));
+  libFilter='all'; save(); renderLibrary(); toast('Stash deleted (ideas kept)');
+}
+function viewIdea(id){
+  openSheet(`<div style="height:70vh;display:flex;position:relative">${cardHTML(findIdea(id))}</div>
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
+
+/* ================= text → idea cards ================= */
+function cleanMarkdown(t){
+  const mc = t.indexOf('Markdown Content:'); if (mc > -1) t = t.slice(mc + 17);
+  return t.replace(/!\[[^\]]*\]\([^)]*\)/g,'')          // images
+          .replace(/\[([^\]]*)\]\([^)]*\)/g,'$1')        // links
+          .replace(/^#{1,6}\s*/gm,'').replace(/[*_]{1,3}([^*_\n]+)[*_]{1,3}/g,'$1')
+          .replace(/^\s*[-=]{3,}\s*$/gm,'').replace(/^>\s?/gm,'').replace(/\r/g,'')
+          .replace(/\u200b/g,'').replace(/\s+w\d\d\.\d\d\s+\d+\s*¶[\d\-, ]+\s*$/gm,'');   // jw citation tails
+}
+function stripGutenberg(t){
+  const s = t.search(/START OF (THE|THIS) PROJECT GUTENBERG E?BOOK[^\n]*\n/i);
+  if (s > -1) t = t.slice(t.indexOf('\n', s) + 1);
+  const e = t.search(/\**\s*END OF (THE|THIS) PROJECT GUTENBERG/i);
+  if (e > -1) t = t.slice(0, e);
+  return t;
+}
+function paragraphs(text){
+  return text.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g,' ').replace(/\s{2,}/g,' ').trim()).filter(Boolean);
+}
+function sentences(p){ return p.match(/[^.!?]+[.!?]+["'”’)]*|[^.!?]+$/g)?.map(s=>s.trim()).filter(Boolean) || [p]; }
+function makeTitle(p){
+  let s = sentences(p)[0].replace(/^["'“‘(]+/,'');
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (s.length <= 75) return s.replace(/[.,;:]$/,'');
+  const words = s.split(' '); let out='';
+  for (const w of words){ if ((out+' '+w).length > 60) break; out += (out?' ':'') + w; }
+  return out.replace(/[,;:]$/,'') + '…';
+}
+function trimBody(p, max=900){
+  if (p.length <= max) return p;
+  let out=''; for (const s of sentences(p)){ if ((out+' '+s).length > max) break; out += (out?' ':'') + s; }
+  return out || p.slice(0,max)+'…';
+}
+function goodPara(p){
+  if (p.length < 140 || p.length > 1600) return false;
+  if (!/[.!?]["'”’)]*$/.test(p)) return false;
+  const letters = p.replace(/[^A-Za-z]/g,''); if (!letters.length) return false;
+  if ((p.replace(/[^A-Z]/g,'').length / letters.length) > .5) return false;   // shouty headings
+  if ((p.match(/["“”]/g)||[]).length > 6) return false;                       // heavy dialogue
+  if (/^(chapter|contents|copyright|share|print|download|log in|search)/i.test(p)) return false;
+  if (/cookie|javascript|privacy policy|terms of use/i.test(p)) return false;
+  return sentences(p).length >= 2;
+}
+function textToIdeas(text, meta, limit){
+  let paras = paragraphs(text).filter(goodPara);
+  if (limit && paras.length > limit){
+    // spread picks across the whole text, not just the start
+    const step = paras.length / limit; const pick=[];
+    for (let k=0;k<limit;k++) pick.push(paras[Math.floor(k*step + Math.random()*step)]);
+    paras = pick;
+  }
+  paras = paras.map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));   // drop section numbers like "XIV. "
+  return paras.map(p => ({id:uid(), title:makeTitle(p), body:trimBody(p), topic:meta.topic, source:meta.source, url:meta.url||'', created:Date.now(), stashes:[]}));
+}
+
+/* ================= fetching ================= */
+const timed = (url, ms=20000) => fetch(url, {signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined});
+async function fetchText(url){
+  try {
+    const r = await timed(url, 12000); if (r.ok){ const t = await r.text(); if (t.length > 200) return {text:t, html:/<html|<body/i.test(t.slice(0,2000))}; }
+  } catch(e){}
+  const r = await timed(READER + url, 90000);
+  if (!r.ok) throw new Error('Reader returned ' + r.status);
+  return {text: await r.text(), html:false};
+}
+function htmlToText(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style,nav,header,footer,noscript,aside,form,button,[role=dialog],.video-js,[class*=vjs-]').forEach(n=>n.remove());   // (v15) + video player
+  const root = doc.querySelector('article, main, #article, .article') || doc.body;
+  root.querySelectorAll('p,div,h1,h2,h3,li,br').forEach(n => n.insertAdjacentText('afterend','\n\n'));
+  return root.textContent;
+}
+
+/* ================= add view ================= */
+let addTab = 'web', preview = [];   // (v21) jw.org only: Books / Paste / Write one retired
+function renderAdd(){
+  const el = document.getElementById('add');
+  el.innerHTML = `<div class="tabs">
+      ${[['web','🌐 jw.org link'],['books','📖 Books'],['video','🎬 Video link']].map(([k,l])=>
+        `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
+    <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
+  const b = document.getElementById('addBody');
+  if (!['web','books','video'].includes(addTab)) addTab = 'web';   // (v23) Books are back (Mike); Paste / Write one stay retired
+  if (addTab==='books') b.innerHTML = `
+      <label class="btn" style="display:block;text-align:center">📄 Add a book from my files (PDF or EPUB)
+        <input type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onchange="addFileBook(this.files[0]); this.value=''"></label>
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 14px">Read on your phone and saved there (nothing is uploaded). Kindle and Audible books are copy-locked and won't open.</p>
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">Or search free public-domain books on Project Gutenberg:</p>
+      <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
+      <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
+  if (addTab==='web') b.innerHTML = `
+      <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text (wol.jw.org)</button>
+      <label class="l">Or paste a jw.org or wol.jw.org link</label>
+      <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 0">On jw.org or in JW Library: Share → Copy link. The whole article becomes one gem.</p>
+      <button class="btn" onclick="webImport()">Add this gem</button>`;
+  if (addTab==='paste') b.innerHTML = `
+      <label class="l">Paste text (book notes, article, study notes)</label><textarea id="pt"></textarea>
+      <label class="l">Source</label><input id="ps" placeholder="e.g. Watchtower Nov 2026, p. 8">
+      <label class="l">Topic</label>${topicSelect('pp','Spiritual')}
+      <button class="btn" onclick="pasteImport()">Make idea cards</button>`;
+  if (addTab==='one') b.innerHTML = `
+      <label class="l">Title</label><input id="oT">
+      <label class="l">Idea</label><textarea id="oB"></textarea>
+      <label class="l">Source</label><input id="oS">
+      <label class="l">Topic</label>${topicSelect('oP','Wisdom')}
+      <button class="btn" onclick="writeOne()">Save idea</button>`;
+  if (addTab==='video') b.innerHTML = `
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">On jw.org or in JW Library, tap Share → Copy link, then paste it here.
+        It plays in Today right after the Daily Text.</p>
+      <input id="vlink" placeholder="https://www.jw.org/finder?…lank=…" autocomplete="off" inputmode="url">
+      <div class="status" id="vst"></div>
+      <button class="btn" onclick="addVideoLink()">Add video</button>`;
+  if (preview.length) renderPreview();
+}
+function setSt(msg, err){ const s=document.getElementById('st'); if(s){ s.textContent=msg; s.className='status'+(err?' err':''); } }
+
+async function bookSearch(){
+  const q = document.getElementById('bq').value.trim(); if (!q) return;
+  setSt('Searching Gutenberg…'); document.getElementById('bres').innerHTML='';
+  try {
+    let data;
+    try { data = await (await timed('https://gutendex.com/books/?languages=en&search=' + encodeURIComponent(q), 15000)).json(); }
+    catch(e){   // Gutendex slow or down → read Gutenberg's own search page through the reader
+      setSt('Still searching…');
+      const md = await (await timed(READER + 'https://www.gutenberg.org/ebooks/search/?query=' + encodeURIComponent(q), 45000)).text();
+      const results = [...md.matchAll(/\[!\[[^\]]*\]\([^)]*\)([^\]]+)\]\(https:\/\/www\.gutenberg\.org\/ebooks\/(\d+)\)/g)]
+        .map(m => ({id:+m[2], title:m[1].trim(), authors:[], formats:{}}));
+      data = {results};
+    }
+    const books = (data.results||[]).slice(0,15);
+    setSt(books.length ? 'Tap a book to put it on your shelf or pick passages now.' : 'No books found (Gutenberg’s search may be busy, try again later).');
+    window._books = books;
+    document.getElementById('bres').innerHTML = books.map((bk,ix)=>`<button class="row" style="width:100%;text-align:left" onclick="bookChoice(${ix})">
+      <span class="t"><b>${esc(bk.title)}</b><small>${esc((bk.authors||[]).map(a=>a.name).join(', ')||'Unknown')}</small></span><span>›</span></button>`).join('');
+  } catch(e){ setSt('The book search is busy right now, try again later. (' + e.message + ')', true); }
+}
+function bookTextUrl(bk){
+  const f = bk.formats || {};
+  const key = Object.keys(f).find(k => k.startsWith('text/plain') && !f[k].endsWith('.zip'));
+  return key ? f[key] : `https://www.gutenberg.org/cache/epub/${bk.id}/pg${bk.id}.txt`;
+}
+function bookChoice(ix){
+  const bk = window._books[ix];
+  const onShelf = (db.shelf||[]).some(it => it.kind==='book' && it.gid===bk.id);
+  openSheet(`<h3>${esc(bk.title)}</h3>
+    <p style="color:var(--muted);margin-top:-6px">${esc((bk.authors||[]).map(a=>a.name).join(', ')||'')}</p>
+    ${onShelf ? '<p class="status">Already on your shelf.</p>' :
+      `<button class="btn" onclick="closeSheet();addBookToShelf(${ix})">📖 Add to My Shelf</button>
+       <p style="color:var(--muted);font-size:13px;margin:6px 2px 4px">New ideas from this book arrive in Today each day.</p>`}
+    <button class="btn alt" onclick="closeSheet();bookImport(${ix})">✋ Pick passages now</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+async function bookImport(ix){
+  const bk = window._books[ix];
+  const url = bookTextUrl(bk);
+  const author = (bk.authors||[]).map(a=>a.name).join(', ');
+  setSt('Downloading "' + bk.title + '"… (big books take a moment)');
+  try {
+    let {text} = await fetchText(url);
+    text = cleanMarkdown(stripGutenberg(text));
+    window._lastBook = {text, meta:{topic:'Books', source: bk.title + (author?' — '+author:''), url:`https://www.gutenberg.org/ebooks/${bk.id}`}};
+    preview = textToIdeas(text, window._lastBook.meta, 25);
+    setSt(preview.length ? `Found ideas in "${bk.title}". Keep the ones you like.` : 'Couldn\'t find idea-sized passages in this book.', !preview.length);
+    renderPreview(true);
+  } catch(e){ setSt('Download failed: ' + e.message, true); }
+}
+async function getDailyCard(){
+  const d = new Date();
+  const url = `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const raw = (await fetchText(url)).text;
+  const md = raw.includes('Markdown Content:') ? raw : (await (await timed(READER + url, 60000)).text());
+  const sections = md.split(/^##\s+/m).slice(1);
+  const want = d.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'}); // "Saturday, November 14"
+  const sec = sections.find(x => x.startsWith(want)) || sections[Math.min(1, sections.length-1)];
+  if (!sec) throw new Error('daily text not found on page');
+  const lines = cleanMarkdown(sec).split('\n').map(l=>l.trim()).filter(Boolean);
+  const day = lines[0], theme = lines[1] || '', body = lines.slice(2).filter(l=>!/^Examining the Scriptures Daily/.test(l)).join('\n\n');
+  if (!body) throw new Error('daily text was empty');
+  return {id:uid(), title:theme.replace(/^_|_$/g,'').trim(), body, topic:'Spiritual',
+    source:'Examining the Scriptures Daily — ' + day, url, created:Date.now(), stashes:[]};
+}
+async function dailyText(){
+  setSt('Getting today\'s text…');
+  try { preview = [await getDailyCard()]; setSt('Today\'s text is ready.'); renderPreview(); }
+  catch(e){ setSt('Could not get the daily text: ' + e.message, true); }
+}
+// (v21) a pasted jw.org / wol.jw.org link becomes ONE complete gem, read like the shelf articles (headings, 🎧, Read more)
+const isJwUrl = u => /^https?:\/\/([a-z0-9-]+\.)*jw\.org(\/|$)/i.test(u || '');
+async function webImport(){
+  const url = document.getElementById('wu').value.trim();
+  if (!/^https?:\/\//.test(url)) return setSt('Paste a full link starting with https://', true);
+  if (!isJwUrl(url)) return setSt('GemStash only takes links from jw.org or wol.jw.org.', true);
+  if (/lank=|mediaitems\/|_VIDEO\b/i.test(url)){ addTab = 'video'; renderAdd(); document.getElementById('vlink').value = url; return addVideoLink(); }
+  setSt('Reading the article…');
+  try {
+    const {text, html} = await fetchText(url);
+    const md = html ? htmlToText(text) : text;
+    const t = (md.match(/^Title:\s*(.+)$/m) || [])[1] || '';
+    const title = t.replace(/\s*[|—–-]\s*(Watchtower ONLINE LIBRARY|JW\.ORG|Bible Questions|Help for the Family|Was It Designed\?|Study|Watchtower|Awake!).*$/i, '').trim() || 'jw.org article';
+    let blocks = articleBlocks(md);
+    const norm = x => x.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    while (blocks.length && norm(blocks[0]) === norm(title)) blocks.shift();
+    const body = joinBlocks(blocks);
+    if (body.replace(/## .*/g, '').trim().length < 80) throw new Error('no article text found on that page');
+    const pic = (md.split('Markdown Content:').pop().match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+    preview = [{id:uid(), title, body, pic, topic:'Spiritual', source:(/wol\.jw\.org/.test(url) ? 'wol.jw.org' : 'jw.org'), url, created:Date.now(), stashes:[], full:true}];
+    setSt('Here’s the article. Tap Keep to add it to your gems.');
+    renderPreview();
+  } catch(e){ setSt('Could not read that page: ' + e.message, true); }
+}
+function pasteImport(){
+  const text = document.getElementById('pt').value;
+  preview = textToIdeas(text, {topic:document.getElementById('pp').value, source:document.getElementById('ps').value.trim()||'My notes'});
+  if (!preview.length){
+    // short notes: treat each paragraph as an idea anyway
+    preview = paragraphs(text).filter(p=>p.length>30).map(p=>({id:uid(), title:makeTitle(p), body:p, topic:document.getElementById('pp').value,
+      source:document.getElementById('ps').value.trim()||'My notes', url:'', created:Date.now(), stashes:[]}));
+  }
+  setSt(preview.length ? `${preview.length} ideas ready.` : 'Nothing to import.', !preview.length);
+  renderPreview();
+}
+function writeOne(){
+  const t = document.getElementById('oT').value.trim(), b = document.getElementById('oB').value.trim();
+  if (!b) return setSt('Write the idea first.', true);
+  db.ideas.push({id:uid(), title:t||makeTitle(b), body:b, topic:document.getElementById('oP').value, source:document.getElementById('oS').value.trim(), url:'', created:Date.now(), stashes:[]});
+  save(); toast('Idea saved'); renderAdd();
+}
+function renderPreview(isBook){
+  const el = document.getElementById('prev'); if (!el) return;
+  if (!preview.length){ el.innerHTML=''; return; }
+  el.innerHTML = `<div style="display:flex;gap:8px;margin:6px 0 12px">
+      <button class="btn sm alt" onclick="document.querySelectorAll('.pv').forEach(c=>c.checked=true)">All</button>
+      <button class="btn sm alt" onclick="document.querySelectorAll('.pv').forEach(c=>c.checked=false)">None</button>
+      ${window._lastBook && (isBook||preview[0].topic==='Books') ? `<button class="btn sm alt" onclick="moreFromBook()">🔀 Different passages</button>`:''}</div>
+    ${preview.map((p,ix)=>`<label class="mini chk"><input type="checkbox" class="pv" data-ix="${ix}" checked>
+      <span><b>${esc(p.title)}</b><p>${esc(p.body)}</p></span></label>`).join('')}
+    <button class="btn" onclick="keepPreview()">Keep selected</button>`;
+}
+function moreFromBook(){ preview = textToIdeas(window._lastBook.text, window._lastBook.meta, 25); renderPreview(true); window.scrollTo(0,0); }
+function keepPreview(){
+  const keep = [...document.querySelectorAll('.pv')].filter(c=>c.checked).map(c=>preview[+c.dataset.ix]);
+  const have = new Set(db.ideas.map(i=>i.body));
+  const fresh = keep.filter(k=>!have.has(k.body));
+  db.ideas.push(...fresh); save();
+  preview = []; toast(`Added ${fresh.length} ideas`); renderAdd(); setSt(`Added ${fresh.length} ideas to your library.`);
+}
+
+/* ================= shelf ================= */
+const idb = {
+  _db:null,
+  open(){ return this._db ||= new Promise((res,rej)=>{ const r=indexedDB.open('ideastash',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async get(k){ const d=await this.open(); return new Promise((res,rej)=>{ const q=d.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); },
+  async set(k,v){ const d=await this.open(); return new Promise((res,rej)=>{ const tx=d.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); },
+  async del(k){ const d=await this.open(); return new Promise(res=>{ const tx=d.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }); }
+};
+const SHELF_KINDS = {
+  daily: {emoji:'📅', title:'Daily Text', sub:'Examining the Scriptures Daily · wol.jw.org'},
+  qfr:   {emoji:'❓', title:'Questions From Readers', sub:'The Watchtower · wol.jw.org'},
+  bqa:   {emoji:'📘', title:'Bible Questions Answered', sub:'jw.org'},
+  wid:   {emoji:'🦉', title:'Was It Designed?', sub:'Awake! · jw.org', unit:'articles and short videos'},
+  bve:   {emoji:'📜', title:'Bible Verses Explained', sub:'jw.org', unit:'verses'},
+  fam:   {emoji:'🏡', title:'Help for the Family', sub:'jw.org', unit:'articles'},
+  arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
+  bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
+  ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
+  book:  {emoji:'📖'}
+};
+// (v9) every list-based source, in the order they start on the shelf
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST};
+const KIND_INFO = {
+  wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
+  bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
+  fam:  {topic:'Family',    source:'Help for the Family — jw.org'},
+  arch: {topic:'History',   source:'From Our Archives — jw.org'}};
+const gcd = (a,b) => b ? gcd(b, a%b) : a;
+function setOrder(it, order){
+  it.order = order;
+  if (order === 'random' && it.total > 1){
+    let step; do { step = 1 + Math.floor(Math.random() * (it.total-1)); } while (gcd(step, it.total) !== 1);
+    it.step = step; it.seed = Math.floor(Math.random() * it.total);
+  }
+}
+// position → which entry to serve; random uses a full-cycle permutation so nothing repeats
+const entryIndex = it => it.order === 'random' && it.step ? (it.pos * it.step + it.seed) % it.total : it.pos;
+
+function addSourceToShelf(kind){
+  if (db.shelf.some(it => it.kind === kind)) return toast('Already on your shelf');
+  const total = KIND_LIST[kind] ? KIND_LIST[kind]().length : 0;
+  const it = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0, total, lastPull:'', paused:false, added:Date.now()};
+  setOrder(it, kind==='daily' ? 'seq' : 'random');
+  db.shelf.push(it); save(); toast('Added to your shelf'); renderShelf();
+}
+async function addBookToShelf(ix){
+  const bk = window._books[ix];
+  const author = (bk.authors||[]).map(a=>a.name).join(', ');
+  setSt('Downloading "' + bk.title + '" for your shelf…');
+  try {
+    const it = {id:uid(), kind:'book', gid:bk.id, title:bk.title, sub:author, textUrl:bookTextUrl(bk),
+      link:`https://www.gutenberg.org/ebooks/${bk.id}`, perDay:2, pos:0, total:0, lastPull:'', paused:false, added:Date.now()};
+    const paras = await loadBookParas(it);
+    if (!paras.length) throw new Error('no idea-sized passages found');
+    it.total = paras.length; setOrder(it, 'seq');
+    db.shelf.push(it); save();
+    setSt(`"${bk.title}" is on your shelf — ${paras.length} ideas, 2 a day, in order.`);
+    toast('Added to your shelf');
+  } catch(e){ setSt('Could not add the book: ' + e.message, true); }
+}
+/* ---- (v23) your own books: PDF or EPUB, read on the phone (pdf.js / JSZip from cdnjs, loaded only when used) ---- */
+function loadScript(src){ return new Promise((ok, bad) => { if ([...document.scripts].some(x => x.src === src)) return ok();
+  const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = () => bad(new Error('could not load the reader')); document.head.appendChild(e); }); }
+// book text → passages: real paragraphs where the file has them, otherwise groups of whole sentences (~500–900 characters)
+function passagesFrom(blocks){
+  const out = [];
+  for (let b of blocks){
+    b = b.replace(/\s+/g, ' ').trim();
+    if (!b) continue;
+    if (b.length <= 1200){ if (goodPara(b)) out.push(b); continue; }
+    let cur = '';
+    for (const sn of sentences(b)){
+      if ((cur + ' ' + sn).length > 900 && cur.length > 400){ if (goodPara(cur)) out.push(cur); cur = ''; }
+      cur = cur ? cur + ' ' + sn : sn;
+    }
+    if (goodPara(cur)) out.push(cur);
+  }
+  return out;
+}
+async function pdfBlocks(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  const meta = (await pdf.getMetadata().catch(() => ({}))).info || {};
+  // a PDF only knows lines placed on a page: collect each line's text, left edge, height and position
+  const pages = [];
+  for (let n = 1; n <= pdf.numPages; n++){
+    const tc = await (await pdf.getPage(n)).getTextContent();
+    const lines = []; let cur = null;
+    for (const it of tc.items){
+      if (!it.transform) continue;
+      const x = it.transform[4], y = it.transform[5], h = Math.abs(it.transform[3]) || it.height || 0;
+      if (!cur || Math.abs(y - cur.y) > 2){ if (cur) lines.push(cur); cur = {t: '', x, y, h}; }
+      cur.t += (cur.t && !/\s$/.test(cur.t) && !/^\s/.test(it.str) ? ' ' : '') + it.str;
+      cur.x = Math.min(cur.x, x); cur.h = Math.max(cur.h, h);
+    }
+    if (cur) lines.push(cur);
+    pages.push(lines.map(l => ({...l, t: l.t.replace(/\s+/g, ' ').trim()})).filter(l => l.t));
+    if (n % 20 === 0) setSt(`Reading page ${n} of ${pdf.numPages}…`);
+  }
+  // running headers/footers (same text on many pages) and page numbers: drop them
+  const freq = {}; pages.forEach(ls => new Set(ls.map(l => l.t.replace(/\d+/g, '#'))).forEach(k => freq[k] = (freq[k] || 0) + 1));
+  const many = Math.max(3, pages.length * 0.3);
+  const edge = (ls, k) => k < 2 || k >= ls.length - 2;                      // headers/footers live at the top or bottom of a page
+  const body = pages.map(ls => ls.filter((l, k) => !(edge(ls, k) && (/^\d+$/.test(l.t) || freq[l.t.replace(/\d+/g, '#')] >= many))));
+  // the usual left edge, line height and line gap of body text
+  const all = body.flat(), mode = a => { const c = {}; let best = a[0], m = 0; a.forEach(v => { c[v] = (c[v] || 0) + 1; if (c[v] > m){ m = c[v]; best = v; } }); return best; };
+  const left = mode(all.map(l => Math.round(l.x))), bodyH = mode(all.map(l => Math.round(l.h)));
+  const gaps = []; body.forEach(ls => ls.forEach((l, k) => { if (k) gaps.push(Math.round(ls[k - 1].y - l.y)); }));
+  const gap = mode(gaps.filter(g => g > 0)) || bodyH * 1.2;
+  // new paragraph at: an indented first line, a bigger gap than usual, or a heading (bigger text)
+  // a paragraph can run on to the next page: only the first line's indent decides there
+  const blocks = []; let para = '';
+  for (const ls of body){
+    ls.forEach((l, k) => {
+      const prev = ls[k - 1];
+      const heading = l.h > bodyH * 1.25, wasHeading = prev && prev.h > bodyH * 1.25;
+      const brk = heading || wasHeading || l.x > left + 4 || (prev && (prev.y - l.y) > gap * 1.4) || (!prev && /[.!?”"’)]$/.test(para) && /^[A-Z“"‘(]/.test(l.t) && l.x > left + 1);
+      if (brk && para){ blocks.push(para); para = ''; }
+      if (para.endsWith('-')) para = para.slice(0, -1) + l.t; else para += (para ? ' ' : '') + l.t;
+    });
+  }
+  if (para) blocks.push(para);
+  return {title: meta.Title || '', author: meta.Author || '', blocks};
+}
+async function epubBlocks(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  const zip = await JSZip.loadAsync(file);
+  const enc = zip.file('META-INF/encryption.xml');
+  if (enc && /EncryptedData/.test(await enc.async('text')) && !/font/i.test(await enc.async('text'))) throw new Error('this book is copy-protected (DRM)');
+  const xml = t => new DOMParser().parseFromString(t, 'application/xml');
+  const container = xml(await zip.file('META-INF/container.xml').async('text'));
+  const opfPath = container.querySelector('rootfile').getAttribute('full-path'), base = opfPath.replace(/[^/]*$/, '');
+  const opf = xml(await zip.file(opfPath).async('text'));
+  const items = {}; opf.querySelectorAll('manifest > item').forEach(i => items[i.getAttribute('id')] = i.getAttribute('href'));
+  const title = opf.querySelector('metadata title, metadata > *|title')?.textContent || '';
+  const author = opf.querySelector('metadata creator, metadata > *|creator')?.textContent || '';
+  const blocks = [];
+  for (const ref of opf.querySelectorAll('spine > itemref')){
+    const href = items[ref.getAttribute('idref')]; if (!href) continue;
+    const f = zip.file(decodeURIComponent(base + href).replace(/\/\.\//g, '/')); if (!f) continue;
+    const doc = new DOMParser().parseFromString(await f.async('text'), 'application/xhtml+xml');
+    doc.querySelectorAll('p, blockquote, li').forEach(el => { const t = el.textContent.trim(); if (t) blocks.push(t); });
+  }
+  return {title, author, blocks};
+}
+async function addFileBook(file){
+  if (!file) return;
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf', isEpub = /\.epub$/i.test(file.name) || /epub/.test(file.type);
+  if (!isPdf && !isEpub) return setSt('Pick a PDF or EPUB file.', true);
+  setSt(`Reading “${file.name}”…`);
+  try {
+    const r = isPdf ? await pdfBlocks(file) : await epubBlocks(file);
+    const paras = passagesFrom(r.blocks).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
+    if (paras.length < 3) throw new Error(isPdf ? 'no readable text found (a scanned PDF has pictures of pages, not text)' : 'no readable text found');
+    const title = (r.title || file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]+/g, ' ')).trim().slice(0, 120);
+    const it = {id:uid(), kind:'book', file:true, title, sub:r.author || 'From your files', link:'', perDay:2, pos:0, total:paras.length,
+      lastPull:'', paused:false, added:Date.now()};
+    setOrder(it, 'seq');
+    await idb.set('book:' + it.id, paras);
+    db.shelf.push(it); save();
+    setSt(`“${title}” is on your shelf — ${paras.length} passages, 2 a day, in order. Change that on the Shelf tab.`);
+    toast('Added to your shelf');
+  } catch(e){ setSt('Could not read that file: ' + e.message, true); }
+}
+async function loadBookParas(it){
+  try { const c = await idb.get('book:' + it.id); if (c) return c; } catch(e){}
+  if (it.file) throw new Error('this book’s file is no longer on the phone, add it again');   // (v23)
+  let {text} = await fetchText(it.textUrl);
+  text = cleanMarkdown(stripGutenberg(text));
+  const paras = paragraphs(text).filter(goodPara).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
+  try { await idb.set('book:' + it.id, paras); } catch(e){}
+  return paras;
+}
+function wordsOf(s){ return new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3)); }
+// (v11) Whole articles: keep headings ("## …"), highlighted questions and points, bullets and numbered lists,
+// and read to the end of the article (stop at footnotes / Related / page tools) instead of ~950 characters.
+const JUNK_LINE = /^(PLAY|CLOSE|Play video|Media is loading|Loaded: ?\d*%?|Current time.*|Duration.*|Mute|Play Back.*|Download|Share|Print|Font Size|Previous|Next|\/|Questions From Readers|Play & Download|SHOW MENU)$/i;
+// (v15) jw.org's video player (video.js) hides its settings menus as text in the page: Settings, Speed 2x…0.6x, Cast, AirPlay, captions dialog
+const PLAYER_LINE = /^(Settings|Back|Speed|Speed \d(\.\d+)?x\b.*|\d(\.\d+)?x( · Normal)?(, selected)?|Normal|Cast|AirPlay|Close Modal Dialog|This is a modal window\.?|Text Color.*Transparency.*|Font Size Text Edge.*|Reset restore all settings.*|Captions( and Subtitles)?( off| settings.*)?|Subtitles( off)?|Chapters|Descriptions( off)?|Audio Track|Quality|Auto|Picture-in-Picture|Fullscreen|Non-Fullscreen|Unmute|Pause|Replay|Remaining Time.*|Stream Type.*|LIVE|Seek to live.*|(Audio|Video) \d+)$/i;
+const PLAYER_JUNK = /This is a modal window|Beginning of dialog window|Close Modal Dialog|Reset restore all settings/i;
+const END_LINE = /^(\*\*)?\[?(Footnotes?|Related Topics|You May Also Like|Read More|Related|See also|Share)\]?(\*\*)?$/i;
+function inlineMd(t){
+  return t.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[[a-z*]\]\([^)]*#footnote[^)]*\)/g, '')                      // footnote markers
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')                                 // links → text
+    .replace(/(\*\*|__)(.+?)\1/g, '$2').replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, '$1$2')
+    .replace(/​/g, '').replace(/\s+w\d\d\.\d\d\s+\d+\s*¶[\d\-, ]+\s*$/, '').trim();
+}
+// markdown (from the reader) → plain text with "## " headings and "• " bullets, one block per paragraph
+function articleBlocks(md){
+  const mc = md.indexOf('Markdown Content:'); if (mc > -1) md = md.slice(mc + 17);
+  const lines = md.replace(/\r/g, '').split('\n');
+  const h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));   // jw.org pages: skip menu + cookie notice
+  const out = [];
+  let afterPic = 0, num = '', inPlayer = false, inDialog = false;                                 // picture captions follow a picture
+  for (const raw of (h1 > -1 ? lines.slice(h1 + 1) : lines)){
+    let l = raw.trim();
+    if (!l) continue;
+    if (/^#\s+Play & Download/i.test(l)) { inPlayer = true; continue; }          // jw.org video player menus
+    if (inPlayer) { if (/\d{3}p\s*\(MP4/i.test(l)) inPlayer = false; continue; }
+    const plain = l.replace(/^(#{1,6}|[*+-•])\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+    if (/^Beginning of dialog window/i.test(plain)) { inDialog = true; continue; }   // (v15) video player captions dialog
+    if (inDialog) { if (/End of dialog window/i.test(plain)) inDialog = false; continue; }
+    if (/End of dialog window/i.test(plain) || PLAYER_LINE.test(plain)) continue;      // (v15) video player menus
+    const bare = l.replace(/^#{1,6}\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+    if (END_LINE.test(bare) || /^#{1,3}\s+(Related|You May Also Like|Read More)/i.test(l)) break;
+    if (/^\[[a-z]\]\([^)]*#footnotesource/.test(l)) break;                     // footnote list
+    const pic = l.match(/^(\d+)\.\s+\[?!\[/);                                    // "4.  [picture]" — the point's text comes next
+    if (pic){ num = pic[1] + '. '; afterPic = 2; continue; }
+    if (/^\[?!\[/.test(l) || /^\[!\[/.test(l)) { afterPic = 2; continue; }      // picture
+    if (afterPic && l.length < 160 && !/[.!?:”"’)]$/.test(l) && !/^[#*>]/.test(l)) { afterPic--; continue; }   // its caption
+    afterPic = 0;
+    if (num && !/^#/.test(l)) { l = num + l; num = ''; }
+    if (/^\*\s+\[\*\*.*\*\*\]\([^)]*#link\d/.test(l) || /^\*\s+\[[^\]]+\]\([^)]*#link\d/.test(l)) continue;   // "in this article" contents
+    let m;
+    if ((m = l.match(/^#{2,6}\s+(.+)/))) { const h = inlineMd(m[1]); if (h && !JUNK_LINE.test(h)) out.push('## ' + h); continue; }
+    if ((m = l.match(/^\*\*([^*]+)\*\*:?$/))) {                                  // whole line in bold = heading / highlighted question
+      const h = inlineMd(m[1]); if (!h || /\|/.test(h) || JUNK_LINE.test(h)) continue; out.push('## ' + h); continue; }
+    if ((m = l.match(/^[*+-]\s+(.+)/))) { const b = inlineMd(m[1]); if (b && !JUNK_LINE.test(b)) out.push('• ' + b); continue; }
+    if ((m = l.match(/^(\d+)\.\s+(.+)/))) { const b = inlineMd(m[2]); if (b) out.push(m[1] + '. ' + b); continue; }
+    l = inlineMd(l.replace(/^>\s?/, ''));
+    if (!l || JUNK_LINE.test(l) || PLAYER_LINE.test(l) || /cookie|JavaScript|Skip to content/i.test(l)) continue;
+    out.push(l);
+  }
+  return out;
+}
+const MAX_BODY = 15000;
+function joinBlocks(blocks){
+  let body = '';
+  for (const b of blocks){ if (body.length + b.length > MAX_BODY) { body += '\n\n…'; break; } body += (body ? '\n\n' : '') + b; }
+  return body.replace(/(## [^\n]+)(\n\n## [^\n]+)+$/,'$1').replace(/\n\n## [^\n]+$/, '').trim();   // no dangling heading at the end
+}
+async function articleCard(entry, kind){
+  const {text, html} = await fetchText(entry.u);
+  const md = html ? htmlToText(text) : text;
+  if (KIND_INFO[kind]) return seriesCard(entry, kind, md);
+  let blocks = articleBlocks(md);
+  // find the question on the page that best matches the index entry; the answer starts after it
+  const want = wordsOf(entry.q); let qi = -1, best = 0;
+  blocks.forEach((b, ix) => {
+    const t = b.replace(/^## /, '');
+    if (t.length > 320 || !/\?["”’)]*$/.test(t)) return;
+    let score = 0; wordsOf(t).forEach(w => { if (want.has(w)) score++; });
+    if (score > best){ best = score; qi = ix; }
+  });
+  const title = kind === 'bqa' || qi < 0 ? entry.q : p0(blocks[qi].replace(/^## /, '')).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
+  blocks = blocks.slice(qi + 1);
+  const norm = t => t.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');   // (v15) page repeats the question
+  while (blocks.length && norm(blocks[0]) === norm(title)) blocks.shift();
+  if (kind === 'qfr'){                                   // a wol page can hold several Questions From Readers: stop at the next one
+    const next = blocks.findIndex((b, ix) => ix > 0 && /^## .{10,320}\?["”’)]*$/.test(b) && b.length > 40);
+    if (next > 0) blocks = blocks.slice(0, next);
+  }
+  if (kind === 'bqa') blocks = blocks.filter(b => !/^## The Bible’s answer$/i.test(b));
+  const body = joinBlocks(blocks);
+  if (body.replace(/## .*/g, '').trim().length < 80) throw new Error('could not read answer');
+  return {id:uid(), title, body, topic:'Q&A', full:true, doc: entry.doc || '',
+    source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
+    url: entry.u, created:Date.now(), stashes:[]};
+}
+// (v9) Was It Designed? / Bible Verses Explained / Help for the Family / From Our Archives. Video pages become full-screen videos.
+function seriesCard(entry, kind, md){
+  const info = KIND_INFO[kind];
+  const pic = (md.split('Markdown Content:').pop().match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+  let blocks = articleBlocks(md);
+  const norm = t => t.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');   // (v15) page repeats the title
+  const t0 = norm(entry.q.replace(/[—-]\s*Was It Designed\?$/, ''));
+  while (blocks.length && t0 && (norm(blocks[0]) === t0 || norm(blocks[0]) === norm(entry.q))) blocks.shift();
+  if (kind === 'bve'){                                    // keep the NWT quote, drop the same verse in other translations
+    let first = true;
+    blocks = blocks.filter(b => { if (/^“/.test(b) && /(Version|Translation|Bible)[._ ]*$/.test(b)){ const keep = first; first = false; return keep; } return true; });
+  }
+  const body = joinBlocks(blocks);
+  const mp4 = (md.match(/https:\/\/[^\s)"']+?_r(?:480|720|360)P\.mp4/) || [])[0];
+  const base = {id:uid(), doc: entry.doc || '', title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
+    topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[], full:true};
+  const words = body.replace(/## .*/g, '').trim();
+  if (mp4 && words.length < 300){
+    return {...base, body: words.split('\n')[0] || '▶ Short video', video:{lank:entry.u, title:base.title, dur:0, pub:'', img:pic, src:mp4, cat:'SERIES_' + kind}};
+  }
+  if (words.length < 80) throw new Error('could not read article');
+  return {...base, body, pic};
+}
+// (v9) Become Jehovah's Friend poster: one full-screen picture
+function posterCard(e){
+  return {id:uid(), title:e.q, body:e.d || 'Become Jehovah’s Friend poster', topic:'Spiritual',
+    source:'Become Jehovah’s Friend — Poster', url:e.u, image:e.img, created:Date.now(), stashes:[]};
+}
+// (v10) Illustrated Bible Story: cover + comic pages, swiped sideways
+function storyCard(e){
+  const img = (k) => `https://cms-imgp.jw-cdn.org/img/p/${e.id}/E/art/${e.id}_E_${k}.jpg`;
+  const pics = [img('cnt_1_md'), ...Array.from({length:e.n}, (_, i) => img('cfb_' + String(i + 1).padStart(2, '0') + '_lg'))];
+  return {id:uid(), title:e.q, body:e.d, topic:'Spiritual', source:'Illustrated Bible Stories — jw.org',
+    url:'https://www.jw.org/en/bible-teachings/children/illustrated-bible-stories/' + e.u, pics, created:Date.now(), stashes:[]};
+}
+function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
+
+let pulling = null;
+function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
+async function doPull(){
+  const t = today(); let added = 0;
+  const key = c => c.layered || c.video ? c.url : c.body;   // (v26): listen / video cards have no text, so tell them apart by their jw.org link
+  const have = new Set(db.ideas.map(key));
+  const keep = card => { if (have.has(key(card))) return; have.add(key(card)); card.pulledOn = t; db.ideas.push(card); added++; };
+  for (const it of db.shelf){
+    if (it.paused || it.lastPull === t || (it.total && it.pos >= it.total)) continue;
+    try {
+      if (it.kind === 'daily'){
+        const c = await getDailyCard();
+        const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
+        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; } else { c.shelfId = it.id; keep(c); }
+      } else if (it.kind === 'book'){
+        const paras = await loadBookParas(it);
+        it.total = paras.length;
+        for (let n = 0; n < it.perDay && it.pos < it.total; n++){
+          const p = paras[entryIndex(it)];
+          keep({id:uid(), title:makeTitle(p), body:trimBody(p), topic:'Books', source:it.title + (it.sub ? ' — ' + it.sub : ''),
+            url:it.link, created:Date.now(), stashes:[], shelfId:it.id});
+          it.pos++;
+        }
+      } else {
+        const list = KIND_LIST[it.kind]();
+        it.total = list.length;
+        let got = 0, tries = 0;
+        while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
+          if (LISTEN_SERIES[it.kind] && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
+          tries++;
+          try { const we = list[entryIndex(it)];
+            if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+          catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
+          it.pos++;
+        }
+      }
+      it.lastPull = t; it.error = '';
+    } catch(e){ it.error = e.message; }
+    save();
+  }
+  return added;
+}
+function shelfSub(it){
+  if (it.kind === 'daily') return 'Always on · first card in Today every day';
+  const pct = it.total ? Math.round(100 * it.pos / it.total) : 0;
+  return `${it.pos} of ${it.total || '…'} · ${it.perDay}/day · ${it.order === 'random' ? 'Random' : 'In order'}${it.total && it.pos >= it.total ? ' · Finished ✓' : ''}`;
+}
+function renderShelf(){
+  const el = document.getElementById('shelf');
+  const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
+  el.innerHTML = `
+    <div class="sec">My Shelf</div>
+    ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
+    ${db.shelf.map(it => `<button class="shelfitem ${it.paused?'paused':''}" onclick="shelfSheet('${it.id}')">
+      <span class="e">${SHELF_KINDS[it.kind].emoji}</span>
+      <span class="t" style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title)}</b>
+        <small style="color:var(--muted)">${it.paused ? 'Paused · ' : ''}${esc(shelfSub(it))}</small>
+        ${it.error ? `<small style="display:block;color:var(--danger)">Last try failed — will retry</small>` : ''}
+        ${it.total ? `<div class="prog"><i style="width:${Math.min(100, 100*it.pos/it.total)}%"></i></div>` : ''}</span>
+      <span>›</span></button>`).join('')}
+    ${db.shelf.length ? `<button class="btn alt" onclick="pullNow()">🔄 Get today's ideas now</button>` : ''}
+    <div class="sec">Videos</div>
+    <button class="shelfitem" onclick="channelsSheet()"><span class="e">📺</span>
+      <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
+      <span>›</span></button>
+    <div class="sec">Add to shelf</div>
+    ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
+      <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
+      <span style="font-size:22px">＋</span></button>`).join('')}
+    <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
+      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
+      <span style="font-size:22px">＋</span></button>`;   // (v23) back
+}
+async function pullNow(){
+  db.shelf.forEach(it => { if (it.error) it.lastPull = ''; });
+  toast('Checking your shelf…');
+  const n = await pullShelf(); ensureDaily(); renderShelf();
+  toast(n ? `${n} new ideas added to Today` : 'Nothing new — today\'s ideas are already in');
+}
+function shelfSheet(id){
+  const it = db.shelf.find(x => x.id === id);
+  const canOrder = it.kind !== 'daily', canPerDay = it.kind !== 'daily';
+  openSheet(`<h3>${SHELF_KINDS[it.kind].emoji} ${esc(it.title)}</h3>
+    <p style="color:var(--muted);margin-top:-6px">${esc(it.sub || '')}</p>
+    ${canPerDay ? `<label class="l">Ideas per day</label>
+      <div class="step"><button onclick="shelfSet('${id}','perDay',-1)">−</button><b id="pd">${it.perDay}</b><button onclick="shelfSet('${id}','perDay',1)">+</button></div>` : ''}
+    ${canOrder ? `<label class="l">Order</label>
+      <div class="seg"><button class="${it.order!=='random'?'on':''}" onclick="shelfOrder('${id}','seq')">In order</button>
+      <button class="${it.order==='random'?'on':''}" onclick="shelfOrder('${id}','random')">Random</button></div>
+      <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
+    ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day. If it can't load, a retry card takes its place.</p>` : `
+    <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
+    ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
+    <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
+    <p style="color:var(--muted);font-size:13px">Ideas already delivered stay in your library.</p>`}
+    <button class="btn" onclick="closeSheet()">Done</button>`);
+}
+function shelfSet(id, key, d){
+  const it = db.shelf.find(x => x.id === id); it.perDay = Math.min(10, Math.max(1, it.perDay + d));
+  document.getElementById('pd').textContent = it.perDay; save(); renderShelf();
+}
+function shelfOrder(id, order){
+  const it = db.shelf.find(x => x.id === id);
+  if (it.order === order) return;
+  // switching order restarts the count so nothing repeats
+  setOrder(it, order); it.pos = 0; save(); shelfSheet(id); renderShelf();
+}
+function shelfPause(id){ const it = db.shelf.find(x => x.id === id); if (it.kind === 'daily') return; it.paused = !it.paused; save(); closeSheet(); renderShelf(); }
+function shelfRestart(id){ const it = db.shelf.find(x => x.id === id); it.pos = 0; if (it.order==='random') setOrder(it,'random'); save(); closeSheet(); renderShelf(); toast('Starting over'); }
+function shelfRemove(id){
+  if (dailyShelf()?.id === id) return;
+  db.shelf = db.shelf.filter(x => x.id !== id); save(); idb.del('book:' + id); closeSheet(); renderShelf(); toast('Removed from shelf');
+}
+
+/* ================= watch (v5): jw.org videos ================= */
+// jw.org's public video catalog allows direct app access (open CORS); MP4s play straight from jw-cdn.
+const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
+const WATCH_GROUPS = [
+  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings']]],
+  ['JW Broadcasting', [['StudioNewsReports','News and Announcements'],['StudioTalks','Talks'],['StudioMonthlyPrograms','Monthly Programs'],['StudioFeatured','Featured Videos']]],
+  ['Interviews and Experiences', [['VODIntExpTransformations','Truth Transforms Lives'],['VODIntExpBlessings','Blessings of Sacred Service'],['VODIntExpEndurance','Enduring Trials'],['VODIntExpYouth','Young People'],['OriginsLife','Science'],['VODIntExpArchives','From Our Archives']]],
+  ['The Bible', [['VODBiblePrinciples','Apply Bible Principles'],['VODBibleTeachings','Bible Teachings'],['BibleBooks','Books of the Bible'],['VODBibleReadingStudy','Bible Reading and Study'],['VODBibleMedia','People, Places, and Things'],['VODBibleCreation','Creation'],['VODBibleAccounts','Bible Accounts'],['VODBibleTranslations','Bible Translations']]],
+  ['Our Organization', [['Reports','Reports From Around the World'],['VODOrgBethel','Bethel'],['VODOrgHistory','History'],['VODOrgLegal','Legal Developments'],['AccomplishMinistry','Organized to Accomplish Our Ministry'],['VODOrgBloodlessMedicine','Bloodless Medicine']]],
+  ['Music', [['VODOriginalSongs','Original Songs'],['VODSJJMeetings','“Sing Out Joyfully”—Meetings'],['VODConvMusic','Convention Music'],['VODSingToJah','Sing to Jehovah']]],
+  ['Children', [['BJF','Video Lessons'],['ChildrenSongs','Songs'],['ChildrenMovies','Dramas']]],
+];
+const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
+Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the Family', SERIES_bve:'Bible Verses Explained', SERIES_arch:'From Our Archives'});   // (v9)
+const CROP = new Set([]);   // (v28) Mike: don't zoom Morning Worship any more, show the whole picture (was: ['VODPgmEvtMorningWorship'])
+const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
+const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
+// (v12) jw.org publishes some talks more than once ("John Ekrann: “We All Stumble Many Times” (Jas. 3:2)" in Morning Worship,
+// "We All Stumble Many Times" in Apply Bible Principles, "…—Excerpt" versions). Compare the talk itself, not the video id.
+const coreTitle = t => String(t || '').toLowerCase()
+  .replace(/^[^:“"]{2,40}:\s*(?=[“"‘])/, '')                     // speaker name before a quoted title
+  .replace(/^(excerpt|clip|trailer)\s*[:—–-]\s*/, '')
+  .replace(/\([^)]*\)/g, '').replace(/\s*[—–-]\s*(excerpt|clip|trailer)\b.*$/, '')
+  .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const sameTalk = (a, b) => a === b || (a.length > 12 && b.length > 12 && (a.includes(b) || b.includes(a)));
+function clashes(v, items){
+  const c = coreTitle(v.title), seen = db.watch.seenCore || {};
+  return items.some(x => x.lank !== v.lank && sameTalk(c, coreTitle(x.title))) || Object.keys(seen).some(k => sameTalk(c, k));
+}
+const fmtDur = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
+const finderUrl = lank => /^https?:/.test(lank) ? lank : `https://www.jw.org/finder?srcid=share&wtlocale=E&lank=${encodeURIComponent(lank)}`;   // (v17) jw.org's share-link format
+function slimVideo(m, cat){
+  const mp4 = (m.files || []).filter(f => /\.mp4$/i.test(f.progressiveDownloadURL || ''));
+  const pick = ['480p','720p','360p','240p'].map(l => mp4.find(f => f.label === l)).find(Boolean) || mp4[0];
+  const im = m.images || {};
+  const img = (im.wss || im.lss || im.pnr || im.lsr || im.sqr || {});
+  if (!pick) return null;
+  return {lank: m.languageAgnosticNaturalKey, title: m.title, dur: Math.round(m.duration || 0), pub: m.firstPublished || '',
+    img: img.lg || img.xl || img.sm || '', src: pick.progressiveDownloadURL, cat: cat || m.primaryCategory};
+}
+const catCache = {};
+async function catVideos(key){
+  if (catCache[key]) return catCache[key];
+  const r = await timed(`${JW_API}categories/E/${key}?detailed=1&clientType=www`, 30000);
+  if (!r.ok) throw new Error('jw.org video list returned ' + r.status);
+  const out = [];
+  const walk = c => { (c.media || []).forEach(m => { const v = slimVideo(m, key); if (v) out.push(v); }); (c.subcategories || []).forEach(walk); };
+  walk((await r.json()).category || {});
+  return catCache[key] = out;
+}
+// today's videos: from each channel, the newest ones not seen yet (within its length limit). Not endless.
+async function buildWatchDaily(){
+  const W = db.watch, t = today();
+  if (W.daily.date !== t) W.daily = {date:t, items:W.daily.items.filter(v => v.pasted && !W.seen[v.lank]), done:{}};
+  const errors = [];
+  // Mike: Morning Worship always; besides it, only ONE long video (over 5 min) a day
+  const isLong = isLongV;
+  for (const c of W.cats){
+    if (W.daily.done[c.key]) continue;
+    try {
+      const have = new Set(W.daily.items.map(v => v.lank));
+      let longUsed = W.daily.items.some(isLong);
+      const pick = [];
+      for (const v of (await catVideos(c.key)).slice().sort((a, b) => b.pub.localeCompare(a.pub))){
+        if (pick.length >= c.perDay) break;
+        if (W.seen[v.lank] || have.has(v.lank) || (c.maxMin && v.dur > c.maxMin * 60)) continue;
+        if (clashes(v, [...W.daily.items, ...pick])) continue;            // (v12) another version of a talk already here / seen
+        if (isLong(v)){ if (longUsed) continue; longUsed = true; }
+        pick.push(v); have.add(v.lank);
+      }
+      W.daily.items.push(...pick); W.daily.done[c.key] = 1;
+    } catch(e){ errors.push(CAT_NAME[c.key] || c.key); }
+  }
+  // Morning Worship first, then the order of your channels
+  const order = k => { const i = W.cats.findIndex(c => c.key === k); return i < 0 ? 99 : i; };
+  const base = W.daily.items.filter(v => !v.extra), extra = W.daily.items.filter(v => v.extra);   // (v8) explore extras stay at the end
+  base.sort((a, b) => (b.pasted ? 1 : 0) - (a.pasted ? 1 : 0) || order(a.cat) - order(b.cat));
+  W.daily.items = [...base, ...extra];
+  save();
+  return errors;
+}
+// (v12) one entry per video in today's list
+function dedupeVideos(){
+  const W = db.watch, seen = new Set(), before = W.daily.items.length;
+  W.daily.items = W.daily.items.filter(v => !seen.has(v.lank) && seen.add(v.lank));
+  const kept = [];
+  W.daily.items = W.daily.items.filter(v => { if (!v.series && !v.pasted && kept.some(x => sameTalk(coreTitle(v.title), coreTitle(x.title)))) return false; kept.push(v); return true; });
+  if (W.daily.items.length !== before) save();
+}
+// (v8) more short videos for the explore part of the feed, one per channel in turn (no extra Morning Worship)
+async function moreVideos(k){
+  const W = db.watch; if (!W.cats.length || navigator.onLine === false) return [];
+  const out = [], used = new Set(W.daily.items.map(v => v.lank));
+  for (let round = 0; round < 3 && out.length < k; round++){
+    for (const c of W.cats){
+      if (out.length >= k) break;
+      if (CROP.has(c.key)) continue;
+      let list; try { list = await catVideos(c.key); } catch(e){ continue; }
+      const longUsed = W.daily.items.some(isLongV);
+      const v = list.slice().sort((a, b) => b.pub.localeCompare(a.pub)).find(v => !W.seen[v.lank] && !used.has(v.lank)
+        && (!c.maxMin || v.dur <= c.maxMin * 60) && !(isLongV(v) && longUsed) && !clashes(v, W.daily.items));
+      if (!v) continue;
+      used.add(v.lank); W.daily.items.push({...v, extra:true});
+      out.push({v: W.daily.items[W.daily.items.length - 1], n: W.daily.items.length - 1});
+    }
+  }
+  save(); return out;
+}
+function videoSlideHTML(v, n){
+  const saved = db.ideas.some(i => i.video && i.video.lank === v.lank && i.stashes && i.stashes.length);
+  return `<div class="vslide ${CROP.has(v.cat) ? 'crop' : ''}" data-n="${n}" data-lank="${esc(v.lank)}">
+    <div class="bg" style="background-image:url('${esc(v.img)}')"></div>
+    <video playsinline muted preload="${n < 2 ? 'metadata' : 'none'}" poster="${esc(v.img)}" src="${esc(v.src)}"></video>
+    <div class="playi">▶️</div>
+    ${db.watch.sound ? '' : '<div class="note">🔇 Tap for sound</div>'}
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
+      <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareVideo(${n})">📤</button>
+      ${commentBtn(finderUrl(v.lank), v.title)}
+      <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
+    </div>
+    <button class="fsx" title="Back to the feed" onclick="videoFullExit()">✕</button>
+    <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
+    <div class="bar"></div></div>`;
+}
+// (v27) full screen: the video fills the screen turned sideways; ✕ (or Back) returns to the feed
+async function videoFull(btn){
+  const s = btn.closest('.vslide'), vid = s && s.querySelector('video'); if (!s) return;
+  try {
+    await (s.requestFullscreen ? s.requestFullscreen({navigationUI: 'hide'}) : s.webkitRequestFullscreen());
+    try { await screen.orientation.lock('landscape'); } catch(e){}      // phones only; ignored elsewhere
+    if (vid && vid.paused) vid.play().catch(() => {});
+  } catch(e){ toast('Full screen isn’t available here'); }
+}
+function videoFullExit(){ if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement){ try { screen.orientation.unlock(); } catch(e){} }
+});
+// (v27) turning the phone sideways while a video is on screen goes full screen too (if the phone allows it)
+if (screen.orientation) screen.orientation.addEventListener('change', () => {
+  if (!/landscape/.test(screen.orientation.type) || document.fullscreenElement || currentView !== 'feed') return;
+  const s = feedCurrent; if (!s || !s.matches('.vslide[data-n]')) return;
+  const b = s.querySelector('.fsb'); if (b) videoFull(b).catch(() => {});
+});
+function wireVideoSlide(s){
+  const vid = s.querySelector('video'), bar = s.querySelector('.bar');
+  vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (100 * vid.currentTime / vid.duration) + '%'; });
+  vid.addEventListener('play', () => s.classList.remove('paused'));
+  vid.addEventListener('pause', () => s.classList.add('paused'));
+  // (v6) one tap = sound / pause; double-tap = heart (wait a moment to tell them apart)
+  let tapT = null;
+  vid.addEventListener('click', e => {
+    if (tapT){ clearTimeout(tapT); tapT = null;
+      const h = s.getBoundingClientRect(); heartBurst(s, e.clientX - h.left, e.clientY - h.top);
+      if (!videoHearted(db.watch.daily.items[s.dataset.n])) heartVideo(+s.dataset.n, true);
+      return; }
+    tapT = setTimeout(() => { tapT = null;
+      if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#feed .note').forEach(x => x.remove());
+        document.querySelectorAll('#feed video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
+      vid.paused ? vid.play() : vid.pause();
+    }, 280);
+  });
+  vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit(); });   // (v27)
+  // load the next one ahead of time
+  vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
+}
+function playSlide(s){
+  const vid = s.querySelector('video');
+  vid.muted = !db.watch.sound;
+  vid.play().catch(() => {          // phones block sound until you tap; play silently and show the hint
+    vid.muted = true; vid.play().catch(() => s.classList.add('paused'));
+    if (!s.querySelector('.note')) s.insertAdjacentHTML('beforeend', '<div class="note">🔇 Tap for sound</div>');
+  });
+}
+function videoToIdea(v){
+  let i = db.ideas.find(x => x.video && x.video.lank === v.lank);
+  if (!i){
+    i = {id:uid(), title:v.title, body:`▶ ${fmtDur(v.dur)} video`, topic:'Video', source:(CAT_NAME[v.cat] || 'Video') + ' — jw.org',
+      url:finderUrl(v.lank), created:Date.now(), stashes:[], video:{...v, pasted:undefined}};
+    db.ideas.push(i); save();
+  }
+  return i;
+}
+const videoIdeaOf = v => v && db.ideas.find(x => x.video && x.video.lank === v.lank);
+const videoHearted = v => isHearted(videoIdeaOf(v));
+// (v6) ❤️ toggles Favorites; quiet=true is the double-tap (burst already shown, never un-hearts)
+function heartVideo(n, quiet){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const on = !videoHearted(v);
+  if (on){ ensureFav(); toggleStash(videoToIdea(v).id, 'fav', true); }
+  else { const i = videoIdeaOf(v); toggleStash(i.id, 'fav', false);
+    if (!i.stashes.length){ db.ideas = db.ideas.filter(x => x !== i); save(); } }   // un-hearted and in no stash: drop it
+  const s = document.querySelector(`#feed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
+  if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#feed .vslide[data-n="${n}"] .heart`); }
+  if (on && !quiet && s){ const r = s.getBoundingClientRect(); heartBurst(s, r.width/2, r.height/2); }
+  if (on) toast('❤️ Saved to Favorites');
+}
+function saveVideo(n){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
+  stashSheet(videoToIdea(v).id);
+}
+function channelsSheet(){
+  const W = db.watch, on = k => W.cats.find(c => c.key === k);
+  const lens = [[0,'Any length'],[3,'Up to 3 min'],[5,'Up to 5 min'],[10,'Up to 10 min'],[15,'Up to 15 min'],[30,'Up to 30 min'],[60,'Up to 1 hour']];
+  openSheet(`<h3>📺 Channels</h3>
+    <p style="color:var(--muted);margin-top:-4px;font-size:14px">Pick what comes in each day. You get the newest videos you haven't seen yet.
+      Morning Worship always comes in; besides it, only one video over 5 minutes a day.</p>
+    ${WATCH_GROUPS.map(([g, list]) => `<div class="sec">${esc(g)}</div>` + list.map(([k, name]) => { const c = on(k); return `
+      <div class="chan"><label class="chk"><input type="checkbox" ${c ? 'checked' : ''} onchange="chanToggle('${k}', this.checked)"><b>${esc(name)}</b></label>
+      ${c ? `<div class="opts"><div class="step"><button onclick="chanSet('${k}','perDay',-1)">−</button><b>${c.perDay}</b><button onclick="chanSet('${k}','perDay',1)">+</button></div>
+        <span style="color:var(--muted);font-size:14px">a day</span>
+        <select onchange="chanSet('${k}','maxMin',+this.value)">${lens.map(([m, l]) => `<option value="${m}" ${c.maxMin === m ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` : ''}
+      </div>`; }).join('')).join('')}
+    <button class="btn" onclick="closeSheet();redoWatch()">Done</button>`);
+}
+function chanToggle(k, yes){
+  const W = db.watch;
+  // short clips by default; experiences may run longer (still only one long video a day)
+  const exp = WATCH_GROUPS.find(g => g[0] === 'Interviews and Experiences')[1].some(x => x[0] === k);
+  if (yes && !W.cats.some(c => c.key === k)) W.cats.push({key:k, perDay:1, maxMin: CROP.has(k) ? 0 : exp ? 15 : 5});
+  if (!yes){ W.cats = W.cats.filter(c => c.key !== k); W.daily.items = W.daily.items.filter(v => v.cat !== k || v.pasted || W.seen[v.lank]); }
+  delete W.daily.done[k]; save(); keepSheetScroll(channelsSheet);
+}
+function chanSet(k, key, d){
+  const c = db.watch.cats.find(x => x.key === k); if (!c) return;
+  if (key === 'perDay') c.perDay = Math.min(5, Math.max(1, c.perDay + d)); else c.maxMin = d;
+  // re-pick this channel's unseen videos for today with the new setting
+  const W = db.watch; W.daily.items = W.daily.items.filter(v => v.cat !== k || v.pasted || W.seen[v.lank]); delete W.daily.done[k];
+  save(); keepSheetScroll(channelsSheet);
+}
+function keepSheetScroll(fn){ const s = document.getElementById('sheetIn'), y = s.scrollTop; fn(); s.scrollTop = y; }
+function redoWatch(){ if (currentView === 'shelf') renderShelf(); }   // (v8) Today re-picks on its next open
+async function addVideoLink(){
+  const raw = document.getElementById('vlink').value.trim(), st = document.getElementById('vst');
+  let txt = raw; try { txt = decodeURIComponent(raw); } catch(e){}
+  const m = txt.match(/(?:lank=|mediaitems\/[^\/?#]+\/)([\w-]+_VIDEO)\b/) || txt.match(/\b((?:pub|docid)-[\w-]+?_VIDEO)\b/);
+  if (!m){ st.className = 'status err'; st.textContent = 'That doesn\'t look like a jw.org video link.'; return; }
+  st.className = 'status'; st.textContent = 'Finding the video…';
+  try {
+    const r = await timed(`${JW_API}media-items/E/${encodeURIComponent(m[1])}?clientType=www`, 30000);
+    const v = slimVideo(((await r.json()).media || [])[0] || {});
+    if (!v) throw new Error('not found');
+    v.pasted = true;
+    const W = db.watch; W.daily.items = [v, ...W.daily.items.filter(x => x.lank !== v.lank)]; delete W.seen[v.lank]; save();
+    toast('Video added: it plays right after the Daily Text'); go('feed');
+  } catch(e){ st.className = 'status err'; st.textContent = 'Couldn\'t find that video: ' + e.message; }
+}
+
+/* ================= more / backup ================= */
+function renderMore(){
+  const el = document.getElementById('more');
+  setTimeout(loadMembers, 0);   // (v19)
+  el.innerHTML = `
+    <div class="sec">Your library</div>
+    <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
+    ${friendsHTML()}
+    <div class="sec">Backup</div>
+    <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
+    <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
+    <div class="sec">Daily scrolling time</div>
+    <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="db.limitMin=${m};save();renderMore()">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
+      When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
+    <div class="sec">Daily</div>
+    <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
+    <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
+    <div class="sec">About</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v28 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gemstash-backup-${today()}.json`; a.click();
+}
+function importData(file){
+  if (!file) return;
+  file.text().then(t => {
+    const d = JSON.parse(t); if (!Array.isArray(d.ideas)) throw new Error('Not a GemStash / IdeaStash backup');
+    const have = new Set(db.ideas.map(i=>i.id)); const haveS = new Set(db.stashes.map(s=>s.id));
+    db.ideas.push(...d.ideas.filter(i=>!have.has(i.id))); db.stashes.push(...(d.stashes||[]).filter(s=>!haveS.has(s.id)));
+    const haveSh = new Set(db.shelf.map(x=>x.id)); db.shelf.push(...(d.shelf||[]).filter(x=>!haveSh.has(x.id)));
+    ensureDailyShelf(); save(); toast('Backup merged'); renderMore();
+  }).catch(e => toast('Import failed: ' + e.message));
+}
+
+/* ================= boot ================= */
+db = load();
+db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes || []).length));
+ensureDailyShelf();
+autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
+try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
+renderStreak(); renderFeed();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(()=>{});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v27)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v28)
 =======================================
 
 FOLDERS
@@ -174,4 +174,5 @@ VERSIONS
   v27 Full screen for videos: a new button on every video (below share) fills the screen turned
       sideways; turning the phone sideways while a video is on screen does it too. Tap the X or
       Back to return to the feed; it also returns by itself when the video ends.
-  Next: Morning Worship not zoomed, Daily Text from the es26 EPUB
+  v28 Morning Worship is no longer zoomed in: you see the whole picture (use full screen for big).
+  Next: Daily Text from the es26 EPUB

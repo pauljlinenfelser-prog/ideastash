@@ -1863,7 +1863,7 @@ const WATCH_GROUPS = [
 ];
 const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
 Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the Family', SERIES_bve:'Bible Verses Explained', SERIES_arch:'From Our Archives'});   // (v9)
-const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
+const CROP = new Set([]);   // (v28) Mike: don't zoom Morning Worship any more, show the whole picture (was: ['VODPgmEvtMorningWorship'])
 const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
 const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
 // (v12) jw.org publishes some talks more than once ("John Ekrann: “We All Stumble Many Times” (Jas. 3:2)" in Morning Worship,
@@ -2118,7 +2118,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v27 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v28 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
