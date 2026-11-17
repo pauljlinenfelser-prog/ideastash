@@ -1,0 +1,36 @@
+// GemStash Firestore security rules (v19). Published by Mike in the Firebase console
+// (project gemstash-10786 → Firestore Database → Rules → Publish). Keep this file in step with what's published.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMember(code) {
+      return signedIn() && exists(/databases/$(database)/documents/circles/$(code)/members/$(request.auth.uid));
+    }
+    function isOwner(code) {
+      return signedIn() && get(/databases/$(database)/documents/circles/$(code)).data.owner == request.auth.uid;
+    }
+    match /circles/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.owner == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['owner', 'created', 'name']);
+      allow update, delete: if isOwner(code);
+      match /members/{uid} {
+        allow read: if isMember(code);
+        allow create, update: if signedIn() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['name', 'joined'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40;
+        allow delete: if signedIn() && (uid == request.auth.uid || isOwner(code));
+      }
+      match /threads/{tid}/comments/{cid} {
+        allow read: if isMember(code);
+        allow create: if isMember(code) && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500;
+        allow delete: if isMember(code) && (resource.data.uid == request.auth.uid || isOwner(code));
+      }
+    }
+  }
+}

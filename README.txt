@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v18)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v19)
 =======================================
 
 FOLDERS
@@ -113,5 +113,9 @@ VERSIONS
   v18 ▶ Auto button (top right of Today): hands-off scrolling. Text cards glide down at reading
       pace then move on, videos play to the end, posters stay ~8 s, picture stories turn their
       pages. Touch the screen to pause it for a few seconds. Remembers on/off. Time limit still applies.
-  Next: comments between friends (plan in HANDOFF.md; needs a free Firebase project Mike creates),
-        Listening (driving) mode
+  v19 Friends & 💬 comments. More -> Friends: Sign in with Google (recommended), type your name,
+      Start a circle, then 📤 Invite a friend (sends the app link + your 6-letter code). Friends join
+      with the code. Every gem gets 💬 with a count: read and add comments with your circle.
+      Delete your own; the circle's starter can delete any comment and remove members.
+      Uses the free Firebase project gemstash-10786 (Mike's Google account); rules in firestore.rules.
+  Next: Listening (driving) mode

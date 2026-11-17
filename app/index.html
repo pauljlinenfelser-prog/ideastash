@@ -30,6 +30,16 @@ header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
 .pill.auto{font-weight:600}
+/* (v19) comments */
+.cmt{position:relative}
+.cmt .cc{position:absolute;top:0;right:0;background:var(--accent);color:#1b1408;border-radius:9px;font-size:11px;font-weight:700;padding:1px 5px;min-width:16px;line-height:1.2;text-align:center}
+.cmt .cc:empty{display:none}
+.cmts{max-height:45vh;overflow-y:auto;margin:6px 0 10px}
+.cm{background:var(--panel2);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.cm .who{font-size:13px;color:var(--accent);font-weight:600}
+.cm .when{font-size:12px;color:var(--muted);margin-left:6px;font-weight:400}
+.cm .txt{white-space:pre-wrap;margin-top:4px;line-height:1.45}
+.cm .del{float:right;font-size:13px;color:var(--muted)}
 .pill.auto.on{background:var(--accent);color:#1b1408}   /* (v18) auto-scroll is running */
 main{flex:1;overflow:hidden;position:relative}
 .view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
@@ -255,7 +265,7 @@ function welcomeIdeas(){
 /* ================= helpers ================= */
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
 function openSheet(html){ document.getElementById('sheetIn').innerHTML = html; document.getElementById('sheet').classList.add('on'); }
-function closeSheet(){ document.getElementById('sheet').classList.remove('on'); }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 const findIdea = id => db.ideas.find(i => i.id===id);
@@ -339,6 +349,7 @@ function posterHTML(i){
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.url, i.title)}
       <button title="Full size" onclick="openPic(this)">🔍</button>
     </div>
     <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
@@ -371,6 +382,7 @@ function cardHTML(i){
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.video ? finderUrl(i.video.lank) : i.url, i.title)}
       <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
       <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
     </div></div>`;
@@ -487,6 +499,7 @@ function observeFeed(){
     feedCurrent = s;
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
+    if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
     if (s.dataset.core) bumpStreak();
@@ -667,6 +680,175 @@ function autoTick(now){
     if (Math.abs(f.scrollTop - want) > 0.5) f.scrollTop = want;
     if (st.t > total + END_MS) autoNext(s);
   } else if (st.t > total) autoNext(s);
+}
+
+/* ================= friends & comments (v19) ================= */
+// A private circle of friends: create one, share its 6-letter code, friends join with it (no email, no passwords —
+// Firebase anonymous sign-in). Comments hang on the jw.org link, so the whole circle sees one thread per gem.
+// Firebase project "gemstash-10786" (Mike's Google account). These config values are public by design; the
+// Firestore rules (in HANDOFF.md) are what keep circles private. The Firebase code loads only once you're in a circle.
+const FB_CONFIG = {apiKey: "AIzaSyBTzUaSW_IUimPdQTzzdVCXxXMhi2pGCX4", authDomain: "gemstash-10786.firebaseapp.com",
+  projectId: "gemstash-10786", storageBucket: "gemstash-10786.firebasestorage.app", messagingSenderId: "837487552214",
+  appId: "1:837487552214:web:3b0c8f8f77eb56c1204b77"};
+const FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const APP_URL = 'https://pauljlinenfelser-prog.github.io/ideastash/';
+let fb = null, fbLoading = null;
+function fbInit(){
+  return fbLoading ||= (async () => {
+    const [A, U, F] = await Promise.all([import(FB_BASE + 'firebase-app.js'), import(FB_BASE + 'firebase-auth.js'), import(FB_BASE + 'firebase-firestore.js')]);
+    const app = A.initializeApp(FB_CONFIG), auth = U.getAuth(app);
+    await auth.authStateReady();
+    if (!auth.currentUser) await U.signInAnonymously(auth);
+    fb = {F, U, auth, fs: F.getFirestore(app), uid: auth.currentUser.uid};
+    return fb;
+  })().catch(e => { fbLoading = null; throw e; });
+}
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => CODE_ABC[b % CODE_ABC.length]).join('');
+function friendErr(e){ console.warn(e); toast(/permission|insufficient/i.test(e.message || '') ? 'Not allowed — are the Firebase rules published?' : 'Friends: ' + (e.message || e)); }
+// (v19) Sign in with Google: keeps your place (and owner rights) on a new phone or after clearing Chrome.
+// Upgrades the current anonymous sign-in, so the same identity stays in the circle.
+function googleHTML(){
+  return db.google
+    ? `<div class="row"><span class="t"><b>✔ Signed in with Google</b><small>${esc(db.google)} — your place in the circle is safe on any phone</small></span></div>`
+    : `<button class="btn alt" onclick="googleSignIn()"><b>G</b>&nbsp; Sign in with Google <small style="color:var(--muted)">(recommended)</small></button>
+       <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Without it, your place in the circle lives only in this phone’s Chrome.</p>`;
+}
+async function googleSignIn(){
+  try {
+    const f = await fbInit(), {U, auth} = f, prov = new U.GoogleAuthProvider();
+    try { await U.linkWithPopup(auth.currentUser, prov); }
+    catch(e){
+      if (e.code !== 'auth/credential-already-in-use') throw e;
+      await U.signInWithCredential(auth, U.GoogleAuthProvider.credentialFromError(e));   // this Google account was used before (e.g. old phone)
+    }
+    f.uid = auth.currentUser.uid;
+    const u = auth.currentUser, gname = (u.displayName || u.providerData[0]?.displayName || '').trim();
+    db.google = gname || 'your Google account'; if (!db.myName && gname) db.myName = gname.split(' ')[0];
+    if (db.circle){                                                     // make sure this identity is in the circle
+      const {F, fs} = f; await F.setDoc(F.doc(fs, 'circles', db.circle.code, 'members', f.uid), {name: db.circle.name, joined: F.serverTimestamp()});
+      const c = await F.getDoc(F.doc(fs, 'circles', db.circle.code)); db.circle.owner = c.data().owner === f.uid;
+    }
+    save(); renderMore(); toast('Signed in with Google');
+  } catch(e){ if (!/popup-closed|cancelled-popup/.test(e.code || '')) friendErr(e); }
+}
+function friendsHTML(){
+  const c = db.circle;
+  if (!c) return `<div class="sec">Friends</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">Start a private circle and talk about the gems with friends. They join with your code — no email, no passwords.</p>
+    ${googleHTML()}
+    <label class="l">Your name (what friends see)</label><input id="frName" maxlength="40" value="${esc(db.myName || '')}" placeholder="e.g. Mike">
+    <button class="btn" onclick="createCircle()">✨ Start a circle</button>
+    <label class="l">Or join a friend's circle</label>
+    <div class="search" style="margin-top:0"><input id="frCode" maxlength="6" placeholder="6-letter code" style="text-transform:uppercase" autocapitalize="characters">
+      <button class="btn sm" onclick="joinCircle()">Join</button></div>`;
+  return `<div class="sec">Friends</div>
+    <div class="row"><span class="t"><b>Circle ${esc(c.code)}${c.owner ? ' · you started it' : ''}</b><small>You are “${esc(c.name)}”. Tap 💬 on any gem to talk about it.</small></span></div>
+    <button class="btn" onclick="shareInvite()">📤 Invite a friend</button>
+    ${googleHTML()}
+    <div id="frMembers" class="mini" style="margin-top:10px"><small style="color:var(--muted)">Loading members…</small></div>
+    <button class="btn alt" onclick="leaveCircle()">Leave the circle</button>`;
+}
+async function loadMembers(){
+  const el = document.getElementById('frMembers'); if (!el || !db.circle) return;
+  try {
+    const {F, fs, uid} = await fbInit(), c = db.circle;
+    const snap = await F.getDocs(F.collection(fs, 'circles', c.code, 'members'));
+    el.innerHTML = '<b>Members</b>' + snap.docs.map(d => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+      <span style="flex:1">${esc(d.data().name)}${d.id === uid ? ' (you)' : ''}</span>
+      ${c.owner && d.id !== uid ? `<button class="btn sm alt" onclick="removeMember('${d.id}', this)">Remove</button>` : ''}</div>`).join('');
+  } catch(e){ el.innerHTML = '<small style="color:var(--danger)">Couldn’t load members</small>'; friendErr(e); }
+}
+function myName(){ const n = (document.getElementById('frName')?.value || db.myName || '').trim().slice(0, 40); return n; }
+async function createCircle(){
+  const name = myName(); if (!name) return toast('Type your name first');
+  try {
+    const {F, fs, uid} = await fbInit(), code = newCode();
+    await F.setDoc(F.doc(fs, 'circles', code), {owner: uid, created: F.serverTimestamp(), name: 'GemStash circle'});
+    await F.setDoc(F.doc(fs, 'circles', code, 'members', uid), {name, joined: F.serverTimestamp()});
+    db.myName = name; db.circle = {code, name, owner: true}; save(); renderMore(); toast('Circle started — invite your friends');
+  } catch(e){ friendErr(e); }
+}
+async function joinCircle(){
+  const name = myName(), code = (document.getElementById('frCode').value || '').trim().toUpperCase();
+  if (!name) return toast('Type your name first');
+  if (!/^[A-Z0-9]{6}$/.test(code)) return toast('The code has 6 letters/numbers');
+  try {
+    const {F, fs, uid} = await fbInit();
+    const c = await F.getDoc(F.doc(fs, 'circles', code));
+    if (!c.exists()) return toast('No circle with that code');
+    await F.setDoc(F.doc(fs, 'circles', code, 'members', uid), {name, joined: F.serverTimestamp()});
+    db.myName = name; db.circle = {code, name, owner: c.data().owner === uid}; save(); renderMore(); toast('You joined the circle');
+  } catch(e){ friendErr(e); }
+}
+async function removeMember(muid, btn){
+  try { const {F, fs} = await fbInit(); await F.deleteDoc(F.doc(fs, 'circles', db.circle.code, 'members', muid)); btn.closest('div').remove(); toast('Removed'); }
+  catch(e){ friendErr(e); }
+}
+async function leaveCircle(){
+  if (!confirm('Leave this circle? You can rejoin later with the code.')) return;
+  try { const {F, fs, uid} = await fbInit(); await F.deleteDoc(F.doc(fs, 'circles', db.circle.code, 'members', uid)); } catch(e){ console.warn(e); }
+  db.circle = null; save(); renderMore(); toast('You left the circle');
+}
+function shareInvite(){
+  const c = db.circle;
+  shareLink(`Join my GemStash circle! Open the app, tap More → Friends, and enter the code ${c.code}`, APP_URL);
+}
+// ---- comments ----
+function commentBtn(url, title){
+  if (!db.circle || !url) return '';
+  return `<button title="Comments" class="cmt" data-url="${esc(url)}" data-title="${esc(title || '')}" onclick="openComments(this)">💬<span class="cc"></span></button>`;
+}
+const threadCache = {}, countCache = {};
+async function threadId(url){
+  if (threadCache[url]) return threadCache[url];
+  const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(url));
+  return threadCache[url] = Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, '0')).join('');
+}
+const commentsCol = async url => { const {F, fs} = await fbInit(); return F.collection(fs, 'circles', db.circle.code, 'threads', await threadId(url), 'comments'); };
+async function loadCount(btn){
+  const url = btn.dataset.url, show = n => document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = n || ''; });
+  if (url in countCache) return show(countCache[url]);
+  try { const {F} = await fbInit(); const r = await F.getCountFromServer(await commentsCol(url)); countCache[url] = r.data().count; show(countCache[url]); } catch(e){ console.warn(e); }
+}
+function ago(d){
+  if (!d) return 'now';
+  const s = (Date.now() - d.getTime()) / 1000;
+  return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : d.toLocaleDateString();
+}
+async function openComments(btn){
+  const url = btn.dataset.url, title = btn.dataset.title;
+  document.querySelectorAll('#feed video').forEach(v => v.pause());
+  openSheet(`<h3>💬 ${esc(title)}</h3>
+    <div class="cmts" id="cmList"><small style="color:var(--muted)">Loading…</small></div>
+    <textarea id="cmText" maxlength="500" placeholder="Share a thought with your circle…" style="min-height:80px"></textarea>
+    <button class="btn" id="cmPost">Post</button><button class="btn alt" onclick="closeSheet()">Close</button>`);
+  document.getElementById('cmPost').onclick = () => postComment(url, title);
+  try {
+    const {F, uid} = await fbInit(), col = await commentsCol(url);
+    window._unsubComments = F.onSnapshot(F.query(col, F.orderBy('at')), snap => {
+      const el = document.getElementById('cmList'); if (!el) return;
+      countCache[url] = snap.size; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = snap.size || ''; });
+      el.innerHTML = snap.size ? snap.docs.map(d => { const c = d.data({serverTimestamps: 'estimate'});
+        const mine = c.uid === uid, can = mine || db.circle.owner;
+        return `<div class="cm">${can ? `<button class="del" onclick="delComment('${esc(url)}','${d.id}')">Delete</button>` : ''}
+          <div class="who">${esc(c.name)}<span class="when">${ago(c.at && c.at.toDate())}</span></div><div class="txt">${esc(c.text)}</div></div>`; }).join('')
+        : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
+      el.scrollTop = el.scrollHeight;
+    }, e => { friendErr(e); });
+  } catch(e){ friendErr(e); }
+}
+async function postComment(url, title){
+  const t = document.getElementById('cmText'), text = t.value.trim().slice(0, 500);
+  if (!text) return;
+  try {
+    const {F, uid} = await fbInit();
+    await F.addDoc(await commentsCol(url), {uid, name: db.circle.name, text, at: F.serverTimestamp(), title: (title || '').slice(0, 200), url});
+    t.value = '';
+  } catch(e){ friendErr(e); }
+}
+async function delComment(url, id){
+  try { const {F} = await fbInit(); await F.deleteDoc(F.doc(await commentsCol(url), id)); } catch(e){ friendErr(e); }
 }
 
 /* ================= share (v17) ================= */
@@ -1465,6 +1647,7 @@ function videoSlideHTML(v, n){
       <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareVideo(${n})">📤</button>
+      ${commentBtn(finderUrl(v.lank), v.title)}
     </div>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="bar"></div></div>`;
@@ -1576,9 +1759,11 @@ async function addVideoLink(){
 /* ================= more / backup ================= */
 function renderMore(){
   const el = document.getElementById('more');
+  setTimeout(loadMembers, 0);   // (v19)
   el.innerHTML = `
     <div class="sec">Your library</div>
     <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
+    ${friendsHTML()}
     <div class="sec">Backup</div>
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
     <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
@@ -1590,7 +1775,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v18 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v19 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
