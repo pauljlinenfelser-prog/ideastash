@@ -71,6 +71,13 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   after loading; they keep the title card + picture layout.
   Beta 7: all 19 narration-only articles use title card (top third) + picture (bottom two-thirds);
   the card tries jw.org's square, wide and tall pictures; only the Pomelo has none (nautilus art).
+  Beta 9: no more article text taken from jw.org. Questions From Readers, Bible Questions
+  Answered, Bible Verses Explained, Help for the Family and From Our Archives are now listen
+  cards like Was It Designed?: series picture on top, the article's picture and title below,
+  and jw.org's own narration (title from jw.org's audio service). Articles jw.org hasn't
+  narrated (most older Questions From Readers) show the picture and title with a big
+  "Read on jw.org" button. Old text cards turn into listen cards, keeping hearts and gems.
+  Today's Daily Text is still read the old way until the Daily Text download is added.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
