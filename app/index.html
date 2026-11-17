@@ -336,7 +336,7 @@ function ensureDailyShelf(){
   });
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
   [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
-   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15], ['CONV_SHORT', 10]].forEach(   // (v30) + A Day in the Life of…; (v31) + short convention videos
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15], ['CONV_SHORT', 10], ['VODOriginalSongs', 10]].forEach(   // (v30) + A Day in the Life of…; (v31) + short convention videos; (v34) + a music video
   ([key, maxMin]) => {   // (v9) + experiences and our history
     const tag = 'w:' + key;
     if (db.seeded.includes(tag)) return;
@@ -2153,7 +2153,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v33 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v34 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

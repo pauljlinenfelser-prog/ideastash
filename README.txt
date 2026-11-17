@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v33)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v34)
 =======================================
 
 FOLDERS
@@ -201,4 +201,6 @@ VERSIONS
       Dramas, The Bible Changes Lives, Viewpoints on the Origin of Life, Learn From Jehovah's Friends.
   v33 Children's Activities on the shelf: one jw.org printable a day (30 Bible Character Cards,
       30 Picture Activities), shown as a picture with a 🖨️ button that opens jw.org's PDF to print.
+  v34 A music video a day: jw.org's Original Songs channel is now on (newest first, up to 10 min).
+      Turn it off in Watch > Channels if you'd rather not.
   Next: Daily Text from the es26 EPUB (in the beta)
