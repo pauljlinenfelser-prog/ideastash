@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v2)
+IdeaStash — your own free Deepstash (current: v3)
 =======================================
 
 FOLDERS
@@ -19,7 +19,7 @@ WHAT IT DOES
   Today tab   5 fresh idea cards each day, scroll-snap like Deepstash, then endless "explore".
               Finishing the 5 grows your 🔥 streak.
   Shelf (v2)  the sources YOU pick. Every morning, new ideas from each one land in Today:
-                📅 Daily Text (1 a day)
+                📅 Daily Text (always on, always the first card in Today)
                 ❓ Questions From Readers — all 553 from the Watchtower Index
                 📘 Bible Questions Answered — 191 questions from jw.org
                 📖 Any Gutenberg book you add (2 passages a day by default)
@@ -48,4 +48,6 @@ VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup
   v2  My Shelf — daily auto-delivery from books, Daily Text, Questions From Readers,
       Bible Questions Answered. Also fixes Gutenberg license text slipping into cards.
-  Next: v3 Watch — jw.org video categories (Morning Worship, News, Bible, Interviews…)
+  v3  Daily Text always on — it's on the shelf for good (no Pause/Remove), always the
+      first card in Today, and if it can't load you get a "tap to retry" card instead.
+  Next: v4 Watch — jw.org video categories (Morning Worship, News, Bible, Interviews…)

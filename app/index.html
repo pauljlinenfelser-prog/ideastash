@@ -184,17 +184,31 @@ function go(v){
 }
 
 /* ================= daily + streak ================= */
+// (v3) the Daily Text is a permanent shelf item: always on, always first in Today
+const dailyShelf = () => db.shelf.find(it => it.kind === 'daily');
+function ensureDailyShelf(){
+  let it = dailyShelf();
+  if (!it) it = {id:uid(), kind:'daily', title:SHELF_KINDS.daily.title, sub:SHELF_KINDS.daily.sub, perDay:1, pos:0, total:0,
+    order:'seq', lastPull:'', paused:false, added:Date.now()};
+  it.paused = false;
+  db.shelf = [it, ...db.shelf.filter(x => x.kind !== 'daily')];
+  save();
+}
+function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
+function dailyTextUrl(){ const d = new Date(); return `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
 function ensureDaily(){
   const t = today();
   if (db.daily.date !== t) db.daily = {date:t, ids:[]};
-  const shelfIds = db.ideas.filter(i => i.pulledOn === t).map(i => i.id);
-  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(findIdea)])].slice(0, Math.max(5, shelfIds.length));
-  if (ids.length < 5){
-    const pool = db.ideas.filter(i => !db.seen[i.id] && !ids.includes(i.id));
-    const pick = shuffle(pool.length >= 5-ids.length ? pool : db.ideas.filter(i=>!ids.includes(i.id))).slice(0, 5-ids.length);
+  const dt = todaysText();
+  // slot 1 is always today's text (or its retry card); 4 more ideas fill the rest
+  const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
+  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
+  if (ids.length < 4){
+    const pool = db.ideas.filter(i => i !== dt && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && !ids.includes(i.id))).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
   }
-  db.daily.ids = ids; save();
+  db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
 }
 function bumpStreak(){
   const t = today(); if (db.streak.last === t) return;
@@ -237,18 +251,38 @@ async function renderFeed(){
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(Boolean);
+  const retry = todaysText() ? '' : dailyRetryHTML();
   if (!db.ideas.length){
-    el.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">🌱</div><h2>No ideas yet</h2>
+    el.innerHTML = retry + `<div class="slide endslide"><div class="card"><div class="big">🌱</div><h2>No ideas yet</h2>
       <p style="color:var(--muted)">Put a book or jw.org source on your shelf and ideas arrive every day.</p>
       <button class="btn sm" onclick="go('shelf')">Open my shelf</button></div></div>`;
     return;
   }
   exploreQueue = shuffle(db.ideas.filter(i => !db.daily.ids.includes(i.id)));
-  el.innerHTML = daily.map(i => `<div class="slide">${cardHTML(i)}</div>`).join('') +
+  el.innerHTML = retry + daily.map(i => `<div class="slide">${cardHTML(i)}</div>`).join('') +
     `<div class="slide endslide" id="doneSlide"><div class="card"><div class="big">🎉</div>
       <h2>That's today's 5</h2><p style="color:var(--muted)">Streak keeps going when you finish your daily ideas.<br>Keep scrolling to explore more.</p></div></div>`;
   el.scrollTop = 0;
   observeFeed();
+}
+// (v3) stands in for today's text when it couldn't be fetched (offline, reader busy)
+function dailyRetryHTML(){
+  const why = navigator.onLine === false ? 'You\'re offline right now.' : 'The page reader may be busy.';
+  return `<div class="slide endslide" id="dtRetry"><div class="card" onclick="retryDaily()" style="cursor:pointer">
+    <div class="big">📅</div><h2>Today's text couldn't load, tap to retry</h2>
+    <p style="color:var(--muted)">${why}</p>
+    <button class="btn sm" id="dtBtn">🔄 Retry</button>
+    <a href="${dailyTextUrl()}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--muted);font-size:14px">Or read it on wol.jw.org ↗</a>
+  </div></div>`;
+}
+async function retryDaily(){
+  const it = dailyShelf(), btn = document.getElementById('dtBtn');
+  if (!it || pulling) return;
+  if (btn){ btn.disabled = true; btn.textContent = 'Loading…'; }
+  it.lastPull = ''; await pullShelf();
+  if (todaysText()){ toast('Today\'s text is in'); if (currentView === 'feed') renderFeed(); return; }
+  if (btn){ btn.disabled = false; btn.textContent = '🔄 Retry'; }
+  toast('Still couldn\'t load. Try again in a minute.');
 }
 let feedObs;
 function observeFeed(){
@@ -691,7 +725,9 @@ async function doPull(){
     if (it.paused || it.lastPull === t || (it.total && it.pos >= it.total)) continue;
     try {
       if (it.kind === 'daily'){
-        const c = await getDailyCard(); c.shelfId = it.id; keep(c);
+        const c = await getDailyCard();
+        const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
+        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; } else { c.shelfId = it.id; keep(c); }
       } else if (it.kind === 'book'){
         const paras = await loadBookParas(it);
         it.total = paras.length;
@@ -719,7 +755,7 @@ async function doPull(){
   return added;
 }
 function shelfSub(it){
-  if (it.kind === 'daily') return 'One text every day';
+  if (it.kind === 'daily') return 'Always on · first card in Today every day';
   const pct = it.total ? Math.round(100 * it.pos / it.total) : 0;
   return `${it.pos} of ${it.total || '…'} · ${it.perDay}/day · ${it.order === 'random' ? 'Random' : 'In order'}${it.total && it.pos >= it.total ? ' · Finished ✓' : ''}`;
 }
@@ -762,10 +798,11 @@ function shelfSheet(id){
       <div class="seg"><button class="${it.order!=='random'?'on':''}" onclick="shelfOrder('${id}','seq')">In order</button>
       <button class="${it.order==='random'?'on':''}" onclick="shelfOrder('${id}','random')">Random</button></div>
       <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
+    ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day. If it can't load, a retry card takes its place.</p>` : `
     <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
     ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
     <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
-    <p style="color:var(--muted);font-size:13px">Ideas already delivered stay in your library.</p>
+    <p style="color:var(--muted);font-size:13px">Ideas already delivered stay in your library.</p>`}
     <button class="btn" onclick="closeSheet()">Done</button>`);
 }
 function shelfSet(id, key, d){
@@ -778,9 +815,10 @@ function shelfOrder(id, order){
   // switching order restarts the count so nothing repeats
   setOrder(it, order); it.pos = 0; save(); shelfSheet(id); renderShelf();
 }
-function shelfPause(id){ const it = db.shelf.find(x => x.id === id); it.paused = !it.paused; save(); closeSheet(); renderShelf(); }
+function shelfPause(id){ const it = db.shelf.find(x => x.id === id); if (it.kind === 'daily') return; it.paused = !it.paused; save(); closeSheet(); renderShelf(); }
 function shelfRestart(id){ const it = db.shelf.find(x => x.id === id); it.pos = 0; if (it.order==='random') setOrder(it,'random'); save(); closeSheet(); renderShelf(); toast('Starting over'); }
 function shelfRemove(id){
+  if (dailyShelf()?.id === id) return;
   db.shelf = db.shelf.filter(x => x.id !== id); save(); idb.del('book:' + id); closeSheet(); renderShelf(); toast('Removed from shelf');
 }
 
@@ -797,7 +835,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v2 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v3 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
@@ -811,12 +849,13 @@ function importData(file){
     const have = new Set(db.ideas.map(i=>i.id)); const haveS = new Set(db.stashes.map(s=>s.id));
     db.ideas.push(...d.ideas.filter(i=>!have.has(i.id))); db.stashes.push(...(d.stashes||[]).filter(s=>!haveS.has(s.id)));
     const haveSh = new Set(db.shelf.map(x=>x.id)); db.shelf.push(...(d.shelf||[]).filter(x=>!haveSh.has(x.id)));
-    save(); toast('Backup merged'); renderMore();
+    ensureDailyShelf(); save(); toast('Backup merged'); renderMore();
   }).catch(e => toast('Import failed: ' + e.message));
 }
 
 /* ================= boot ================= */
 db = load();
+ensureDailyShelf();
 renderStreak(); renderFeed();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
