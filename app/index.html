@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#14121f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>IdeaStash</title>
+<title>GemStash</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -51,6 +51,8 @@ nav button.on{color:var(--accent)}
 .card .acts{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid #2c2846}
 .card .acts button{font-size:22px;padding:8px 14px;border-radius:12px}
 .card .acts button.saved{color:var(--accent)}
+.gem{display:inline-block;opacity:.4;filter:grayscale(.7)}   /* (v13) not in a stash yet */
+.saved .gem{opacity:1;filter:none;text-shadow:0 0 10px #7fd8ff}
 .endslide .card{align-items:center;justify-content:center;text-align:center;padding:30px;gap:14px}
 .big{font-size:54px}
 
@@ -103,6 +105,13 @@ nav button.on{color:var(--accent)}
 .seg button{flex:1;padding:10px;border-radius:9px}
 .seg button.on{background:var(--accent);color:#1b1408;font-weight:700}
 label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+
+/* (v13) text cards are as long as their text: the feed scrolls down through them, then snaps to the next item.
+   The buttons stay stuck to the bottom of the screen while you read. */
+.slide.tall{height:auto;min-height:100%}
+.slide.tall .card{overflow:clip}
+.slide.tall .card .body{overflow:visible;flex:1 0 auto}
+.slide.tall .card .acts{position:sticky;bottom:0;background:var(--panel);z-index:1}
 
 /* hearts (v6): double-tap or ❤️ saves to Favorites, TikTok style */
 .slide{position:relative}
@@ -179,7 +188,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <body>
 <div id="app">
   <header>
-    <h1>Idea<span>Stash</span></h1>
+    <h1>Gem<span>Stash</span></h1>
     <span class="pill" id="streak">🔥 0</span>
   </header>
   <main>
@@ -192,7 +201,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   <nav>
     <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
     <button data-v="shelf"><span class="ic">📖</span>Shelf</button>
-    <button data-v="library"><span class="ic">🔖</span>Stashes</button>
+    <button data-v="library"><span class="ic">💎</span>Stashes</button>
     <button data-v="add"><span class="ic">➕</span>Add</button>
     <button data-v="more"><span class="ic">⚙️</span>More</button>
   </nav>
@@ -231,10 +240,10 @@ const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.ge
 const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function welcomeIdeas(){
-  const mk = (title, body) => ({id:uid(), title, body, topic:'Other', source:'IdeaStash guide', url:'', created:Date.now(), stashes:[]});
+  const mk = (title, body) => ({id:uid(), title, body, topic:'Other', source:'GemStash guide', url:'', created:Date.now(), stashes:[]});
   return [
     mk('Swipe up for the next idea', 'Today shows a fresh set of 5 ideas each day, pulled from everything you have imported. Keep going past them to explore more.'),
-    mk('Import a whole book in seconds', 'Tap Add → Books. Search Project Gutenberg (60,000+ free public-domain books), pick one, and IdeaStash breaks it into bite-size idea cards you can keep or skip.'),
+    mk('Import a whole book in seconds', 'Tap Add → Books. Search Project Gutenberg (60,000+ free public-domain books), pick one, and GemStash breaks it into bite-size idea cards you can keep or skip.'),
     mk('Bring in jw.org articles', 'Tap Add → Web / jw.org and paste any jw.org or wol.jw.org link, or tap "Today\'s Daily Text". The page is turned into idea cards you choose from.'),
     mk('Stash what matters', 'Tap the bookmark on any card to put it in a stash. Make as many stashes as you like — by topic, project, or talk you are preparing.'),
   ];
@@ -324,7 +333,7 @@ function posterHTML(i){
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">🔖</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Full size" onclick="openPic(this)">🔍</button>
     </div>
     <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
@@ -350,12 +359,12 @@ function cardHTML(i){
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
-      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">Read the full article on jw.org ↗</a>` : ''}</div>`}
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>`}
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">${saved?'🔖':'📑'}</button>
+      <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
       <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
       <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
@@ -413,7 +422,7 @@ function slideHTML(x, k){
     if (n < 0){ W.daily.items.push({...x.card.video, extra:true, series:true}); n = W.daily.items.length - 1; save(); }
     return videoSlideHTML(W.daily.items[n], n).replace('<div class="vslide', `<div${core} class="vslide`);
   }
-  if (x.card) return `<div class="slide"${core}>${cardHTML(x.card)}</div>`;
+  if (x.card) return `<div class="slide tall"${core}>${cardHTML(x.card)}</div>`;   // (v13) full length, no inner scroll box
   return videoSlideHTML(x.vid.v, x.vid.n).replace('<div class="vslide', `<div${core} class="vslide`);
 }
 /* ---- (v8) daily scrolling time ---- */
@@ -429,7 +438,7 @@ function timeUpHTML(){
   return `<div class="slide endslide timeup"><div class="card"><div class="big">⏳</div>
     <h2>That's your time for today</h2>
     <p style="color:var(--muted)">You've had your ${db.limitMin} minutes. New ideas and videos come tomorrow.</p>
-    <button class="btn sm alt" onclick="go('library')">🔖 Open your stashes</button>
+    <button class="btn sm alt" onclick="go('library')">💎 Open your stashes</button>
     <p style="color:var(--muted);font-size:13px">You can change the limit in More.</p></div></div>`;
 }
 // time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
@@ -465,8 +474,11 @@ function observeFeed(){
   if (feedObs) feedObs.disconnect();
   feedObs = new IntersectionObserver(ents => ents.forEach(en => {
     const s = en.target, vid = s.querySelector('video');
-    if (!en.isIntersecting){ if (vid) vid.pause(); return; }
-    if (timeUp() && feedCurrent && s !== feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
+    // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
+    const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
+    if (!on){ if (vid) vid.pause(); return; }
+    if (s === feedCurrent) return;                  // already counted; keep reading
+    if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s;
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
@@ -474,7 +486,7 @@ function observeFeed(){
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
     if (s.dataset.core) bumpStreak();
     if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
-  }), {root: el, threshold: .6});
+  }), {root: el, threshold: [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1]});
   el.querySelectorAll('.slide, .vslide').forEach(s => feedObs.observe(s));
 }
 // (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
@@ -1321,7 +1333,7 @@ function videoSlideHTML(v, n){
     ${db.watch.sound ? '' : '<div class="note">🔇 Tap for sound</div>'}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
-      <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})">🔖</button>
+      <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
       <a title="Open on jw.org" href="${finderUrl(v.lank)}" target="_blank" rel="noopener">🔗</a>
     </div>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
@@ -1448,17 +1460,17 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v12 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v13 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ideastash-backup-${today()}.json`; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gemstash-backup-${today()}.json`; a.click();
 }
 function importData(file){
   if (!file) return;
   file.text().then(t => {
-    const d = JSON.parse(t); if (!Array.isArray(d.ideas)) throw new Error('Not an IdeaStash backup');
+    const d = JSON.parse(t); if (!Array.isArray(d.ideas)) throw new Error('Not a GemStash / IdeaStash backup');
     const have = new Set(db.ideas.map(i=>i.id)); const haveS = new Set(db.stashes.map(s=>s.id));
     db.ideas.push(...d.ideas.filter(i=>!have.has(i.id))); db.stashes.push(...(d.stashes||[]).filter(s=>!haveS.has(s.id)));
     const haveSh = new Set(db.shelf.map(x=>x.id)); db.shelf.push(...(d.shelf||[]).filter(x=>!haveSh.has(x.id)));

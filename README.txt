@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v12)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v13)
 =======================================
 
 FOLDERS
@@ -91,4 +91,9 @@ VERSIONS
       "John Ekrann: We All Stumble Many Times" is also in Apply Bible Principles; some have
       "-Excerpt" copies). IdeaStash now compares the talk itself, keeps one per day, and won't
       bring back another version of a talk you've already watched.
-  Next: Listening (driving) mode
+  v13 New name: GemStash. And the Daily Text (and every article) is shown in FULL: the card is
+      as long as its text and you scroll straight through it, buttons stay at the bottom, then
+      the next swipe goes to the next item. (Before, the end was hidden in a small box.)
+      Bookmarks are now gems: 💎 saves to a stash (faded until saved, bright once saved),
+      and the Stashes tab is a 💎. The web address and your saved data stay the same.
+  Next: gems icon (waiting on Mike's OK), then Listening (driving) mode
