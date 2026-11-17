@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v10)
+IdeaStash — your own free Deepstash (current: v11)
 =======================================
 
 FOLDERS
@@ -83,4 +83,8 @@ VERSIONS
   v10 🎨 Illustrated Bible Stories (22) on the Shelf: each story is a picture set you swipe
       SIDEWAYS through (cover + 3-5 comic pages), with dots and a "2 / 5" counter. Swipe up
       for the next item. 🔍 opens the page you're on full size (pinch to zoom).
+  v11 Whole articles: cards from jw.org now keep the headings, highlighted questions, numbered
+      points and bullets, and read to the end of the article (scroll inside the card). Each one
+      ends with "Read the full article on jw.org". Cards made earlier fetch the full article
+      the first time they come on screen. The photo now scrolls away with the text.
   Next: Listening (driving) mode

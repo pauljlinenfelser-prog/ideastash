@@ -1,5 +1,5 @@
 // IdeaStash service worker — caches the app so it opens offline
-const CACHE = 'ideastash-v10';
+const CACHE = 'ideastash-v11';
 const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

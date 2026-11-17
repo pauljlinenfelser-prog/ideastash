@@ -12,4 +12,4 @@
 ## Next up
 1. ~~Confirm the deploy~~ (done). ~~v3 Daily Text always on~~ (done).
 2. ~~v4 Listen button + QFR/BQA on from the start~~ (done).
-3. ~~v5 Watch, v6 hearts, v7 lamp icon, v8 one feed + scrolling time, v9 more jw.org sources + posters, v10 Illustrated Bible Stories picture sets~~ (done). Next: see HANDOFF section 6 (Listening/driving mode, own e-books). Ask Mike which.
+3. ~~v5 Watch, v6 hearts, v7 lamp icon, v8 one feed + scrolling time, v9 more jw.org sources + posters, v10 Illustrated Bible Stories picture sets, v11 whole articles with headings~~ (done). Next: see HANDOFF section 6 (Listening/driving mode, own e-books). Ask Mike which.

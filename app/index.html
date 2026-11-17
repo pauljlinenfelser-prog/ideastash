@@ -121,7 +121,9 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
 
 /* (v9) article photo + full-screen posters */
-.card .pic{width:100%;height:170px;object-fit:cover;display:block;flex:none}
+.card .pic{width:calc(100% + 44px);height:170px;object-fit:cover;display:block;margin:-18px -22px 14px}   /* (v11) scrolls with the text */
+.card .body .bh{display:block;color:#fff;font-size:18px;line-height:1.35;margin:4px 0 8px}   /* (v11) headings in articles */
+.card .body .more{display:inline-block;background:var(--panel2);color:var(--accent);border-radius:12px;padding:10px 14px;font-size:15px;text-decoration:none}
 .card.pcard{position:absolute;inset:0;border-radius:0;background:#000;box-shadow:none}
 .pcard .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.45)}
 .pcard .strip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
@@ -337,6 +339,8 @@ function openPic(btn){
   const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
   window.open(src, '_blank', 'noopener');
 }
+// (v11) "## " lines are headings / highlighted questions
+const bodyHTML = b => esc(b).replace(/^## (.+)(\n\n)?/gm, '<b class="bh">$1</b>');
 function cardHTML(i){
   if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
@@ -345,9 +349,8 @@ function cardHTML(i){
   return `<div class="card" data-id="${i.id}">
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
-    ${i.pic && !i.video ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
-      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${esc(i.body)}</div>`}
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">Read the full article on jw.org ↗</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>`}
@@ -463,12 +466,27 @@ function observeFeed(){
     if (timeUp() && feedCurrent && s !== feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s;
     const c = s.querySelector('.card[data-id]');
-    if (c){ db.seen[c.dataset.id] = 1; save(); }
+    if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1; save(); } }
     if (s.dataset.core) bumpStreak();
     if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
   }), {root: el, threshold: .6});
   el.querySelectorAll('.slide, .vslide').forEach(s => feedObs.observe(s));
+}
+// (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
+function upgradeCard(id){
+  const i = findIdea(id);
+  if (!i || i.full || i.video || i.image || i.pics || !i.url || !/jw\.org/.test(i.url)) return;
+  const it = db.shelf.find(x => x.id === i.shelfId);
+  const kind = it && (KIND_INFO[it.kind] || it.kind === 'qfr' || it.kind === 'bqa') ? it.kind
+    : /^Questions From Readers/.test(i.source) ? 'qfr' : /^Bible Questions Answered/.test(i.source) ? 'bqa' : '';
+  if (!kind) return;
+  i.full = 'pending';
+  const ref = (i.source.match(/— (.+)$/) || [])[1] || '';
+  articleCard({q: i.title, u: i.url, ref}, kind).then(c => {
+    if (c.video) { i.full = true; save(); return; }
+    i.body = c.body; if (c.pic && !i.pic) i.pic = c.pic; i.full = true; save(); refreshCard(id);
+  }).catch(() => { i.full = false; });
 }
 // (v8) past today's set: more cards with a short video after every second card
 async function appendExplore(){
@@ -517,7 +535,7 @@ function listen(id){
   stopListening();
   const i = findIdea(id); if (!i) return;
   // short pieces: Chrome on Android cuts off long speech
-  const parts = [i.title, ...i.body.split(/\n+/)].flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
+  const parts = [i.title, ...i.body.split(/\n+/).map(x => x.replace(/^(## |• )/, ''))].flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
   const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
                 speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
   speakingId = id; setListenIcons();
@@ -955,60 +973,101 @@ async function loadBookParas(it){
   return paras;
 }
 function wordsOf(s){ return new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3)); }
+// (v11) Whole articles: keep headings ("## …"), highlighted questions and points, bullets and numbered lists,
+// and read to the end of the article (stop at footnotes / Related / page tools) instead of ~950 characters.
+const JUNK_LINE = /^(PLAY|CLOSE|Play video|Media is loading|Loaded: ?\d*%?|Current time.*|Duration.*|Mute|Play Back.*|Download|Share|Print|Font Size|Previous|Next|\/|Questions From Readers|Play & Download|SHOW MENU)$/i;
+const END_LINE = /^(\*\*)?\[?(Footnotes?|Related Topics|You May Also Like|Read More|Related|See also|Share)\]?(\*\*)?$/i;
+function inlineMd(t){
+  return t.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[[a-z*]\]\([^)]*#footnote[^)]*\)/g, '')                      // footnote markers
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')                                 // links → text
+    .replace(/(\*\*|__)(.+?)\1/g, '$2').replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, '$1$2')
+    .replace(/​/g, '').replace(/\s+w\d\d\.\d\d\s+\d+\s*¶[\d\-, ]+\s*$/, '').trim();
+}
+// markdown (from the reader) → plain text with "## " headings and "• " bullets, one block per paragraph
+function articleBlocks(md){
+  const mc = md.indexOf('Markdown Content:'); if (mc > -1) md = md.slice(mc + 17);
+  const lines = md.replace(/\r/g, '').split('\n');
+  const h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));   // jw.org pages: skip menu + cookie notice
+  const out = [];
+  let afterPic = 0, num = '', inPlayer = false;                                 // picture captions follow a picture
+  for (const raw of (h1 > -1 ? lines.slice(h1 + 1) : lines)){
+    let l = raw.trim();
+    if (!l) continue;
+    if (/^#\s+Play & Download/i.test(l)) { inPlayer = true; continue; }          // jw.org video player menus
+    if (inPlayer) { if (/\d{3}p\s*\(MP4/i.test(l)) inPlayer = false; continue; }
+    const bare = l.replace(/^#{1,6}\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+    if (END_LINE.test(bare) || /^#{1,3}\s+(Related|You May Also Like|Read More)/i.test(l)) break;
+    if (/^\[[a-z]\]\([^)]*#footnotesource/.test(l)) break;                     // footnote list
+    const pic = l.match(/^(\d+)\.\s+\[?!\[/);                                    // "4.  [picture]" — the point's text comes next
+    if (pic){ num = pic[1] + '. '; afterPic = 2; continue; }
+    if (/^\[?!\[/.test(l) || /^\[!\[/.test(l)) { afterPic = 2; continue; }      // picture
+    if (afterPic && l.length < 160 && !/[.!?:”"’)]$/.test(l) && !/^[#*>]/.test(l)) { afterPic--; continue; }   // its caption
+    afterPic = 0;
+    if (num && !/^#/.test(l)) { l = num + l; num = ''; }
+    if (/^\*\s+\[\*\*.*\*\*\]\([^)]*#link\d/.test(l) || /^\*\s+\[[^\]]+\]\([^)]*#link\d/.test(l)) continue;   // "in this article" contents
+    let m;
+    if ((m = l.match(/^#{2,6}\s+(.+)/))) { const h = inlineMd(m[1]); if (h && !JUNK_LINE.test(h)) out.push('## ' + h); continue; }
+    if ((m = l.match(/^\*\*([^*]+)\*\*:?$/))) {                                  // whole line in bold = heading / highlighted question
+      const h = inlineMd(m[1]); if (!h || /\|/.test(h) || JUNK_LINE.test(h)) continue; out.push('## ' + h); continue; }
+    if ((m = l.match(/^[*+-]\s+(.+)/))) { const b = inlineMd(m[1]); if (b && !JUNK_LINE.test(b)) out.push('• ' + b); continue; }
+    if ((m = l.match(/^(\d+)\.\s+(.+)/))) { const b = inlineMd(m[2]); if (b) out.push(m[1] + '. ' + b); continue; }
+    l = inlineMd(l.replace(/^>\s?/, ''));
+    if (!l || JUNK_LINE.test(l) || /cookie|JavaScript|Skip to content/i.test(l)) continue;
+    out.push(l);
+  }
+  return out;
+}
+const MAX_BODY = 15000;
+function joinBlocks(blocks){
+  let body = '';
+  for (const b of blocks){ if (body.length + b.length > MAX_BODY) { body += '\n\n…'; break; } body += (body ? '\n\n' : '') + b; }
+  return body.replace(/(## [^\n]+)(\n\n## [^\n]+)+$/,'$1').replace(/\n\n## [^\n]+$/, '').trim();   // no dangling heading at the end
+}
 async function articleCard(entry, kind){
   const {text, html} = await fetchText(entry.u);
-  if (KIND_INFO[kind]) return seriesCard(entry, kind, text, html);   // (v9)
-  const t = html ? htmlToText(text) : cleanMarkdown(text);
-  const paras = paragraphs(t);
-  // find the question on the page that best matches the index entry
+  const md = html ? htmlToText(text) : text;
+  if (KIND_INFO[kind]) return seriesCard(entry, kind, md);
+  let blocks = articleBlocks(md);
+  // find the question on the page that best matches the index entry; the answer starts after it
   const want = wordsOf(entry.q); let qi = -1, best = 0;
-  paras.forEach((p,ix) => {
-    if (p.length > 320 || !/\?["”’)]*$/.test(p)) return;
-    let score = 0; wordsOf(p).forEach(w => { if (want.has(w)) score++; });
+  blocks.forEach((b, ix) => {
+    const t = b.replace(/^## /, '');
+    if (t.length > 320 || !/\?["”’)]*$/.test(t)) return;
+    let score = 0; wordsOf(t).forEach(w => { if (want.has(w)) score++; });
     if (score > best){ best = score; qi = ix; }
   });
-  // (v4) BQA pages put a "1. Bible Teachings 2. …" breadcrumb on the question — the index question is already clean
-  const title = kind === 'bqa' || qi < 0 ? entry.q : p0(paras[qi]).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
-  let body = '';
-  for (const p of paras.slice(qi + 1)){
-    const ok = goodPara(p) || (p.length > 100 && p.length < 900 && /:$/.test(p) && sentences(p).length >= 2);
-    if (!ok) { if (body) break; else continue; }
-    if (body && (body + '\n\n' + p).length > 950) break;
-    body += (body ? '\n\n' : '') + trimBody(p, 950);
+  const title = kind === 'bqa' || qi < 0 ? entry.q : p0(blocks[qi].replace(/^## /, '')).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
+  blocks = blocks.slice(qi + 1);
+  if (kind === 'qfr'){                                   // a wol page can hold several Questions From Readers: stop at the next one
+    const next = blocks.findIndex((b, ix) => ix > 0 && /^## .{10,320}\?["”’)]*$/.test(b) && b.length > 40);
+    if (next > 0) blocks = blocks.slice(0, next);
   }
-  if (!body) throw new Error('could not read answer');
-  return {id:uid(), title, body, topic:'Q&A',
+  if (kind === 'bqa') blocks = blocks.filter(b => !/^## The Bible’s answer$/i.test(b));
+  const body = joinBlocks(blocks);
+  if (body.replace(/## .*/g, '').trim().length < 80) throw new Error('could not read answer');
+  return {id:uid(), title, body, topic:'Q&A', full:true,
     source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
     url: entry.u, created:Date.now(), stashes:[]};
 }
-// (v9) Was It Designed? / Bible Verses Explained / Help for the Family / From Our Archives.
-// The reader puts jw.org's menu and cookie notice first: start at the article's own "# Title" heading.
-// Video pages (some Was It Designed? entries) become full-screen videos in Today.
-function seriesCard(entry, kind, text, html){
+// (v9) Was It Designed? / Bible Verses Explained / Help for the Family / From Our Archives. Video pages become full-screen videos.
+function seriesCard(entry, kind, md){
   const info = KIND_INFO[kind];
-  let md = html ? htmlToText(text) : text;
-  const lines = md.split('\n'), h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));
-  if (h1 > -1) md = lines.slice(h1 + 1).join('\n');
-  md = md.split(/\n#{1,3}\s+(?:Related Topics|You May Also Like|Read More|Share)\b/i)[0]
-    .replace(/\[[a-z*]\]\([^)]*#footnote[^)]*\)/g, '');                   // footnote markers ("Jehovah[a]")
-  const pic = (md.match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
-  const paras = paragraphs(cleanMarkdown(md)).filter(p => !/cookie|JavaScript|Skip to content|Media is loading|Play video/i.test(p));
-  let body = '';
-  for (const p of paras){
-    const ok = goodPara(p) || (p.length > 100 && p.length < 900 && sentences(p).length >= 2);
-    if (!ok || /^[a-z]\s/.test(p)) continue;                     // skip headings, bullets and footnotes, keep reading
-    if (kind === 'bve' && body && /^“/.test(p) && /(Version|Translation|Bible)[._ ]*$/.test(p)) continue;   // other translations
-    if (body && (body + '\n\n' + p).length > 950) break;
-    body += (body ? '\n\n' : '') + trimBody(p, 950);
+  const pic = (md.split('Markdown Content:').pop().match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+  let blocks = articleBlocks(md);
+  if (kind === 'bve'){                                    // keep the NWT quote, drop the same verse in other translations
+    let first = true;
+    blocks = blocks.filter(b => { if (/^“/.test(b) && /(Version|Translation|Bible)[._ ]*$/.test(b)){ const keep = first; first = false; return keep; } return true; });
   }
+  const body = joinBlocks(blocks);
   const mp4 = (md.match(/https:\/\/[^\s)"']+?_r(?:480|720|360)P\.mp4/) || [])[0];
   const base = {id:uid(), title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
-    topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[]};
-  if (mp4 && body.length < 300){
-    const intro = paras.find(p => p.length > 30 && p.length < 300) || '';
-    return {...base, body: intro || '▶ Short video', video:{lank:entry.u, title:base.title, dur:0, pub:'', img:pic, src:mp4, cat:'SERIES_' + kind}};
+    topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[], full:true};
+  const words = body.replace(/## .*/g, '').trim();
+  if (mp4 && words.length < 300){
+    return {...base, body: words.split('\n')[0] || '▶ Short video', video:{lank:entry.u, title:base.title, dur:0, pub:'', img:pic, src:mp4, cat:'SERIES_' + kind}};
   }
-  if (!body) throw new Error('could not read article');
+  if (words.length < 80) throw new Error('could not read article');
   return {...base, body, pic};
 }
 // (v9) Become Jehovah's Friend poster: one full-screen picture
@@ -1359,7 +1418,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v10 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v11 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
