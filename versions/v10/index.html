@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14121f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>IdeaStash</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#14121f; --panel:#1e1b2e; --panel2:#272340; --text:#f3f1fb; --muted:#a39fbd;
+  --accent:#ffb84d; --accent2:#7c6cff; --danger:#ff5c7a; --ok:#3ed6a0;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid #3a3558;
+  border-radius:12px;padding:12px;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--accent2)}
+textarea{min-height:160px;resize:vertical}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);z-index:5}
+header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
+header h1 span{color:var(--accent)}
+.pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+main{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
+.view.active{display:block}
+nav{display:flex;background:var(--panel);padding:6px 6px calc(var(--safe-b) + 6px);border-top:1px solid #2c2846}
+nav button{flex:1;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);border-radius:12px}
+nav button .ic{font-size:21px;line-height:1}
+nav button.on{color:var(--accent)}
+
+/* feed */
+#feed{padding:0;scroll-snap-type:y mandatory}
+.slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:8px 16px 16px;display:flex}
+.card{flex:1;border-radius:24px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 10px 30px #0006}
+.card .top{padding:22px 22px 18px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px}
+.card .topic{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;opacity:.85}
+.card h2{margin:0;font-size:24px;line-height:1.22}
+.card .body{padding:18px 22px;font-size:17px;line-height:1.6;flex:1;overflow-y:auto;color:#e6e3f3;white-space:pre-wrap}
+.card .src{padding:0 22px 6px;font-size:13px;color:var(--muted)}
+.card .src a{color:var(--muted)}
+.card .acts{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid #2c2846}
+.card .acts button{font-size:22px;padding:8px 14px;border-radius:12px}
+.card .acts button.saved{color:var(--accent)}
+.endslide .card{align-items:center;justify-content:center;text-align:center;padding:30px;gap:14px}
+.big{font-size:54px}
+
+/* lists */
+.sec{margin:18px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.row{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{color:var(--muted)}
+.btn{background:var(--accent);color:#1b1408;font-weight:700;border-radius:14px;padding:13px 18px;width:100%;margin-top:10px}
+.btn.alt{background:var(--panel2);color:var(--text)}
+.btn.sm{width:auto;padding:9px 14px;margin:0;font-size:14px}
+.btn:disabled{opacity:.45}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--panel);border-radius:18px;padding:16px;text-align:left;min-height:96px;display:flex;flex-direction:column;gap:6px}
+.tile .e{font-size:26px}
+.tile small{color:var(--muted)}
+.mini{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.mini b{display:block;margin-bottom:6px}
+.mini p{margin:0;color:#d6d2e8;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mini .m{font-size:12px;color:var(--muted);margin-top:6px}
+.chk{display:flex;gap:12px;align-items:flex-start}
+.chk input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.search{display:flex;gap:8px;margin:12px 0}
+.status{color:var(--muted);font-size:14px;margin:10px 0;min-height:20px}
+.status.err{color:var(--danger)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0}
+.tabs button{background:var(--panel2);border-radius:999px;padding:8px 14px;white-space:nowrap;font-size:14px}
+.tabs button.on{background:var(--accent);color:#1b1408;font-weight:700}
+
+/* sheet */
+#sheet{position:fixed;inset:0;background:#0009;display:none;z-index:20;align-items:flex-end}
+#sheet.on{display:flex}
+#sheet .in{background:var(--panel);width:100%;max-height:88%;overflow-y:auto;border-radius:24px 24px 0 0;
+  padding:18px 16px calc(var(--safe-b) + 18px)}
+#sheet h3{margin:4px 0 12px}
+#toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 84px);transform:translateX(-50%);background:#000c;
+  padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30}
+#toast.on{opacity:1}
+
+.prog{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.shelfitem{background:var(--panel);border-radius:18px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;width:100%;text-align:left}
+.shelfitem .e{font-size:30px}
+.shelfitem.paused{opacity:.5}
+.step{display:flex;align-items:center;gap:14px}
+.step button{background:var(--panel2);width:44px;height:44px;border-radius:12px;font-size:22px}
+.step b{font-size:22px;min-width:30px;text-align:center}
+.seg{display:flex;background:var(--panel2);border-radius:12px;padding:4px}
+.seg button{flex:1;padding:10px;border-radius:9px}
+.seg button.on{background:var(--accent);color:#1b1408;font-weight:700}
+label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+
+/* hearts (v6): double-tap or ❤️ saves to Favorites, TikTok style */
+.slide{position:relative}
+.card{-webkit-user-select:none;user-select:none}
+.card .acts button{padding:8px 10px}
+.burst{position:absolute;font-size:110px;line-height:1;pointer-events:none;z-index:9;opacity:0;
+  animation:burst .9s ease-out forwards;filter:drop-shadow(0 6px 18px #0009)}
+@keyframes burst{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-12deg);opacity:0}
+  15%{transform:translate(-50%,-50%) scale(1.25) rotate(-8deg);opacity:1}
+  30%{transform:translate(-50%,-50%) scale(.92) rotate(-8deg);opacity:1}
+  45%{transform:translate(-50%,-50%) scale(1.04) rotate(-8deg);opacity:1}
+  75%{transform:translate(-50%,-70%) scale(1.04) rotate(-8deg);opacity:1}
+  100%{transform:translate(-50%,-170%) scale(1.15) rotate(-8deg);opacity:0}}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+
+/* (v9) article photo + full-screen posters */
+.card .pic{width:100%;height:170px;object-fit:cover;display:block;flex:none}
+.card.pcard{position:absolute;inset:0;border-radius:0;background:#000;box-shadow:none}
+.pcard .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.45)}
+.pcard .strip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.pcard .strip::-webkit-scrollbar{display:none}
+.pcard .pg{flex:0 0 100%;height:100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always}
+.pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard .dots{position:absolute;left:0;right:0;bottom:78px;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
+.pcard .dots i{width:7px;height:7px;border-radius:50%;background:#fff5}
+.pcard .dots i.on{background:#fff}
+.pcard .count{position:absolute;top:12px;right:12px;background:#0009;border-radius:999px;padding:5px 11px;font-size:13px;pointer-events:none;z-index:2}
+.pcard .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
+.pcard .side button,.pcard .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
+  align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.pcard .side .saved{background:var(--accent)}
+.pcard .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;background:linear-gradient(transparent,#000b 40%)}
+.pcard .info b{display:block;font-size:17px}
+.pcard .info small{color:#fffb}
+
+/* watch (v5) */
+#watch{padding:0;overflow:hidden;background:#000}
+#wfeed{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory}
+#wtop{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;gap:8px;align-items:center;padding:10px 12px;
+  background:linear-gradient(#000a,transparent);pointer-events:none}
+#wtop *{pointer-events:auto}
+#wtop .n{flex:1;font-size:13px;color:#fffc;pointer-events:none}
+#wtop button{background:#0007;border-radius:999px;padding:7px 12px;font-size:13px}
+.vslide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;overflow:hidden;background:#000}
+.vslide .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.5)}
+.vslide video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.vslide.crop video{object-fit:cover}
+.vslide .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;
+  background:linear-gradient(transparent,#000b 40%)}
+.vslide .info b{display:block;font-size:17px;line-height:1.3;text-shadow:0 1px 4px #000}
+.vslide .info small{color:#fffb}
+.vslide .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
+.vslide .side button,.vslide .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
+  align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.vslide .side .saved{background:var(--accent)}
+.vslide .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);z-index:2}
+.vslide .note{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:#000a;border-radius:999px;
+  padding:8px 14px;font-size:14px;pointer-events:none;white-space:nowrap}
+.vslide .playi{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:70px;pointer-events:none;opacity:.85}
+.vslide.paused .playi{display:flex}
+.vslide.msg{display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;background:var(--bg);flex-direction:column;gap:14px}
+.vslide.msg p{color:var(--muted);margin:0;line-height:1.5}
+.chan{background:var(--panel);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.chan .opts{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.chan .opts select{width:auto;padding:8px}
+.chan .step button{width:36px;height:36px;font-size:18px}
+.chan .step b{font-size:18px;min-width:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Idea<span>Stash</span></h1>
+    <span class="pill" id="streak">🔥 0</span>
+  </header>
+  <main>
+    <section class="view active" id="feed"></section>
+    <section class="view" id="shelf"></section>
+    <section class="view" id="library"></section>
+    <section class="view" id="add"></section>
+    <section class="view" id="more"></section>
+  </main>
+  <nav>
+    <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
+    <button data-v="shelf"><span class="ic">📖</span>Shelf</button>
+    <button data-v="library"><span class="ic">🔖</span>Stashes</button>
+    <button data-v="add"><span class="ic">➕</span>Add</button>
+    <button data-v="more"><span class="ic">⚙️</span>More</button>
+  </nav>
+</div>
+<div id="sheet"><div class="in" id="sheetIn"></div></div>
+<div id="toast"></div>
+
+<script src="sources.js"></script>
+<script>
+/* ================= storage ================= */
+const KEY = 'ideastash.v1';
+const READER = 'https://r.jina.ai/';
+const TOPICS = {
+  'Spiritual': ['#3b2a7a','#7c6cff'], 'Books': ['#7a3b1f','#ffb84d'], 'Wisdom': ['#0f5c4d','#3ed6a0'],
+  'Faith': ['#1f3f7a','#5aa9ff'], 'Self-Improvement': ['#7a1f45','#ff5c9a'], 'History': ['#5b4a2a','#d6b36a'],
+  'Science': ['#18506b','#4ad7ff'], 'Q&A': ['#22406e','#7cc4ff'], 'Other': ['#3a3558','#a39fbd']
+};
+TOPICS.Video = ['#5a1f3a','#ff6b8b'];   // (v5) videos saved from Watch
+TOPICS.Family = TOPICS.Family || ['#6b2f4a','#ff9db8']; TOPICS.History = TOPICS.History || ['#5c4a1e','#e8c26a'];   // (v9)
+function topicColors(t){ return TOPICS[t] || TOPICS.Other; }
+
+let db;
+function blank(){
+  return { ideas: [], stashes: [{id:'fav', name:'Favorites', emoji:'⭐'}],
+    daily: {date:'', ids:[]}, streak: {count:0, last:''}, seen: {}, shelf: [],
+    watch: {cats: [], seen: {}, daily: {date:'', items:[], done:{}}, sound: false},
+    limitMin: 20, usage: {} };   // (v8) daily scrolling time in minutes (0 = no limit)
+}
+function load(){
+  try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
+  const d = blank(); d.ideas = welcomeIdeas(); return d;
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast('Storage full or blocked — export a backup'); } }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function welcomeIdeas(){
+  const mk = (title, body) => ({id:uid(), title, body, topic:'Other', source:'IdeaStash guide', url:'', created:Date.now(), stashes:[]});
+  return [
+    mk('Swipe up for the next idea', 'Today shows a fresh set of 5 ideas each day, pulled from everything you have imported. Keep going past them to explore more.'),
+    mk('Import a whole book in seconds', 'Tap Add → Books. Search Project Gutenberg (60,000+ free public-domain books), pick one, and IdeaStash breaks it into bite-size idea cards you can keep or skip.'),
+    mk('Bring in jw.org articles', 'Tap Add → Web / jw.org and paste any jw.org or wol.jw.org link, or tap "Today\'s Daily Text". The page is turned into idea cards you choose from.'),
+    mk('Stash what matters', 'Tap the bookmark on any card to put it in a stash. Make as many stashes as you like — by topic, project, or talk you are preparing.'),
+  ];
+}
+
+/* ================= helpers ================= */
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
+function openSheet(html){ document.getElementById('sheetIn').innerHTML = html; document.getElementById('sheet').classList.add('on'); }
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); }
+document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const findIdea = id => db.ideas.find(i => i.id===id);
+
+/* ================= navigation ================= */
+let currentView = 'feed';
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v){
+  currentView = v;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
+  if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
+  ({feed:renderFeed, shelf:renderShelf, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
+}
+
+/* ================= daily + streak ================= */
+// (v3) the Daily Text is a permanent shelf item: always on, always first in Today
+const dailyShelf = () => db.shelf.find(it => it.kind === 'daily');
+function ensureDailyShelf(){
+  let it = dailyShelf();
+  if (!it) it = {id:uid(), kind:'daily', title:SHELF_KINDS.daily.title, sub:SHELF_KINDS.daily.sub, perDay:1, pos:0, total:0,
+    order:'seq', lastPull:'', paused:false, added:Date.now()};
+  it.paused = false;
+  db.shelf = [it, ...db.shelf.filter(x => x.kind !== 'daily')];
+  // (v4) Questions From Readers + Bible Questions Answered start on the shelf — once only, so Remove sticks
+  db.seeded = db.seeded || [];
+  Object.keys(KIND_LIST).forEach(kind => {   // (v9) all list sources start on
+    if (db.seeded.includes(kind)) return;
+    db.seeded.push(kind);
+    if (db.shelf.some(x => x.kind === kind)) return;
+    const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
+      total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
+    setOrder(s, 'random'); db.shelf.push(s);
+  });
+  // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
+  [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15]].forEach(([key, maxMin]) => {   // (v9) + experiences and our history
+    const tag = 'w:' + key;
+    if (db.seeded.includes(tag)) return;
+    db.seeded.push(tag);
+    if (!db.watch.cats.some(c => c.key === key)) db.watch.cats.push({key, perDay:1, maxMin});
+  });
+  save();
+}
+function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
+function dailyTextUrl(){ const d = new Date(); return `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+function ensureDaily(){
+  const t = today();
+  if (db.daily.date !== t) db.daily = {date:t, ids:[]};
+  const dt = todaysText();
+  // slot 1 is always today's text (or its retry card); 4 more ideas fill the rest
+  const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
+  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
+  if (ids.length < 4){
+    const pool = db.ideas.filter(i => i !== dt && !i.video && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && !i.video && !ids.includes(i.id))).slice(0, 4-ids.length);
+    ids.push(...pick.map(i=>i.id));
+  }
+  db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
+}
+function bumpStreak(){
+  const t = today(); if (db.streak.last === t) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const ys = y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+  db.streak.count = db.streak.last === ys ? db.streak.count+1 : 1;
+  db.streak.last = t; save(); renderStreak();
+}
+function renderStreak(){ document.getElementById('streak').textContent = '🔥 ' + db.streak.count; }
+
+/* ================= card ================= */
+// (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
+function posterHTML(i){
+  const pics = i.pics || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
+  return `<div class="card pcard" data-id="${i.id}">
+    <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
+    <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
+      `<div class="pg"><img class="poster" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+    ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">🔖</button>
+      <button title="Full size" onclick="openPic(this)">🔍</button>
+    </div>
+    <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+}
+function stripMoved(st){
+  const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
+  c.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === n));
+  const ct = c.querySelector('.count'); if (ct) ct.textContent = `${n + 1} / ${st.children.length}`;
+}
+function openPic(btn){
+  const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
+  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
+  window.open(src, '_blank', 'noopener');
+}
+function cardHTML(i){
+  if (i.image || i.pics) return posterHTML(i);
+  const [c1,c2] = topicColors(i.topic);
+  const saved = i.stashes && i.stashes.length;
+  const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
+  return `<div class="card" data-id="${i.id}">
+    <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
+      <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
+    ${i.pic && !i.video ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}
+    ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${esc(i.body)}</div>`}
+    <div class="src">${src ? '— ' + src : ''}</div>
+    <div class="acts">
+      ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>`}
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">${saved?'🔖':'📑'}</button>
+      <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
+      <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
+      <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
+    </div></div>`;
+}
+
+/* ================= feed ================= */
+let exploreQueue = [];
+function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
+// (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
+// then more cards and videos mixed, until the daily scrolling time runs out.
+let feedCore = -1, exploring = false, feedCurrent = null;
+async function renderFeed(){
+  const el0 = document.getElementById('feed');
+  const W = db.watch;
+  const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
+  if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
+    el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
+      <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
+    if (shelfNeedsPull()) await pullShelf();
+    if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
+    if (currentView !== 'feed') return;
+  }
+  ensureDaily();
+  const el = document.getElementById('feed');
+  const daily = db.daily.ids.map(findIdea).filter(Boolean), dt = todaysText();
+  const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
+  const qfr = ofKind('qfr'), bqa = ofKind('bqa');
+  const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
+  const vq = W.daily.items.map((v, n) => ({v, n})).filter(x => !x.v.series);   // (v9) series videos come with their card
+  const C = card => ({card}), V = vid => ({vid});
+  const seq = [dt ? C(dt) : {retry:true}];
+  vq.splice(0, 2).forEach(x => seq.push(V(x)));
+  qfr.forEach(i => seq.push(C(i)));
+  vq.splice(0, 1).forEach(x => seq.push(V(x)));
+  bqa.forEach(i => seq.push(C(i)));
+  feedCore = seq.length - 1;                      // reaching here keeps the streak going
+  while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
+  exploreQueue = shuffle(db.ideas.filter(i => !i.video && !db.daily.ids.includes(i.id)));
+  feedCurrent = null;
+  el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
+  el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
+  el.scrollTop = 0;
+  observeFeed();
+}
+function slideHTML(x, k){
+  if (x.retry) return dailyRetryHTML();
+  const core = k === feedCore ? ' data-core="1"' : '';
+  if (x.card && (x.card.image || x.card.pics)) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
+  if (x.card && x.card.video){                                                                   // (v9) series video
+    const W = db.watch; let n = W.daily.items.findIndex(v => v.lank === x.card.video.lank);
+    if (n < 0){ W.daily.items.push({...x.card.video, extra:true, series:true}); n = W.daily.items.length - 1; save(); }
+    return videoSlideHTML(W.daily.items[n], n).replace('<div class="vslide', `<div${core} class="vslide`);
+  }
+  if (x.card) return `<div class="slide"${core}>${cardHTML(x.card)}</div>`;
+  return videoSlideHTML(x.vid.v, x.vid.n).replace('<div class="vslide', `<div${core} class="vslide`);
+}
+/* ---- (v8) daily scrolling time ---- */
+const LIMITS = [5, 10, 20, 30, 60, 0];
+const usedSecs = () => (db.usage && db.usage[today()]) || 0;
+const timeUp = () => db.limitMin > 0 && usedSecs() >= db.limitMin * 60;
+setInterval(() => {                               // counts only while Today is on screen
+  if (currentView !== 'feed' || document.hidden || !db) return;
+  const t = today(); if (!db.usage || !(t in db.usage)) db.usage = {[t]: 0};
+  db.usage[t]++; if (db.usage[t] % 10 === 0) save();
+}, 1000);
+function timeUpHTML(){
+  return `<div class="slide endslide timeup"><div class="card"><div class="big">⏳</div>
+    <h2>That's your time for today</h2>
+    <p style="color:var(--muted)">You've had your ${db.limitMin} minutes. New ideas and videos come tomorrow.</p>
+    <button class="btn sm alt" onclick="go('library')">🔖 Open your stashes</button>
+    <p style="color:var(--muted);font-size:13px">You can change the limit in More.</p></div></div>`;
+}
+// time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
+function cutFeedAt(s){
+  const el = document.getElementById('feed');
+  while (s.nextElementSibling) s.nextElementSibling.remove();
+  s.remove();
+  el.insertAdjacentHTML('beforeend', timeUpHTML());
+  const t = el.lastElementChild; feedObs.observe(t); t.scrollIntoView({block:'start'});
+}
+// (v3) stands in for today's text when it couldn't be fetched (offline, reader busy)
+function dailyRetryHTML(){
+  const why = navigator.onLine === false ? 'You\'re offline right now.' : 'The page reader may be busy.';
+  return `<div class="slide endslide" id="dtRetry"><div class="card" onclick="retryDaily()" style="cursor:pointer">
+    <div class="big">📅</div><h2>Today's text couldn't load, tap to retry</h2>
+    <p style="color:var(--muted)">${why}</p>
+    <button class="btn sm" id="dtBtn">🔄 Retry</button>
+    <a href="${dailyTextUrl()}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--muted);font-size:14px">Or read it on wol.jw.org ↗</a>
+  </div></div>`;
+}
+async function retryDaily(){
+  const it = dailyShelf(), btn = document.getElementById('dtBtn');
+  if (!it || pulling) return;
+  if (btn){ btn.disabled = true; btn.textContent = 'Loading…'; }
+  it.lastPull = ''; await pullShelf();
+  if (todaysText()){ toast('Today\'s text is in'); if (currentView === 'feed') renderFeed(); return; }
+  if (btn){ btn.disabled = false; btn.textContent = '🔄 Retry'; }
+  toast('Still couldn\'t load. Try again in a minute.');
+}
+let feedObs;
+function observeFeed(){
+  const el = document.getElementById('feed');
+  if (feedObs) feedObs.disconnect();
+  feedObs = new IntersectionObserver(ents => ents.forEach(en => {
+    const s = en.target, vid = s.querySelector('video');
+    if (!en.isIntersecting){ if (vid) vid.pause(); return; }
+    if (timeUp() && feedCurrent && s !== feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
+    feedCurrent = s;
+    const c = s.querySelector('.card[data-id]');
+    if (c){ db.seen[c.dataset.id] = 1; save(); }
+    if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1; save(); } }
+    if (s.dataset.core) bumpStreak();
+    if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
+  }), {root: el, threshold: .6});
+  el.querySelectorAll('.slide, .vslide').forEach(s => feedObs.observe(s));
+}
+// (v8) past today's set: more cards with a short video after every second card
+async function appendExplore(){
+  if (exploring) return; exploring = true;
+  const el = document.getElementById('feed');
+  try {
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => !i.video));
+    const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
+    cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
+    vids.forEach(vid => add.push({vid}));
+    add.forEach(x => { el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
+      if (s.matches('.vslide')) wireVideoSlide(s); feedObs.observe(s); });
+  } finally { exploring = false; }
+}
+function refreshCard(id){
+  const i = findIdea(id);
+  document.querySelectorAll(`.card[data-id="${id}"]`).forEach(c => {
+    if (!i){ c.closest('.slide')?.remove(); return; }
+    c.outerHTML = cardHTML(i);
+  });
+  if (currentView==='library') renderLibrary();
+}
+
+/* ================= listen (v4) ================= */
+// reads a card aloud with the phone's own voice; tap again to stop
+let speakingId = null;
+const BOOKS = {Gen:'Genesis',Ex:'Exodus',Lev:'Leviticus',Num:'Numbers',Deut:'Deuteronomy',Josh:'Joshua',Judg:'Judges',
+  Sam:'Samuel',Ki:'Kings',Chron:'Chronicles',Neh:'Nehemiah',Esth:'Esther',Ps:'Psalm',Prov:'Proverbs',Eccl:'Ecclesiastes',
+  Song:'Song of Solomon',Isa:'Isaiah',Jer:'Jeremiah',Lam:'Lamentations',Ezek:'Ezekiel',Dan:'Daniel',Hos:'Hosea',Obad:'Obadiah',
+  Mic:'Micah',Nah:'Nahum',Hab:'Habakkuk',Zeph:'Zephaniah',Hag:'Haggai',Zech:'Zechariah',Mal:'Malachi',Matt:'Matthew',
+  Rom:'Romans',Cor:'Corinthians',Gal:'Galatians',Eph:'Ephesians',Phil:'Philippians',Col:'Colossians',Thess:'Thessalonians',
+  Tim:'Timothy',Philem:'Philemon',Heb:'Hebrews',Jas:'James',Pet:'Peter',Rev:'Revelation'};
+function speakable(s){
+  return s
+    .replace(/\b([1-3]) (Sam|Ki|Chron|Cor|Thess|Tim|Pet|John)\.?(?= \d)/g, (m,n,b) => ['','First','Second','Third'][n] + ' ' + (BOOKS[b]||b))
+    .replace(/\b([A-Z][a-z]{1,5})\.(?= \d)/g, (m,b) => BOOKS[b] || m)
+    .replace(/(\d+):(\d+)-(\d+)/g, '$1, verses $2 to $3')
+    .replace(/(\d+):(\d+)/g, '$1, verse $2')
+    .replace(/[—–]/g, ', ').replace(/¶/g, 'paragraph ');
+}
+function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => b.textContent = b.closest('.card').dataset.id === speakingId ? '⏹️' : '🔊'); }
+function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} setListenIcons(); }
+function listen(id){
+  if (!('speechSynthesis' in window)) return toast('This browser can\'t read aloud');
+  if (speakingId === id) return stopListening();
+  stopListening();
+  const i = findIdea(id); if (!i) return;
+  // short pieces: Chrome on Android cuts off long speech
+  const parts = [i.title, ...i.body.split(/\n+/)].flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
+  const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
+                speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
+  speakingId = id; setListenIcons();
+  parts.forEach((p, n) => {
+    const u = new SpeechSynthesisUtterance(p);
+    if (voice) u.voice = voice;
+    u.rate = 1;
+    if (n === parts.length - 1) u.onend = () => { if (speakingId === id){ speakingId = null; setListenIcons(); } };
+    u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
+    speechSynthesis.speak(u);
+  });
+}
+
+/* ================= actions ================= */
+function copyIdea(id){
+  const i = findIdea(id); const txt = `${i.title}\n\n${i.body}\n\n— ${i.source||''}${i.url?' '+i.url:''}`;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('Copied'), ()=>toast('Copy not allowed here'));
+}
+function delIdea(id){
+  openSheet(`<h3>Delete this idea?</h3><p style="color:var(--muted)">${esc(findIdea(id).title)}</p>
+    <button class="btn" style="background:var(--danger);color:#fff" onclick="reallyDel('${id}')">Delete</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+function reallyDel(id){ db.ideas = db.ideas.filter(i=>i.id!==id); save(); closeSheet(); refreshCard(id); toast('Deleted'); }
+function editIdea(id){
+  const i = findIdea(id);
+  openSheet(`<h3>Edit idea</h3>
+    <label class="l">Title</label><input id="eT" value="${esc(i.title)}">
+    <label class="l">Idea</label><textarea id="eB">${esc(i.body)}</textarea>
+    <label class="l">Topic</label>${topicSelect('eP', i.topic)}
+    <label class="l">Source</label><input id="eS" value="${esc(i.source)}">
+    <button class="btn" onclick="saveEdit('${id}')">Save</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+function saveEdit(id){
+  const i = findIdea(id);
+  i.title = document.getElementById('eT').value.trim() || i.title;
+  i.body = document.getElementById('eB').value.trim() || i.body;
+  i.topic = document.getElementById('eP').value; i.source = document.getElementById('eS').value.trim();
+  save(); closeSheet(); refreshCard(id); toast('Saved');
+}
+function topicSelect(idAttr, val){
+  return `<select id="${idAttr}">${Object.keys(TOPICS).map(t=>`<option ${t===val?'selected':''}>${t}</option>`).join('')}</select>`;
+}
+function stashSheet(id){
+  const i = findIdea(id); i.stashes = i.stashes || [];
+  openSheet(`<h3>Save to stash</h3>
+    ${db.stashes.map(s=>`<label class="row chk"><input type="checkbox" ${i.stashes.includes(s.id)?'checked':''}
+      onchange="toggleStash('${id}','${s.id}',this.checked)"><span class="t"><b>${esc(s.emoji)} ${esc(s.name)}</b></span></label>`).join('')}
+    <div class="search"><input id="newStash" placeholder="New stash name"><button class="btn sm" onclick="newStash('${id}')">Add</button></div>
+    <button class="btn alt" onclick="closeSheet()">Done</button>`);
+}
+function toggleStash(id, sid, on){
+  const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on) i.stashes.push(sid);
+  save(); refreshCard(id);
+}
+/* ---- hearts (v6) ---- */
+const isHearted = i => !!i && (i.stashes || []).includes('fav');
+function ensureFav(){ if (!db.stashes.some(s => s.id === 'fav')) db.stashes.unshift({id:'fav', name:'Favorites', emoji:'⭐'}); }
+function heartBurst(host, x, y){
+  const b = document.createElement('div'); b.className = 'burst'; b.textContent = '❤️';
+  b.style.left = x + 'px'; b.style.top = y + 'px'; host.appendChild(b); setTimeout(() => b.remove(), 950);
+  try { navigator.vibrate && navigator.vibrate(15); } catch(e){}
+}
+function popHeart(sel){ document.querySelectorAll(sel).forEach(b => { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }); }
+function heartIdea(id){
+  const on = !isHearted(findIdea(id));
+  ensureFav(); toggleStash(id, 'fav', on);
+  if (on){
+    const c = document.querySelector(`.card[data-id="${id}"]`), host = c && c.parentElement;
+    if (host){ const r = c.getBoundingClientRect(), h = host.getBoundingClientRect(); heartBurst(host, r.left - h.left + r.width/2, r.top - h.top + r.height/2); }
+    toast('❤️ Saved to Favorites');
+  }
+  popHeart(`.card[data-id="${id}"] .heart`);
+}
+// double-tap a card anywhere (not on a button) = heart it. Like TikTok, a double-tap never un-hearts.
+let lastTap = {t:0};
+document.addEventListener('click', e => {
+  const card = e.target.closest('.card[data-id]');
+  if (!card || e.target.closest('button,a,video,input,textarea,select,label')) return;
+  const now = Date.now(), id = card.dataset.id;
+  if (lastTap.id === id && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40){
+    lastTap = {t:0};
+    const host = card.parentElement, h = host.getBoundingClientRect();
+    heartBurst(host, e.clientX - h.left, e.clientY - h.top);
+    if (!isHearted(findIdea(id))){ ensureFav(); toggleStash(id, 'fav', true); popHeart(`.card[data-id="${id}"] .heart`); }
+  } else lastTap = {t:now, id, x:e.clientX, y:e.clientY};
+});
+function newStash(id){
+  const n = document.getElementById('newStash').value.trim(); if (!n) return;
+  const emojis = ['📘','🕊️','💡','🌿','🔥','🧭','🏛️','🎯','🪔','📜'];
+  const s = {id:uid(), name:n, emoji: emojis[db.stashes.length % emojis.length]};
+  db.stashes.push(s); if (id) toggleStash(id, s.id, true); save();
+  id ? stashSheet(id) : (closeSheet(), renderLibrary());
+}
+
+/* ================= library ================= */
+let libFilter = 'all';
+function renderLibrary(){
+  const el = document.getElementById('library');
+  const counts = id => db.ideas.filter(i => (i.stashes||[]).includes(id)).length;
+  let list = libFilter==='all' ? db.ideas : db.ideas.filter(i => (i.stashes||[]).includes(libFilter));
+  const q = (el.querySelector('#libQ')||{}).value || '';
+  if (q) list = list.filter(i => (i.title+' '+i.body+' '+i.source).toLowerCase().includes(q.toLowerCase()));
+  list = [...list].sort((a,b)=>b.created-a.created);
+  el.innerHTML = `
+    <div class="sec">Stashes</div>
+    <div class="grid">
+      <button class="tile" onclick="libFilter='all';renderLibrary()" style="${libFilter==='all'?'outline:2px solid var(--accent)':''}">
+        <span class="e">🗂️</span><b>All ideas</b><small>${db.ideas.length} ideas</small></button>
+      ${db.stashes.map(s=>`<button class="tile" onclick="libFilter='${s.id}';renderLibrary()" style="${libFilter===s.id?'outline:2px solid var(--accent)':''}">
+        <span class="e">${esc(s.emoji)}</span><b>${esc(s.name)}</b><small>${counts(s.id)} ideas</small></button>`).join('')}
+      <button class="tile" onclick="newStashSheet()">
+        <span class="e">➕</span><b>New stash</b><small>Group ideas</small></button>
+    </div>
+    <div class="search"><input id="libQ" placeholder="Search ideas…" value="${esc(q)}" oninput="clearTimeout(window._q);window._q=setTimeout(()=>{renderLibrary();const x=document.getElementById('libQ');x.focus();x.setSelectionRange(x.value.length,x.value.length)},250)"></div>
+    ${libFilter!=='all' && libFilter!=='fav' ? `<button class="btn alt sm" onclick="delStash('${libFilter}')">Delete this stash</button>`:''}
+    <div class="sec">${list.length} ideas</div>
+    ${list.slice(0,300).map(i=>`<div class="mini" onclick="viewIdea('${i.id}')"><b>${esc(i.title)}</b><p>${esc(i.body)}</p>
+      <div class="m">${esc(i.topic)} · ${esc(i.source||'')}</div></div>`).join('')}
+    ${list.length>300?'<div class="status">Showing newest 300 — use search to narrow.</div>':''}`;
+}
+function newStashSheet(){ openSheet(`<h3>New stash</h3><input id="newStash" placeholder="Name"><button class="btn" onclick="newStash()">Create</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`); }
+function delStash(sid){
+  db.stashes = db.stashes.filter(s=>s.id!==sid);
+  db.ideas.forEach(i => i.stashes = (i.stashes||[]).filter(x=>x!==sid));
+  libFilter='all'; save(); renderLibrary(); toast('Stash deleted (ideas kept)');
+}
+function viewIdea(id){
+  openSheet(`<div style="height:70vh;display:flex;position:relative">${cardHTML(findIdea(id))}</div>
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
+
+/* ================= text → idea cards ================= */
+function cleanMarkdown(t){
+  const mc = t.indexOf('Markdown Content:'); if (mc > -1) t = t.slice(mc + 17);
+  return t.replace(/!\[[^\]]*\]\([^)]*\)/g,'')          // images
+          .replace(/\[([^\]]*)\]\([^)]*\)/g,'$1')        // links
+          .replace(/^#{1,6}\s*/gm,'').replace(/[*_]{1,3}([^*_\n]+)[*_]{1,3}/g,'$1')
+          .replace(/^\s*[-=]{3,}\s*$/gm,'').replace(/^>\s?/gm,'').replace(/\r/g,'')
+          .replace(/\u200b/g,'').replace(/\s+w\d\d\.\d\d\s+\d+\s*¶[\d\-, ]+\s*$/gm,'');   // jw citation tails
+}
+function stripGutenberg(t){
+  const s = t.search(/START OF (THE|THIS) PROJECT GUTENBERG E?BOOK[^\n]*\n/i);
+  if (s > -1) t = t.slice(t.indexOf('\n', s) + 1);
+  const e = t.search(/\**\s*END OF (THE|THIS) PROJECT GUTENBERG/i);
+  if (e > -1) t = t.slice(0, e);
+  return t;
+}
+function paragraphs(text){
+  return text.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g,' ').replace(/\s{2,}/g,' ').trim()).filter(Boolean);
+}
+function sentences(p){ return p.match(/[^.!?]+[.!?]+["'”’)]*|[^.!?]+$/g)?.map(s=>s.trim()).filter(Boolean) || [p]; }
+function makeTitle(p){
+  let s = sentences(p)[0].replace(/^["'“‘(]+/,'');
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (s.length <= 75) return s.replace(/[.,;:]$/,'');
+  const words = s.split(' '); let out='';
+  for (const w of words){ if ((out+' '+w).length > 60) break; out += (out?' ':'') + w; }
+  return out.replace(/[,;:]$/,'') + '…';
+}
+function trimBody(p, max=900){
+  if (p.length <= max) return p;
+  let out=''; for (const s of sentences(p)){ if ((out+' '+s).length > max) break; out += (out?' ':'') + s; }
+  return out || p.slice(0,max)+'…';
+}
+function goodPara(p){
+  if (p.length < 140 || p.length > 1600) return false;
+  if (!/[.!?]["'”’)]*$/.test(p)) return false;
+  const letters = p.replace(/[^A-Za-z]/g,''); if (!letters.length) return false;
+  if ((p.replace(/[^A-Z]/g,'').length / letters.length) > .5) return false;   // shouty headings
+  if ((p.match(/["“”]/g)||[]).length > 6) return false;                       // heavy dialogue
+  if (/^(chapter|contents|copyright|share|print|download|log in|search)/i.test(p)) return false;
+  if (/cookie|javascript|privacy policy|terms of use/i.test(p)) return false;
+  return sentences(p).length >= 2;
+}
+function textToIdeas(text, meta, limit){
+  let paras = paragraphs(text).filter(goodPara);
+  if (limit && paras.length > limit){
+    // spread picks across the whole text, not just the start
+    const step = paras.length / limit; const pick=[];
+    for (let k=0;k<limit;k++) pick.push(paras[Math.floor(k*step + Math.random()*step)]);
+    paras = pick;
+  }
+  paras = paras.map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));   // drop section numbers like "XIV. "
+  return paras.map(p => ({id:uid(), title:makeTitle(p), body:trimBody(p), topic:meta.topic, source:meta.source, url:meta.url||'', created:Date.now(), stashes:[]}));
+}
+
+/* ================= fetching ================= */
+const timed = (url, ms=20000) => fetch(url, {signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined});
+async function fetchText(url){
+  try {
+    const r = await timed(url, 12000); if (r.ok){ const t = await r.text(); if (t.length > 200) return {text:t, html:/<html|<body/i.test(t.slice(0,2000))}; }
+  } catch(e){}
+  const r = await timed(READER + url, 90000);
+  if (!r.ok) throw new Error('Reader returned ' + r.status);
+  return {text: await r.text(), html:false};
+}
+function htmlToText(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style,nav,header,footer,noscript,aside,form').forEach(n=>n.remove());
+  const root = doc.querySelector('article, main, #article, .article') || doc.body;
+  root.querySelectorAll('p,div,h1,h2,h3,li,br').forEach(n => n.insertAdjacentText('afterend','\n\n'));
+  return root.textContent;
+}
+
+/* ================= add view ================= */
+let addTab = 'books', preview = [];
+function renderAdd(){
+  const el = document.getElementById('add');
+  el.innerHTML = `<div class="tabs">
+      ${[['books','📖 Books'],['web','🌐 Web / jw.org'],['paste','📝 Paste'],['one','✍️ Write one'],['video','🎬 Video link']].map(([k,l])=>
+        `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
+    <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
+  const b = document.getElementById('addBody');
+  if (addTab==='books') b.innerHTML = `
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">Free public-domain books from Project Gutenberg.</p>
+      <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
+      <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
+  if (addTab==='web') b.innerHTML = `
+      <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text (wol.jw.org)</button>
+      <label class="l">Or paste a link (jw.org, wol.jw.org, any article)</label>
+      <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
+      <label class="l">Topic</label>${topicSelect('wt','Spiritual')}
+      <button class="btn" onclick="webImport()">Make idea cards</button>`;
+  if (addTab==='paste') b.innerHTML = `
+      <label class="l">Paste text (book notes, article, study notes)</label><textarea id="pt"></textarea>
+      <label class="l">Source</label><input id="ps" placeholder="e.g. Watchtower Nov 2026, p. 8">
+      <label class="l">Topic</label>${topicSelect('pp','Spiritual')}
+      <button class="btn" onclick="pasteImport()">Make idea cards</button>`;
+  if (addTab==='one') b.innerHTML = `
+      <label class="l">Title</label><input id="oT">
+      <label class="l">Idea</label><textarea id="oB"></textarea>
+      <label class="l">Source</label><input id="oS">
+      <label class="l">Topic</label>${topicSelect('oP','Wisdom')}
+      <button class="btn" onclick="writeOne()">Save idea</button>`;
+  if (addTab==='video') b.innerHTML = `
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">On jw.org or in JW Library, tap Share → Copy link, then paste it here.
+        It plays in Today right after the Daily Text.</p>
+      <input id="vlink" placeholder="https://www.jw.org/finder?…lank=…" autocomplete="off" inputmode="url">
+      <div class="status" id="vst"></div>
+      <button class="btn" onclick="addVideoLink()">Add video</button>`;
+  if (preview.length) renderPreview();
+}
+function setSt(msg, err){ const s=document.getElementById('st'); if(s){ s.textContent=msg; s.className='status'+(err?' err':''); } }
+
+async function bookSearch(){
+  const q = document.getElementById('bq').value.trim(); if (!q) return;
+  setSt('Searching Gutenberg…'); document.getElementById('bres').innerHTML='';
+  try {
+    let data;
+    try { data = await (await timed('https://gutendex.com/books/?languages=en&search=' + encodeURIComponent(q), 15000)).json(); }
+    catch(e){   // Gutendex slow or down → read Gutenberg's own search page through the reader
+      setSt('Still searching…');
+      const md = await (await timed(READER + 'https://www.gutenberg.org/ebooks/search/?query=' + encodeURIComponent(q), 45000)).text();
+      const results = [...md.matchAll(/\[!\[[^\]]*\]\([^)]*\)([^\]]+)\]\(https:\/\/www\.gutenberg\.org\/ebooks\/(\d+)\)/g)]
+        .map(m => ({id:+m[2], title:m[1].trim(), authors:[], formats:{}}));
+      data = {results};
+    }
+    const books = (data.results||[]).slice(0,15);
+    setSt(books.length ? 'Tap a book to put it on your shelf or pick passages now.' : 'No books found.');
+    window._books = books;
+    document.getElementById('bres').innerHTML = books.map((bk,ix)=>`<button class="row" style="width:100%;text-align:left" onclick="bookChoice(${ix})">
+      <span class="t"><b>${esc(bk.title)}</b><small>${esc((bk.authors||[]).map(a=>a.name).join(', ')||'Unknown')}</small></span><span>›</span></button>`).join('');
+  } catch(e){ setSt('Search failed: ' + e.message, true); }
+}
+function bookTextUrl(bk){
+  const f = bk.formats || {};
+  const key = Object.keys(f).find(k => k.startsWith('text/plain') && !f[k].endsWith('.zip'));
+  return key ? f[key] : `https://www.gutenberg.org/cache/epub/${bk.id}/pg${bk.id}.txt`;
+}
+function bookChoice(ix){
+  const bk = window._books[ix];
+  const onShelf = (db.shelf||[]).some(it => it.kind==='book' && it.gid===bk.id);
+  openSheet(`<h3>${esc(bk.title)}</h3>
+    <p style="color:var(--muted);margin-top:-6px">${esc((bk.authors||[]).map(a=>a.name).join(', ')||'')}</p>
+    ${onShelf ? '<p class="status">Already on your shelf.</p>' :
+      `<button class="btn" onclick="closeSheet();addBookToShelf(${ix})">📖 Add to My Shelf</button>
+       <p style="color:var(--muted);font-size:13px;margin:6px 2px 4px">New ideas from this book arrive in Today each day.</p>`}
+    <button class="btn alt" onclick="closeSheet();bookImport(${ix})">✋ Pick passages now</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+async function bookImport(ix){
+  const bk = window._books[ix];
+  const url = bookTextUrl(bk);
+  const author = (bk.authors||[]).map(a=>a.name).join(', ');
+  setSt('Downloading "' + bk.title + '"… (big books take a moment)');
+  try {
+    let {text} = await fetchText(url);
+    text = cleanMarkdown(stripGutenberg(text));
+    window._lastBook = {text, meta:{topic:'Books', source: bk.title + (author?' — '+author:''), url:`https://www.gutenberg.org/ebooks/${bk.id}`}};
+    preview = textToIdeas(text, window._lastBook.meta, 25);
+    setSt(preview.length ? `Found ideas in "${bk.title}". Keep the ones you like.` : 'Couldn\'t find idea-sized passages in this book.', !preview.length);
+    renderPreview(true);
+  } catch(e){ setSt('Download failed: ' + e.message, true); }
+}
+async function getDailyCard(){
+  const d = new Date();
+  const url = `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  const raw = (await fetchText(url)).text;
+  const md = raw.includes('Markdown Content:') ? raw : (await (await timed(READER + url, 60000)).text());
+  const sections = md.split(/^##\s+/m).slice(1);
+  const want = d.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'}); // "Saturday, November 14"
+  const sec = sections.find(x => x.startsWith(want)) || sections[Math.min(1, sections.length-1)];
+  if (!sec) throw new Error('daily text not found on page');
+  const lines = cleanMarkdown(sec).split('\n').map(l=>l.trim()).filter(Boolean);
+  const day = lines[0], theme = lines[1] || '', body = lines.slice(2).filter(l=>!/^Examining the Scriptures Daily/.test(l)).join('\n\n');
+  if (!body) throw new Error('daily text was empty');
+  return {id:uid(), title:theme.replace(/^_|_$/g,'').trim(), body, topic:'Spiritual',
+    source:'Examining the Scriptures Daily — ' + day, url, created:Date.now(), stashes:[]};
+}
+async function dailyText(){
+  setSt('Getting today\'s text…');
+  try { preview = [await getDailyCard()]; setSt('Today\'s text is ready.'); renderPreview(); }
+  catch(e){ setSt('Could not get the daily text: ' + e.message, true); }
+}
+async function webImport(sourceName){
+  const url = document.getElementById('wu').value.trim(); if (!/^https?:\/\//.test(url)) return setSt('Paste a full link starting with https://', true);
+  const topic = document.getElementById('wt').value;
+  setSt('Reading page…');
+  try {
+    let {text, html} = await fetchText(url);
+    text = html ? htmlToText(text) : cleanMarkdown(text);
+    const titleMatch = text.match(/^Title:\s*(.+)$/m);
+    let source = typeof sourceName==='string' ? sourceName : (titleMatch ? titleMatch[1].trim() : new URL(url).hostname);
+    preview = textToIdeas(text, {topic, source, url});
+    setSt(preview.length ? `${preview.length} possible ideas. Keep the ones you like.` : 'No idea-sized paragraphs found on that page.', !preview.length);
+    renderPreview();
+  } catch(e){ setSt('Could not read that page: ' + e.message, true); }
+}
+function pasteImport(){
+  const text = document.getElementById('pt').value;
+  preview = textToIdeas(text, {topic:document.getElementById('pp').value, source:document.getElementById('ps').value.trim()||'My notes'});
+  if (!preview.length){
+    // short notes: treat each paragraph as an idea anyway
+    preview = paragraphs(text).filter(p=>p.length>30).map(p=>({id:uid(), title:makeTitle(p), body:p, topic:document.getElementById('pp').value,
+      source:document.getElementById('ps').value.trim()||'My notes', url:'', created:Date.now(), stashes:[]}));
+  }
+  setSt(preview.length ? `${preview.length} ideas ready.` : 'Nothing to import.', !preview.length);
+  renderPreview();
+}
+function writeOne(){
+  const t = document.getElementById('oT').value.trim(), b = document.getElementById('oB').value.trim();
+  if (!b) return setSt('Write the idea first.', true);
+  db.ideas.push({id:uid(), title:t||makeTitle(b), body:b, topic:document.getElementById('oP').value, source:document.getElementById('oS').value.trim(), url:'', created:Date.now(), stashes:[]});
+  save(); toast('Idea saved'); renderAdd();
+}
+function renderPreview(isBook){
+  const el = document.getElementById('prev'); if (!el) return;
+  if (!preview.length){ el.innerHTML=''; return; }
+  el.innerHTML = `<div style="display:flex;gap:8px;margin:6px 0 12px">
+      <button class="btn sm alt" onclick="document.querySelectorAll('.pv').forEach(c=>c.checked=true)">All</button>
+      <button class="btn sm alt" onclick="document.querySelectorAll('.pv').forEach(c=>c.checked=false)">None</button>
+      ${window._lastBook && (isBook||preview[0].topic==='Books') ? `<button class="btn sm alt" onclick="moreFromBook()">🔀 Different passages</button>`:''}</div>
+    ${preview.map((p,ix)=>`<label class="mini chk"><input type="checkbox" class="pv" data-ix="${ix}" checked>
+      <span><b>${esc(p.title)}</b><p>${esc(p.body)}</p></span></label>`).join('')}
+    <button class="btn" onclick="keepPreview()">Keep selected</button>`;
+}
+function moreFromBook(){ preview = textToIdeas(window._lastBook.text, window._lastBook.meta, 25); renderPreview(true); window.scrollTo(0,0); }
+function keepPreview(){
+  const keep = [...document.querySelectorAll('.pv')].filter(c=>c.checked).map(c=>preview[+c.dataset.ix]);
+  const have = new Set(db.ideas.map(i=>i.body));
+  const fresh = keep.filter(k=>!have.has(k.body));
+  db.ideas.push(...fresh); save();
+  preview = []; toast(`Added ${fresh.length} ideas`); renderAdd(); setSt(`Added ${fresh.length} ideas to your library.`);
+}
+
+/* ================= shelf ================= */
+const idb = {
+  _db:null,
+  open(){ return this._db ||= new Promise((res,rej)=>{ const r=indexedDB.open('ideastash',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async get(k){ const d=await this.open(); return new Promise((res,rej)=>{ const q=d.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); },
+  async set(k,v){ const d=await this.open(); return new Promise((res,rej)=>{ const tx=d.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); },
+  async del(k){ const d=await this.open(); return new Promise(res=>{ const tx=d.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }); }
+};
+const SHELF_KINDS = {
+  daily: {emoji:'📅', title:'Daily Text', sub:'Examining the Scriptures Daily · wol.jw.org'},
+  qfr:   {emoji:'❓', title:'Questions From Readers', sub:'The Watchtower · wol.jw.org'},
+  bqa:   {emoji:'📘', title:'Bible Questions Answered', sub:'jw.org'},
+  wid:   {emoji:'🦉', title:'Was It Designed?', sub:'Awake! · jw.org', unit:'articles and short videos'},
+  bve:   {emoji:'📜', title:'Bible Verses Explained', sub:'jw.org', unit:'verses'},
+  fam:   {emoji:'🏡', title:'Help for the Family', sub:'jw.org', unit:'articles'},
+  arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
+  bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
+  ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
+  book:  {emoji:'📖'}
+};
+// (v9) every list-based source, in the order they start on the shelf
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST};
+const KIND_INFO = {
+  wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
+  bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
+  fam:  {topic:'Family',    source:'Help for the Family — jw.org'},
+  arch: {topic:'History',   source:'From Our Archives — jw.org'}};
+const gcd = (a,b) => b ? gcd(b, a%b) : a;
+function setOrder(it, order){
+  it.order = order;
+  if (order === 'random' && it.total > 1){
+    let step; do { step = 1 + Math.floor(Math.random() * (it.total-1)); } while (gcd(step, it.total) !== 1);
+    it.step = step; it.seed = Math.floor(Math.random() * it.total);
+  }
+}
+// position → which entry to serve; random uses a full-cycle permutation so nothing repeats
+const entryIndex = it => it.order === 'random' && it.step ? (it.pos * it.step + it.seed) % it.total : it.pos;
+
+function addSourceToShelf(kind){
+  if (db.shelf.some(it => it.kind === kind)) return toast('Already on your shelf');
+  const total = KIND_LIST[kind] ? KIND_LIST[kind]().length : 0;
+  const it = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0, total, lastPull:'', paused:false, added:Date.now()};
+  setOrder(it, kind==='daily' ? 'seq' : 'random');
+  db.shelf.push(it); save(); toast('Added to your shelf'); renderShelf();
+}
+async function addBookToShelf(ix){
+  const bk = window._books[ix];
+  const author = (bk.authors||[]).map(a=>a.name).join(', ');
+  setSt('Downloading "' + bk.title + '" for your shelf…');
+  try {
+    const it = {id:uid(), kind:'book', gid:bk.id, title:bk.title, sub:author, textUrl:bookTextUrl(bk),
+      link:`https://www.gutenberg.org/ebooks/${bk.id}`, perDay:2, pos:0, total:0, lastPull:'', paused:false, added:Date.now()};
+    const paras = await loadBookParas(it);
+    if (!paras.length) throw new Error('no idea-sized passages found');
+    it.total = paras.length; setOrder(it, 'seq');
+    db.shelf.push(it); save();
+    setSt(`"${bk.title}" is on your shelf — ${paras.length} ideas, 2 a day, in order.`);
+    toast('Added to your shelf');
+  } catch(e){ setSt('Could not add the book: ' + e.message, true); }
+}
+async function loadBookParas(it){
+  try { const c = await idb.get('book:' + it.id); if (c) return c; } catch(e){}
+  let {text} = await fetchText(it.textUrl);
+  text = cleanMarkdown(stripGutenberg(text));
+  const paras = paragraphs(text).filter(goodPara).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
+  try { await idb.set('book:' + it.id, paras); } catch(e){}
+  return paras;
+}
+function wordsOf(s){ return new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3)); }
+async function articleCard(entry, kind){
+  const {text, html} = await fetchText(entry.u);
+  if (KIND_INFO[kind]) return seriesCard(entry, kind, text, html);   // (v9)
+  const t = html ? htmlToText(text) : cleanMarkdown(text);
+  const paras = paragraphs(t);
+  // find the question on the page that best matches the index entry
+  const want = wordsOf(entry.q); let qi = -1, best = 0;
+  paras.forEach((p,ix) => {
+    if (p.length > 320 || !/\?["”’)]*$/.test(p)) return;
+    let score = 0; wordsOf(p).forEach(w => { if (want.has(w)) score++; });
+    if (score > best){ best = score; qi = ix; }
+  });
+  // (v4) BQA pages put a "1. Bible Teachings 2. …" breadcrumb on the question — the index question is already clean
+  const title = kind === 'bqa' || qi < 0 ? entry.q : p0(paras[qi]).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
+  let body = '';
+  for (const p of paras.slice(qi + 1)){
+    const ok = goodPara(p) || (p.length > 100 && p.length < 900 && /:$/.test(p) && sentences(p).length >= 2);
+    if (!ok) { if (body) break; else continue; }
+    if (body && (body + '\n\n' + p).length > 950) break;
+    body += (body ? '\n\n' : '') + trimBody(p, 950);
+  }
+  if (!body) throw new Error('could not read answer');
+  return {id:uid(), title, body, topic:'Q&A',
+    source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
+    url: entry.u, created:Date.now(), stashes:[]};
+}
+// (v9) Was It Designed? / Bible Verses Explained / Help for the Family / From Our Archives.
+// The reader puts jw.org's menu and cookie notice first: start at the article's own "# Title" heading.
+// Video pages (some Was It Designed? entries) become full-screen videos in Today.
+function seriesCard(entry, kind, text, html){
+  const info = KIND_INFO[kind];
+  let md = html ? htmlToText(text) : text;
+  const lines = md.split('\n'), h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));
+  if (h1 > -1) md = lines.slice(h1 + 1).join('\n');
+  md = md.split(/\n#{1,3}\s+(?:Related Topics|You May Also Like|Read More|Share)\b/i)[0]
+    .replace(/\[[a-z*]\]\([^)]*#footnote[^)]*\)/g, '');                   // footnote markers ("Jehovah[a]")
+  const pic = (md.match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+  const paras = paragraphs(cleanMarkdown(md)).filter(p => !/cookie|JavaScript|Skip to content|Media is loading|Play video/i.test(p));
+  let body = '';
+  for (const p of paras){
+    const ok = goodPara(p) || (p.length > 100 && p.length < 900 && sentences(p).length >= 2);
+    if (!ok || /^[a-z]\s/.test(p)) continue;                     // skip headings, bullets and footnotes, keep reading
+    if (kind === 'bve' && body && /^“/.test(p) && /(Version|Translation|Bible)[._ ]*$/.test(p)) continue;   // other translations
+    if (body && (body + '\n\n' + p).length > 950) break;
+    body += (body ? '\n\n' : '') + trimBody(p, 950);
+  }
+  const mp4 = (md.match(/https:\/\/[^\s)"']+?_r(?:480|720|360)P\.mp4/) || [])[0];
+  const base = {id:uid(), title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
+    topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[]};
+  if (mp4 && body.length < 300){
+    const intro = paras.find(p => p.length > 30 && p.length < 300) || '';
+    return {...base, body: intro || '▶ Short video', video:{lank:entry.u, title:base.title, dur:0, pub:'', img:pic, src:mp4, cat:'SERIES_' + kind}};
+  }
+  if (!body) throw new Error('could not read article');
+  return {...base, body, pic};
+}
+// (v9) Become Jehovah's Friend poster: one full-screen picture
+function posterCard(e){
+  return {id:uid(), title:e.q, body:e.d || 'Become Jehovah’s Friend poster', topic:'Spiritual',
+    source:'Become Jehovah’s Friend — Poster', url:e.u, image:e.img, created:Date.now(), stashes:[]};
+}
+// (v10) Illustrated Bible Story: cover + comic pages, swiped sideways
+function storyCard(e){
+  const img = (k) => `https://cms-imgp.jw-cdn.org/img/p/${e.id}/E/art/${e.id}_E_${k}.jpg`;
+  const pics = [img('cnt_1_md'), ...Array.from({length:e.n}, (_, i) => img('cfb_' + String(i + 1).padStart(2, '0') + '_lg'))];
+  return {id:uid(), title:e.q, body:e.d, topic:'Spiritual', source:'Illustrated Bible Stories — jw.org',
+    url:'https://www.jw.org/en/bible-teachings/children/illustrated-bible-stories/' + e.u, pics, created:Date.now(), stashes:[]};
+}
+function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
+
+let pulling = null;
+function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
+async function doPull(){
+  const t = today(); let added = 0;
+  const have = new Set(db.ideas.map(i => i.body));
+  const keep = card => { if (have.has(card.body)) return; have.add(card.body); card.pulledOn = t; db.ideas.push(card); added++; };
+  for (const it of db.shelf){
+    if (it.paused || it.lastPull === t || (it.total && it.pos >= it.total)) continue;
+    try {
+      if (it.kind === 'daily'){
+        const c = await getDailyCard();
+        const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
+        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; } else { c.shelfId = it.id; keep(c); }
+      } else if (it.kind === 'book'){
+        const paras = await loadBookParas(it);
+        it.total = paras.length;
+        for (let n = 0; n < it.perDay && it.pos < it.total; n++){
+          const p = paras[entryIndex(it)];
+          keep({id:uid(), title:makeTitle(p), body:trimBody(p), topic:'Books', source:it.title + (it.sub ? ' — ' + it.sub : ''),
+            url:it.link, created:Date.now(), stashes:[], shelfId:it.id});
+          it.pos++;
+        }
+      } else {
+        const list = KIND_LIST[it.kind]();
+        it.total = list.length;
+        let got = 0, tries = 0;
+        while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
+          tries++;
+          try { const c = it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+          catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
+          it.pos++;
+        }
+      }
+      it.lastPull = t; it.error = '';
+    } catch(e){ it.error = e.message; }
+    save();
+  }
+  return added;
+}
+function shelfSub(it){
+  if (it.kind === 'daily') return 'Always on · first card in Today every day';
+  const pct = it.total ? Math.round(100 * it.pos / it.total) : 0;
+  return `${it.pos} of ${it.total || '…'} · ${it.perDay}/day · ${it.order === 'random' ? 'Random' : 'In order'}${it.total && it.pos >= it.total ? ' · Finished ✓' : ''}`;
+}
+function renderShelf(){
+  const el = document.getElementById('shelf');
+  const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
+  el.innerHTML = `
+    <div class="sec">My Shelf</div>
+    ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
+    ${db.shelf.map(it => `<button class="shelfitem ${it.paused?'paused':''}" onclick="shelfSheet('${it.id}')">
+      <span class="e">${SHELF_KINDS[it.kind].emoji}</span>
+      <span class="t" style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title)}</b>
+        <small style="color:var(--muted)">${it.paused ? 'Paused · ' : ''}${esc(shelfSub(it))}</small>
+        ${it.error ? `<small style="display:block;color:var(--danger)">Last try failed — will retry</small>` : ''}
+        ${it.total ? `<div class="prog"><i style="width:${Math.min(100, 100*it.pos/it.total)}%"></i></div>` : ''}</span>
+      <span>›</span></button>`).join('')}
+    ${db.shelf.length ? `<button class="btn alt" onclick="pullNow()">🔄 Get today's ideas now</button>` : ''}
+    <div class="sec">Videos</div>
+    <button class="shelfitem" onclick="channelsSheet()"><span class="e">📺</span>
+      <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
+      <span>›</span></button>
+    <div class="sec">Add to shelf</div>
+    ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
+      <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
+      <span style="font-size:22px">＋</span></button>`).join('')}
+    <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
+      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
+      <span style="font-size:22px">＋</span></button>`;
+}
+async function pullNow(){
+  db.shelf.forEach(it => { if (it.error) it.lastPull = ''; });
+  toast('Checking your shelf…');
+  const n = await pullShelf(); ensureDaily(); renderShelf();
+  toast(n ? `${n} new ideas added to Today` : 'Nothing new — today\'s ideas are already in');
+}
+function shelfSheet(id){
+  const it = db.shelf.find(x => x.id === id);
+  const canOrder = it.kind !== 'daily', canPerDay = it.kind !== 'daily';
+  openSheet(`<h3>${SHELF_KINDS[it.kind].emoji} ${esc(it.title)}</h3>
+    <p style="color:var(--muted);margin-top:-6px">${esc(it.sub || '')}</p>
+    ${canPerDay ? `<label class="l">Ideas per day</label>
+      <div class="step"><button onclick="shelfSet('${id}','perDay',-1)">−</button><b id="pd">${it.perDay}</b><button onclick="shelfSet('${id}','perDay',1)">+</button></div>` : ''}
+    ${canOrder ? `<label class="l">Order</label>
+      <div class="seg"><button class="${it.order!=='random'?'on':''}" onclick="shelfOrder('${id}','seq')">In order</button>
+      <button class="${it.order==='random'?'on':''}" onclick="shelfOrder('${id}','random')">Random</button></div>
+      <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
+    ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day. If it can't load, a retry card takes its place.</p>` : `
+    <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
+    ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
+    <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
+    <p style="color:var(--muted);font-size:13px">Ideas already delivered stay in your library.</p>`}
+    <button class="btn" onclick="closeSheet()">Done</button>`);
+}
+function shelfSet(id, key, d){
+  const it = db.shelf.find(x => x.id === id); it.perDay = Math.min(10, Math.max(1, it.perDay + d));
+  document.getElementById('pd').textContent = it.perDay; save(); renderShelf();
+}
+function shelfOrder(id, order){
+  const it = db.shelf.find(x => x.id === id);
+  if (it.order === order) return;
+  // switching order restarts the count so nothing repeats
+  setOrder(it, order); it.pos = 0; save(); shelfSheet(id); renderShelf();
+}
+function shelfPause(id){ const it = db.shelf.find(x => x.id === id); if (it.kind === 'daily') return; it.paused = !it.paused; save(); closeSheet(); renderShelf(); }
+function shelfRestart(id){ const it = db.shelf.find(x => x.id === id); it.pos = 0; if (it.order==='random') setOrder(it,'random'); save(); closeSheet(); renderShelf(); toast('Starting over'); }
+function shelfRemove(id){
+  if (dailyShelf()?.id === id) return;
+  db.shelf = db.shelf.filter(x => x.id !== id); save(); idb.del('book:' + id); closeSheet(); renderShelf(); toast('Removed from shelf');
+}
+
+/* ================= watch (v5): jw.org videos ================= */
+// jw.org's public video catalog allows direct app access (open CORS); MP4s play straight from jw-cdn.
+const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
+const WATCH_GROUPS = [
+  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings']]],
+  ['JW Broadcasting', [['StudioNewsReports','News and Announcements'],['StudioTalks','Talks'],['StudioMonthlyPrograms','Monthly Programs'],['StudioFeatured','Featured Videos']]],
+  ['Interviews and Experiences', [['VODIntExpTransformations','Truth Transforms Lives'],['VODIntExpBlessings','Blessings of Sacred Service'],['VODIntExpEndurance','Enduring Trials'],['VODIntExpYouth','Young People'],['OriginsLife','Science'],['VODIntExpArchives','From Our Archives']]],
+  ['The Bible', [['VODBiblePrinciples','Apply Bible Principles'],['VODBibleTeachings','Bible Teachings'],['BibleBooks','Books of the Bible'],['VODBibleReadingStudy','Bible Reading and Study'],['VODBibleMedia','People, Places, and Things'],['VODBibleCreation','Creation'],['VODBibleAccounts','Bible Accounts'],['VODBibleTranslations','Bible Translations']]],
+  ['Our Organization', [['Reports','Reports From Around the World'],['VODOrgBethel','Bethel'],['VODOrgHistory','History'],['VODOrgLegal','Legal Developments'],['AccomplishMinistry','Organized to Accomplish Our Ministry'],['VODOrgBloodlessMedicine','Bloodless Medicine']]],
+  ['Music', [['VODOriginalSongs','Original Songs'],['VODSJJMeetings','“Sing Out Joyfully”—Meetings'],['VODConvMusic','Convention Music'],['VODSingToJah','Sing to Jehovah']]],
+  ['Children', [['BJF','Video Lessons'],['ChildrenSongs','Songs'],['ChildrenMovies','Dramas']]],
+];
+const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
+Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the Family', SERIES_bve:'Bible Verses Explained', SERIES_arch:'From Our Archives'});   // (v9)
+const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
+const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
+const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
+const fmtDur = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
+const finderUrl = lank => `https://www.jw.org/finder?lank=${encodeURIComponent(lank)}&wtlocale=E`;
+function slimVideo(m, cat){
+  const mp4 = (m.files || []).filter(f => /\.mp4$/i.test(f.progressiveDownloadURL || ''));
+  const pick = ['480p','720p','360p','240p'].map(l => mp4.find(f => f.label === l)).find(Boolean) || mp4[0];
+  const im = m.images || {};
+  const img = (im.wss || im.lss || im.pnr || im.lsr || im.sqr || {});
+  if (!pick) return null;
+  return {lank: m.languageAgnosticNaturalKey, title: m.title, dur: Math.round(m.duration || 0), pub: m.firstPublished || '',
+    img: img.lg || img.xl || img.sm || '', src: pick.progressiveDownloadURL, cat: cat || m.primaryCategory};
+}
+const catCache = {};
+async function catVideos(key){
+  if (catCache[key]) return catCache[key];
+  const r = await timed(`${JW_API}categories/E/${key}?detailed=1&clientType=www`, 30000);
+  if (!r.ok) throw new Error('jw.org video list returned ' + r.status);
+  const out = [];
+  const walk = c => { (c.media || []).forEach(m => { const v = slimVideo(m, key); if (v) out.push(v); }); (c.subcategories || []).forEach(walk); };
+  walk((await r.json()).category || {});
+  return catCache[key] = out;
+}
+// today's videos: from each channel, the newest ones not seen yet (within its length limit). Not endless.
+async function buildWatchDaily(){
+  const W = db.watch, t = today();
+  if (W.daily.date !== t) W.daily = {date:t, items:W.daily.items.filter(v => v.pasted && !W.seen[v.lank]), done:{}};
+  const errors = [];
+  // Mike: Morning Worship always; besides it, only ONE long video (over 5 min) a day
+  const isLong = isLongV;
+  for (const c of W.cats){
+    if (W.daily.done[c.key]) continue;
+    try {
+      const have = new Set(W.daily.items.map(v => v.lank));
+      let longUsed = W.daily.items.some(isLong);
+      const pick = [];
+      for (const v of (await catVideos(c.key)).slice().sort((a, b) => b.pub.localeCompare(a.pub))){
+        if (pick.length >= c.perDay) break;
+        if (W.seen[v.lank] || have.has(v.lank) || (c.maxMin && v.dur > c.maxMin * 60)) continue;
+        if (isLong(v)){ if (longUsed) continue; longUsed = true; }
+        pick.push(v); have.add(v.lank);
+      }
+      W.daily.items.push(...pick); W.daily.done[c.key] = 1;
+    } catch(e){ errors.push(CAT_NAME[c.key] || c.key); }
+  }
+  // Morning Worship first, then the order of your channels
+  const order = k => { const i = W.cats.findIndex(c => c.key === k); return i < 0 ? 99 : i; };
+  const base = W.daily.items.filter(v => !v.extra), extra = W.daily.items.filter(v => v.extra);   // (v8) explore extras stay at the end
+  base.sort((a, b) => (b.pasted ? 1 : 0) - (a.pasted ? 1 : 0) || order(a.cat) - order(b.cat));
+  W.daily.items = [...base, ...extra];
+  save();
+  return errors;
+}
+// (v8) more short videos for the explore part of the feed, one per channel in turn (no extra Morning Worship)
+async function moreVideos(k){
+  const W = db.watch; if (!W.cats.length || navigator.onLine === false) return [];
+  const out = [], used = new Set(W.daily.items.map(v => v.lank));
+  for (let round = 0; round < 3 && out.length < k; round++){
+    for (const c of W.cats){
+      if (out.length >= k) break;
+      if (CROP.has(c.key)) continue;
+      let list; try { list = await catVideos(c.key); } catch(e){ continue; }
+      const longUsed = W.daily.items.some(isLongV);
+      const v = list.slice().sort((a, b) => b.pub.localeCompare(a.pub)).find(v => !W.seen[v.lank] && !used.has(v.lank)
+        && (!c.maxMin || v.dur <= c.maxMin * 60) && !(isLongV(v) && longUsed));
+      if (!v) continue;
+      used.add(v.lank); W.daily.items.push({...v, extra:true});
+      out.push({v: W.daily.items[W.daily.items.length - 1], n: W.daily.items.length - 1});
+    }
+  }
+  save(); return out;
+}
+function videoSlideHTML(v, n){
+  const saved = db.ideas.some(i => i.video && i.video.lank === v.lank && i.stashes && i.stashes.length);
+  return `<div class="vslide ${CROP.has(v.cat) ? 'crop' : ''}" data-n="${n}">
+    <div class="bg" style="background-image:url('${esc(v.img)}')"></div>
+    <video playsinline muted preload="${n < 2 ? 'metadata' : 'none'}" poster="${esc(v.img)}" src="${esc(v.src)}"></video>
+    <div class="playi">▶️</div>
+    ${db.watch.sound ? '' : '<div class="note">🔇 Tap for sound</div>'}
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
+      <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})">🔖</button>
+      <a title="Open on jw.org" href="${finderUrl(v.lank)}" target="_blank" rel="noopener">🔗</a>
+    </div>
+    <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
+    <div class="bar"></div></div>`;
+}
+function wireVideoSlide(s){
+  const vid = s.querySelector('video'), bar = s.querySelector('.bar');
+  vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (100 * vid.currentTime / vid.duration) + '%'; });
+  vid.addEventListener('play', () => s.classList.remove('paused'));
+  vid.addEventListener('pause', () => s.classList.add('paused'));
+  // (v6) one tap = sound / pause; double-tap = heart (wait a moment to tell them apart)
+  let tapT = null;
+  vid.addEventListener('click', e => {
+    if (tapT){ clearTimeout(tapT); tapT = null;
+      const h = s.getBoundingClientRect(); heartBurst(s, e.clientX - h.left, e.clientY - h.top);
+      if (!videoHearted(db.watch.daily.items[s.dataset.n])) heartVideo(+s.dataset.n, true);
+      return; }
+    tapT = setTimeout(() => { tapT = null;
+      if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#feed .note').forEach(x => x.remove());
+        document.querySelectorAll('#feed video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
+      vid.paused ? vid.play() : vid.pause();
+    }, 280);
+  });
+  // load the next one ahead of time
+  vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
+}
+function playSlide(s){
+  const vid = s.querySelector('video');
+  vid.muted = !db.watch.sound;
+  vid.play().catch(() => {          // phones block sound until you tap; play silently and show the hint
+    vid.muted = true; vid.play().catch(() => s.classList.add('paused'));
+    if (!s.querySelector('.note')) s.insertAdjacentHTML('beforeend', '<div class="note">🔇 Tap for sound</div>');
+  });
+}
+function videoToIdea(v){
+  let i = db.ideas.find(x => x.video && x.video.lank === v.lank);
+  if (!i){
+    i = {id:uid(), title:v.title, body:`▶ ${fmtDur(v.dur)} video`, topic:'Video', source:(CAT_NAME[v.cat] || 'Video') + ' — jw.org',
+      url:finderUrl(v.lank), created:Date.now(), stashes:[], video:{...v, pasted:undefined}};
+    db.ideas.push(i); save();
+  }
+  return i;
+}
+const videoIdeaOf = v => v && db.ideas.find(x => x.video && x.video.lank === v.lank);
+const videoHearted = v => isHearted(videoIdeaOf(v));
+// (v6) ❤️ toggles Favorites; quiet=true is the double-tap (burst already shown, never un-hearts)
+function heartVideo(n, quiet){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const on = !videoHearted(v);
+  if (on){ ensureFav(); toggleStash(videoToIdea(v).id, 'fav', true); }
+  else { const i = videoIdeaOf(v); toggleStash(i.id, 'fav', false);
+    if (!i.stashes.length){ db.ideas = db.ideas.filter(x => x !== i); save(); } }   // un-hearted and in no stash: drop it
+  const s = document.querySelector(`#feed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
+  if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#feed .vslide[data-n="${n}"] .heart`); }
+  if (on && !quiet && s){ const r = s.getBoundingClientRect(); heartBurst(s, r.width/2, r.height/2); }
+  if (on) toast('❤️ Saved to Favorites');
+}
+function saveVideo(n){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
+  stashSheet(videoToIdea(v).id);
+}
+function channelsSheet(){
+  const W = db.watch, on = k => W.cats.find(c => c.key === k);
+  const lens = [[0,'Any length'],[3,'Up to 3 min'],[5,'Up to 5 min'],[10,'Up to 10 min'],[15,'Up to 15 min'],[30,'Up to 30 min'],[60,'Up to 1 hour']];
+  openSheet(`<h3>📺 Channels</h3>
+    <p style="color:var(--muted);margin-top:-4px;font-size:14px">Pick what comes in each day. You get the newest videos you haven't seen yet.
+      Morning Worship always comes in; besides it, only one video over 5 minutes a day.</p>
+    ${WATCH_GROUPS.map(([g, list]) => `<div class="sec">${esc(g)}</div>` + list.map(([k, name]) => { const c = on(k); return `
+      <div class="chan"><label class="chk"><input type="checkbox" ${c ? 'checked' : ''} onchange="chanToggle('${k}', this.checked)"><b>${esc(name)}</b></label>
+      ${c ? `<div class="opts"><div class="step"><button onclick="chanSet('${k}','perDay',-1)">−</button><b>${c.perDay}</b><button onclick="chanSet('${k}','perDay',1)">+</button></div>
+        <span style="color:var(--muted);font-size:14px">a day</span>
+        <select onchange="chanSet('${k}','maxMin',+this.value)">${lens.map(([m, l]) => `<option value="${m}" ${c.maxMin === m ? 'selected' : ''}>${l}</option>`).join('')}</select></div>` : ''}
+      </div>`; }).join('')).join('')}
+    <button class="btn" onclick="closeSheet();redoWatch()">Done</button>`);
+}
+function chanToggle(k, yes){
+  const W = db.watch;
+  // short clips by default; experiences may run longer (still only one long video a day)
+  const exp = WATCH_GROUPS.find(g => g[0] === 'Interviews and Experiences')[1].some(x => x[0] === k);
+  if (yes && !W.cats.some(c => c.key === k)) W.cats.push({key:k, perDay:1, maxMin: CROP.has(k) ? 0 : exp ? 15 : 5});
+  if (!yes){ W.cats = W.cats.filter(c => c.key !== k); W.daily.items = W.daily.items.filter(v => v.cat !== k || v.pasted || W.seen[v.lank]); }
+  delete W.daily.done[k]; save(); keepSheetScroll(channelsSheet);
+}
+function chanSet(k, key, d){
+  const c = db.watch.cats.find(x => x.key === k); if (!c) return;
+  if (key === 'perDay') c.perDay = Math.min(5, Math.max(1, c.perDay + d)); else c.maxMin = d;
+  // re-pick this channel's unseen videos for today with the new setting
+  const W = db.watch; W.daily.items = W.daily.items.filter(v => v.cat !== k || v.pasted || W.seen[v.lank]); delete W.daily.done[k];
+  save(); keepSheetScroll(channelsSheet);
+}
+function keepSheetScroll(fn){ const s = document.getElementById('sheetIn'), y = s.scrollTop; fn(); s.scrollTop = y; }
+function redoWatch(){ if (currentView === 'shelf') renderShelf(); }   // (v8) Today re-picks on its next open
+async function addVideoLink(){
+  const raw = document.getElementById('vlink').value.trim(), st = document.getElementById('vst');
+  let txt = raw; try { txt = decodeURIComponent(raw); } catch(e){}
+  const m = txt.match(/(?:lank=|mediaitems\/[^\/?#]+\/)([\w-]+_VIDEO)\b/) || txt.match(/\b((?:pub|docid)-[\w-]+?_VIDEO)\b/);
+  if (!m){ st.className = 'status err'; st.textContent = 'That doesn\'t look like a jw.org video link.'; return; }
+  st.className = 'status'; st.textContent = 'Finding the video…';
+  try {
+    const r = await timed(`${JW_API}media-items/E/${encodeURIComponent(m[1])}?clientType=www`, 30000);
+    const v = slimVideo(((await r.json()).media || [])[0] || {});
+    if (!v) throw new Error('not found');
+    v.pasted = true;
+    const W = db.watch; W.daily.items = [v, ...W.daily.items.filter(x => x.lank !== v.lank)]; delete W.seen[v.lank]; save();
+    toast('Video added: it plays right after the Daily Text'); go('feed');
+  } catch(e){ st.className = 'status err'; st.textContent = 'Couldn\'t find that video: ' + e.message; }
+}
+
+/* ================= more / backup ================= */
+function renderMore(){
+  const el = document.getElementById('more');
+  el.innerHTML = `
+    <div class="sec">Your library</div>
+    <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
+    <div class="sec">Backup</div>
+    <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
+    <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
+    <div class="sec">Daily scrolling time</div>
+    <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="db.limitMin=${m};save();renderMore()">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
+      When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
+    <div class="sec">Daily</div>
+    <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
+    <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
+    <div class="sec">About</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v10 — free, private, no account. Books come from Project Gutenberg (public domain).
+    Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ideastash-backup-${today()}.json`; a.click();
+}
+function importData(file){
+  if (!file) return;
+  file.text().then(t => {
+    const d = JSON.parse(t); if (!Array.isArray(d.ideas)) throw new Error('Not an IdeaStash backup');
+    const have = new Set(db.ideas.map(i=>i.id)); const haveS = new Set(db.stashes.map(s=>s.id));
+    db.ideas.push(...d.ideas.filter(i=>!have.has(i.id))); db.stashes.push(...(d.stashes||[]).filter(s=>!haveS.has(s.id)));
+    const haveSh = new Set(db.shelf.map(x=>x.id)); db.shelf.push(...(d.shelf||[]).filter(x=>!haveSh.has(x.id)));
+    ensureDailyShelf(); save(); toast('Backup merged'); renderMore();
+  }).catch(e => toast('Import failed: ' + e.message));
+}
+
+/* ================= boot ================= */
+db = load();
+ensureDailyShelf();
+try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
+renderStreak(); renderFeed();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

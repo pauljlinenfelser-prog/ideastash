@@ -124,7 +124,14 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .card .pic{width:100%;height:170px;object-fit:cover;display:block;flex:none}
 .card.pcard{position:absolute;inset:0;border-radius:0;background:#000;box-shadow:none}
 .pcard .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.45)}
+.pcard .strip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.pcard .strip::-webkit-scrollbar{display:none}
+.pcard .pg{flex:0 0 100%;height:100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always}
 .pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard .dots{position:absolute;left:0;right:0;bottom:78px;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
+.pcard .dots i{width:7px;height:7px;border-radius:50%;background:#fff5}
+.pcard .dots i.on{background:#fff}
+.pcard .count{position:absolute;top:12px;right:12px;background:#0009;border-radius:999px;padding:5px 11px;font-size:13px;pointer-events:none;z-index:2}
 .pcard .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
 .pcard .side button,.pcard .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
   align-items:center;justify-content:center;text-decoration:none;color:#fff}
@@ -305,21 +312,33 @@ function bumpStreak(){
 function renderStreak(){ document.getElementById('streak').textContent = '🔥 ' + db.streak.count; }
 
 /* ================= card ================= */
-// (v9) poster = full-screen picture; double-tap and ❤️ work like videos
+// (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
 function posterHTML(i){
-  const saved = i.stashes && i.stashes.length, big = i.image.replace(/_md\.jpg$/, '_lg.jpg');
+  const pics = i.pics || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
   return `<div class="card pcard" data-id="${i.id}">
-    <div class="bg" style="background-image:url('${esc(i.image)}')"></div>
-    <img class="poster" src="${esc(i.image)}" alt="${esc(i.title)}" loading="lazy">
+    <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
+    <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
+      `<div class="pg"><img class="poster" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+    ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">🔖</button>
-      <a title="Full size" href="${esc(big)}" target="_blank" rel="noopener">🔍</a>
+      <button title="Full size" onclick="openPic(this)">🔍</button>
     </div>
-    <div class="info"><b>${esc(i.title)}</b><small>Become Jehovah’s Friend · poster</small></div></div>`;
+    <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+}
+function stripMoved(st){
+  const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
+  c.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === n));
+  const ct = c.querySelector('.count'); if (ct) ct.textContent = `${n + 1} / ${st.children.length}`;
+}
+function openPic(btn){
+  const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
+  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
+  window.open(src, '_blank', 'noopener');
 }
 function cardHTML(i){
-  if (i.image) return posterHTML(i);
+  if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
   const saved = i.stashes && i.stashes.length;
   const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
@@ -382,7 +401,7 @@ async function renderFeed(){
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
   const core = k === feedCore ? ' data-core="1"' : '';
-  if (x.card && x.card.image) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
+  if (x.card && (x.card.image || x.card.pics)) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
   if (x.card && x.card.video){                                                                   // (v9) series video
     const W = db.watch; let n = W.daily.items.findIndex(v => v.lank === x.card.video.lank);
     if (n < 0){ W.daily.items.push({...x.card.video, extra:true, series:true}); n = W.daily.items.length - 1; save(); }
@@ -884,10 +903,11 @@ const SHELF_KINDS = {
   fam:   {emoji:'🏡', title:'Help for the Family', sub:'jw.org', unit:'articles'},
   arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
   bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
+  ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
   book:  {emoji:'📖'}
 };
 // (v9) every list-based source, in the order they start on the shelf
-const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST};
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST};
 const KIND_INFO = {
   wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
   bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
@@ -996,6 +1016,13 @@ function posterCard(e){
   return {id:uid(), title:e.q, body:e.d || 'Become Jehovah’s Friend poster', topic:'Spiritual',
     source:'Become Jehovah’s Friend — Poster', url:e.u, image:e.img, created:Date.now(), stashes:[]};
 }
+// (v10) Illustrated Bible Story: cover + comic pages, swiped sideways
+function storyCard(e){
+  const img = (k) => `https://cms-imgp.jw-cdn.org/img/p/${e.id}/E/art/${e.id}_E_${k}.jpg`;
+  const pics = [img('cnt_1_md'), ...Array.from({length:e.n}, (_, i) => img('cfb_' + String(i + 1).padStart(2, '0') + '_lg'))];
+  return {id:uid(), title:e.q, body:e.d, topic:'Spiritual', source:'Illustrated Bible Stories — jw.org',
+    url:'https://www.jw.org/en/bible-teachings/children/illustrated-bible-stories/' + e.u, pics, created:Date.now(), stashes:[]};
+}
 function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
 
 let pulling = null;
@@ -1026,7 +1053,7 @@ async function doPull(){
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
           tries++;
-          try { const c = it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+          try { const c = it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -1332,7 +1359,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v9 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v10 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v9)
+IdeaStash — your own free Deepstash (current: v10)
 =======================================
 
 FOLDERS
@@ -80,4 +80,7 @@ VERSIONS
       🏛️ From Our Archives - our history (35)
       🖼️ Become Jehovah's Friend posters (8) - full-screen pictures, 🔍 opens full size.
       Video channels also turned on: Blessings of Sacred Service, Enduring Trials, History.
+  v10 🎨 Illustrated Bible Stories (22) on the Shelf: each story is a picture set you swipe
+      SIDEWAYS through (cover + 3-5 comic pages), with dots and a "2 / 5" counter. Swipe up
+      for the next item. 🔍 opens the page you're on full size (pinch to zoom).
   Next: Listening (driving) mode
