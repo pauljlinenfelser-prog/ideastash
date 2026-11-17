@@ -60,6 +60,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 2 (2026-11-17): new layout - top third the jw.org Was It Designed? art (nautilus),
   middle the article's short video (silent, loops until the narration ends), bottom the article
   picture with title + progress. Fixed: the narration no longer stops when the video ends.
+  Beta 3: the top third is the Was It Designed? title card (drafting desk + logo), shown from
+  jw.org's own video paused at 0:04 - nothing copied. Nautilus art stays as the fallback.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

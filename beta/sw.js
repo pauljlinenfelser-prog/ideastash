@@ -1,5 +1,5 @@
 // IdeaStash service worker — caches the app so it opens offline
-const CACHE = 'gemstash-beta-2';   // BETA: its own offline cache
+const CACHE = 'gemstash-beta-3';   // BETA: its own offline cache
 const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

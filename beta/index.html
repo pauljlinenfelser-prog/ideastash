@@ -166,6 +166,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 /* BETA: layered card — series art / video / article picture */
 .card.lcard{position:absolute;inset:0;border-radius:0;background:#0b0a12;box-shadow:none;display:block}
 .lcard .series{position:absolute;left:0;right:0;top:0;height:30%;background-size:cover;background-position:center}
+.lcard .series video.art{width:100%;height:100%;object-fit:cover;display:block}
 .lcard .series span{position:absolute;left:14px;bottom:10px;background:#000a;color:#fff;font-weight:700;font-size:15px;
   letter-spacing:.3px;border-radius:999px;padding:5px 12px}
 .lcard .clipbox{position:absolute;left:0;right:0;top:30%;height:30%;background:#000;overflow:hidden}
@@ -405,11 +406,14 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clip = clip ? clip.file.url : ''; save();
   return i;
 }
-const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art (fallback)
+// Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
+// jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
+const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
 function layeredHTML(i){
   const saved = i.stashes && i.stashes.length;
   return `<div class="card lcard" data-id="${i.id}">
-    <div class="series" style="background-image:url('${WID_ART}')"><span>Was It Designed?</span></div>
+    <div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>
     <div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video>
       <button class="lplay" onclick="layerToggle('${i.id}')">▶</button></div>
     <div class="hero"><img src="${esc(i.image)}" alt="" onerror="this.closest('.lcard').classList.add('noimg')"><div class="ht">${esc(i.title)}</div>
@@ -583,7 +587,7 @@ function observeFeed(){
   const el = document.getElementById('feed');
   if (feedObs) feedObs.disconnect();
   feedObs = new IntersectionObserver(ents => ents.forEach(en => {
-    const s = en.target, vid = s.querySelector('video:not(.clip)');   // BETA: the layered card's clip isn't a feed video
+    const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
     // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
     const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
     if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStop(); return; }
@@ -760,7 +764,7 @@ function autoTick(now){
       document.getElementById('sheet').classList.contains('on')) return;
   if (!autoState || autoState.s !== s) autoState = {s, t: 0, page: 0};
   const st = autoState; st.t += dt;
-  const vid = s.querySelector('video:not(.clip)');   // BETA
+  const vid = s.querySelector('video:not(.clip):not(.art)');   // BETA
   if (vid){                                                                 // videos: to the end
     if (vid.ended) autoNext(s);
     else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
