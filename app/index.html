@@ -211,6 +211,10 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .vslide .side button,.vslide .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
   align-items:center;justify-content:center;text-decoration:none;color:#fff}
 .vslide .side .saved{background:var(--accent)}
+.vslide .fsx{display:none;position:absolute;top:14px;right:14px;z-index:3;width:46px;height:46px;border-radius:50%;background:#0008;color:#fff;font-size:22px}
+.vslide:fullscreen .fsx{display:flex;align-items:center;justify-content:center}
+.vslide:fullscreen .side,.vslide:fullscreen .info,.vslide:fullscreen .note{display:none}
+.vslide:fullscreen video{object-fit:contain}
 .vslide .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);z-index:2}
 .vslide .note{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:#000a;border-radius:999px;
   padding:8px 14px;font-size:14px;pointer-events:none;white-space:nowrap}
@@ -1965,10 +1969,31 @@ function videoSlideHTML(v, n){
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareVideo(${n})">📤</button>
       ${commentBtn(finderUrl(v.lank), v.title)}
+      <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
     </div>
+    <button class="fsx" title="Back to the feed" onclick="videoFullExit()">✕</button>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="bar"></div></div>`;
 }
+// (v27) full screen: the video fills the screen turned sideways; ✕ (or Back) returns to the feed
+async function videoFull(btn){
+  const s = btn.closest('.vslide'), vid = s && s.querySelector('video'); if (!s) return;
+  try {
+    await (s.requestFullscreen ? s.requestFullscreen({navigationUI: 'hide'}) : s.webkitRequestFullscreen());
+    try { await screen.orientation.lock('landscape'); } catch(e){}      // phones only; ignored elsewhere
+    if (vid && vid.paused) vid.play().catch(() => {});
+  } catch(e){ toast('Full screen isn’t available here'); }
+}
+function videoFullExit(){ if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement){ try { screen.orientation.unlock(); } catch(e){} }
+});
+// (v27) turning the phone sideways while a video is on screen goes full screen too (if the phone allows it)
+if (screen.orientation) screen.orientation.addEventListener('change', () => {
+  if (!/landscape/.test(screen.orientation.type) || document.fullscreenElement || currentView !== 'feed') return;
+  const s = feedCurrent; if (!s || !s.matches('.vslide[data-n]')) return;
+  const b = s.querySelector('.fsb'); if (b) videoFull(b).catch(() => {});
+});
 function wireVideoSlide(s){
   const vid = s.querySelector('video'), bar = s.querySelector('.bar');
   vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (100 * vid.currentTime / vid.duration) + '%'; });
@@ -1987,6 +2012,7 @@ function wireVideoSlide(s){
       vid.paused ? vid.play() : vid.pause();
     }, 280);
   });
+  vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit(); });   // (v27)
   // load the next one ahead of time
   vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
 }
@@ -2092,7 +2118,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v26 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v27 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

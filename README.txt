@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v26)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v27)
 =======================================
 
 FOLDERS
@@ -171,4 +171,7 @@ VERSIONS
       the article's picture and jw.org's title, jw.org's own narration). Only narrated articles are
       used. Old text cards turn into listen cards, keeping hearts and gems. Also fixes Was It
       Designed? cards after the first one being skipped.
-  Next: rotate-to-fullscreen videos, Morning Worship not zoomed, Daily Text from the es26 EPUB
+  v27 Full screen for videos: a new button on every video (below share) fills the screen turned
+      sideways; turning the phone sideways while a video is on screen does it too. Tap the X or
+      Back to return to the feed; it also returns by itself when the video ends.
+  Next: Morning Worship not zoomed, Daily Text from the es26 EPUB
