@@ -245,7 +245,7 @@ function blank(){
 }
 function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
-  const d = blank(); d.ideas = welcomeIdeas(); return d;
+  return blank();   // (v21) no starter guide cards
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast('Storage full or blocked — export a backup'); } }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -269,6 +269,7 @@ function closeSheet(){ document.getElementById('sheet').classList.remove('on'); 
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 const findIdea = id => db.ideas.find(i => i.id===id);
+const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*jw\.org(\/|$)/i.test(i.url || '')));   // (v21) strictly from jw.org
 
 /* ================= navigation ================= */
 let currentView = 'feed';
@@ -321,8 +322,8 @@ function ensureDaily(){
   const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
   let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && !i.video && !db.seen[i.id] && !ids.includes(i.id));
-    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && !i.video && !ids.includes(i.id))).slice(0, 4-ids.length);
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !ids.includes(i.id))).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
   }
   db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
@@ -409,7 +410,7 @@ async function renderFeed(){
   dedupeVideos();
   ensureDaily();
   const el = document.getElementById('feed');
-  const daily = db.daily.ids.map(findIdea).filter(Boolean), dt = todaysText();
+  const daily = db.daily.ids.map(findIdea).filter(isJwGem), dt = todaysText();
   const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
   const qfr = ofKind('qfr'), bqa = ofKind('bqa');
   const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
@@ -422,7 +423,7 @@ async function renderFeed(){
   bqa.forEach(i => seq.push(C(i)));
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
-  exploreQueue = shuffle(db.ideas.filter(i => !i.video && !db.daily.ids.includes(i.id)));
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !db.daily.ids.includes(i.id)));
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -528,7 +529,7 @@ async function appendExplore(){
   const el = document.getElementById('feed');
   const gen = feedGen;
   try {
-    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => !i.video));
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video));
     const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
     if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
@@ -1063,24 +1064,25 @@ function htmlToText(html){
 }
 
 /* ================= add view ================= */
-let addTab = 'books', preview = [];
+let addTab = 'web', preview = [];   // (v21) jw.org only: Books / Paste / Write one retired
 function renderAdd(){
   const el = document.getElementById('add');
   el.innerHTML = `<div class="tabs">
-      ${[['books','📖 Books'],['web','🌐 Web / jw.org'],['paste','📝 Paste'],['one','✍️ Write one'],['video','🎬 Video link']].map(([k,l])=>
+      ${[['web','🌐 jw.org link'],['video','🎬 Video link']].map(([k,l])=>
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
   const b = document.getElementById('addBody');
+  if (!['web','video'].includes(addTab)) addTab = 'web';
   if (addTab==='books') b.innerHTML = `
       <p style="color:var(--muted);font-size:14px;margin:4px 0">Free public-domain books from Project Gutenberg.</p>
       <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
       <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
   if (addTab==='web') b.innerHTML = `
       <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text (wol.jw.org)</button>
-      <label class="l">Or paste a link (jw.org, wol.jw.org, any article)</label>
+      <label class="l">Or paste a jw.org or wol.jw.org link</label>
       <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
-      <label class="l">Topic</label>${topicSelect('wt','Spiritual')}
-      <button class="btn" onclick="webImport()">Make idea cards</button>`;
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 0">On jw.org or in JW Library: Share → Copy link. The whole article becomes one gem.</p>
+      <button class="btn" onclick="webImport()">Add this gem</button>`;
   if (addTab==='paste') b.innerHTML = `
       <label class="l">Paste text (book notes, article, study notes)</label><textarea id="pt"></textarea>
       <label class="l">Source</label><input id="ps" placeholder="e.g. Watchtower Nov 2026, p. 8">
@@ -1172,17 +1174,27 @@ async function dailyText(){
   try { preview = [await getDailyCard()]; setSt('Today\'s text is ready.'); renderPreview(); }
   catch(e){ setSt('Could not get the daily text: ' + e.message, true); }
 }
-async function webImport(sourceName){
-  const url = document.getElementById('wu').value.trim(); if (!/^https?:\/\//.test(url)) return setSt('Paste a full link starting with https://', true);
-  const topic = document.getElementById('wt').value;
-  setSt('Reading page…');
+// (v21) a pasted jw.org / wol.jw.org link becomes ONE complete gem, read like the shelf articles (headings, 🎧, Read more)
+const isJwUrl = u => /^https?:\/\/([a-z0-9-]+\.)*jw\.org(\/|$)/i.test(u || '');
+async function webImport(){
+  const url = document.getElementById('wu').value.trim();
+  if (!/^https?:\/\//.test(url)) return setSt('Paste a full link starting with https://', true);
+  if (!isJwUrl(url)) return setSt('GemStash only takes links from jw.org or wol.jw.org.', true);
+  if (/lank=|mediaitems\/|_VIDEO\b/i.test(url)){ addTab = 'video'; renderAdd(); document.getElementById('vlink').value = url; return addVideoLink(); }
+  setSt('Reading the article…');
   try {
-    let {text, html} = await fetchText(url);
-    text = html ? htmlToText(text) : cleanMarkdown(text);
-    const titleMatch = text.match(/^Title:\s*(.+)$/m);
-    let source = typeof sourceName==='string' ? sourceName : (titleMatch ? titleMatch[1].trim() : new URL(url).hostname);
-    preview = textToIdeas(text, {topic, source, url});
-    setSt(preview.length ? `${preview.length} possible ideas. Keep the ones you like.` : 'No idea-sized paragraphs found on that page.', !preview.length);
+    const {text, html} = await fetchText(url);
+    const md = html ? htmlToText(text) : text;
+    const t = (md.match(/^Title:\s*(.+)$/m) || [])[1] || '';
+    const title = t.replace(/\s*[|—–-]\s*(Watchtower ONLINE LIBRARY|JW\.ORG|Bible Questions|Help for the Family|Was It Designed\?|Study|Watchtower|Awake!).*$/i, '').trim() || 'jw.org article';
+    let blocks = articleBlocks(md);
+    const norm = x => x.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    while (blocks.length && norm(blocks[0]) === norm(title)) blocks.shift();
+    const body = joinBlocks(blocks);
+    if (body.replace(/## .*/g, '').trim().length < 80) throw new Error('no article text found on that page');
+    const pic = (md.split('Markdown Content:').pop().match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+    preview = [{id:uid(), title, body, pic, topic:'Spiritual', source:(/wol\.jw\.org/.test(url) ? 'wol.jw.org' : 'jw.org'), url, created:Date.now(), stashes:[], full:true}];
+    setSt('Here’s the article. Tap Keep to add it to your gems.');
     renderPreview();
   } catch(e){ setSt('Could not read that page: ' + e.message, true); }
 }
@@ -1482,9 +1494,7 @@ function renderShelf(){
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
       <span style="font-size:22px">＋</span></button>`).join('')}
-    <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
-      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
-      <span style="font-size:22px">＋</span></button>`;
+`;
 }
 async function pullNow(){
   db.shelf.forEach(it => { if (it.error) it.lastPull = ''; });
@@ -1774,7 +1784,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v20 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v21 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org.
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
@@ -1794,6 +1804,8 @@ function importData(file){
 
 /* ================= boot ================= */
 db = load();
+db.shelf = db.shelf.filter(it => it.kind !== 'book');                                         // (v21) jw.org only
+db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes || []).length));
 ensureDailyShelf();
 autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask

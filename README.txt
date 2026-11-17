@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v20)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v21)
 =======================================
 
 FOLDERS
@@ -119,4 +119,8 @@ VERSIONS
       Delete your own; the circle's starter can delete any comment and remove members.
       Uses the free Firebase project gemstash-10786 (Mike's Google account); rules in firestore.rules.
   v20 No ✏️ edit button: GemStash shows jw.org's own words, unchanged.
+  v21 jw.org only. Add has just "jw.org link" (a pasted jw.org / wol.jw.org link becomes one
+      complete gem, with 🎧 when jw.org has a recording) and "Video link". Other websites are
+      turned away. No more Gutenberg books, Paste or Write one, and no starter guide cards.
+      Nothing you saved was deleted; old book/self-made cards just stay out of Today.
   Next: Listening (driving) mode
