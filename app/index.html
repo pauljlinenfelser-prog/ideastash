@@ -367,18 +367,21 @@ let exploreQueue = [];
 function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
 // (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
 // then more cards and videos mixed, until the daily scrolling time runs out.
-let feedCore = -1, exploring = false, feedCurrent = null;
+let feedCore = -1, exploring = false, feedCurrent = null, feedGen = 0;   // (v12) feedGen: which feed is on screen
 async function renderFeed(){
   const el0 = document.getElementById('feed');
   const W = db.watch;
+  const gen = ++feedGen;
+  dedupeVideos();
   const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
   if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
     el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
       <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
     if (shelfNeedsPull()) await pullShelf();
     if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
-    if (currentView !== 'feed') return;
+    if (currentView !== 'feed' || gen !== feedGen) return;
   }
+  dedupeVideos();
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(Boolean), dt = todaysText();
@@ -467,7 +470,8 @@ function observeFeed(){
     feedCurrent = s;
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
-    if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1; save(); } }
+    if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
+      const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
     if (s.dataset.core) bumpStreak();
     if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
   }), {root: el, threshold: .6});
@@ -492,12 +496,17 @@ function upgradeCard(id){
 async function appendExplore(){
   if (exploring) return; exploring = true;
   const el = document.getElementById('feed');
+  const gen = feedGen;
   try {
     if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => !i.video));
     const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
+    if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
     vids.forEach(vid => add.push({vid}));
-    add.forEach(x => { el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
+    add.forEach(x => {
+      if (x.vid && el.querySelector(`[data-lank="${CSS.escape(x.vid.v.lank)}"]`)) return;   // (v12) never the same video twice
+      if (x.card && el.querySelector(`.card[data-id="${x.card.id}"]`)) return;
+      el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
       if (s.matches('.vslide')) wireVideoSlide(s); feedObs.observe(s); });
   } finally { exploring = false; }
 }
@@ -1212,6 +1221,18 @@ Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the
 const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
 const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
 const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
+// (v12) jw.org publishes some talks more than once ("John Ekrann: “We All Stumble Many Times” (Jas. 3:2)" in Morning Worship,
+// "We All Stumble Many Times" in Apply Bible Principles, "…—Excerpt" versions). Compare the talk itself, not the video id.
+const coreTitle = t => String(t || '').toLowerCase()
+  .replace(/^[^:“"]{2,40}:\s*(?=[“"‘])/, '')                     // speaker name before a quoted title
+  .replace(/^(excerpt|clip|trailer)\s*[:—–-]\s*/, '')
+  .replace(/\([^)]*\)/g, '').replace(/\s*[—–-]\s*(excerpt|clip|trailer)\b.*$/, '')
+  .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const sameTalk = (a, b) => a === b || (a.length > 12 && b.length > 12 && (a.includes(b) || b.includes(a)));
+function clashes(v, items){
+  const c = coreTitle(v.title), seen = db.watch.seenCore || {};
+  return items.some(x => x.lank !== v.lank && sameTalk(c, coreTitle(x.title))) || Object.keys(seen).some(k => sameTalk(c, k));
+}
 const fmtDur = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
 const finderUrl = lank => `https://www.jw.org/finder?lank=${encodeURIComponent(lank)}&wtlocale=E`;
 function slimVideo(m, cat){
@@ -1249,6 +1270,7 @@ async function buildWatchDaily(){
       for (const v of (await catVideos(c.key)).slice().sort((a, b) => b.pub.localeCompare(a.pub))){
         if (pick.length >= c.perDay) break;
         if (W.seen[v.lank] || have.has(v.lank) || (c.maxMin && v.dur > c.maxMin * 60)) continue;
+        if (clashes(v, [...W.daily.items, ...pick])) continue;            // (v12) another version of a talk already here / seen
         if (isLong(v)){ if (longUsed) continue; longUsed = true; }
         pick.push(v); have.add(v.lank);
       }
@@ -1263,6 +1285,14 @@ async function buildWatchDaily(){
   save();
   return errors;
 }
+// (v12) one entry per video in today's list
+function dedupeVideos(){
+  const W = db.watch, seen = new Set(), before = W.daily.items.length;
+  W.daily.items = W.daily.items.filter(v => !seen.has(v.lank) && seen.add(v.lank));
+  const kept = [];
+  W.daily.items = W.daily.items.filter(v => { if (!v.series && !v.pasted && kept.some(x => sameTalk(coreTitle(v.title), coreTitle(x.title)))) return false; kept.push(v); return true; });
+  if (W.daily.items.length !== before) save();
+}
 // (v8) more short videos for the explore part of the feed, one per channel in turn (no extra Morning Worship)
 async function moreVideos(k){
   const W = db.watch; if (!W.cats.length || navigator.onLine === false) return [];
@@ -1274,7 +1304,7 @@ async function moreVideos(k){
       let list; try { list = await catVideos(c.key); } catch(e){ continue; }
       const longUsed = W.daily.items.some(isLongV);
       const v = list.slice().sort((a, b) => b.pub.localeCompare(a.pub)).find(v => !W.seen[v.lank] && !used.has(v.lank)
-        && (!c.maxMin || v.dur <= c.maxMin * 60) && !(isLongV(v) && longUsed));
+        && (!c.maxMin || v.dur <= c.maxMin * 60) && !(isLongV(v) && longUsed) && !clashes(v, W.daily.items));
       if (!v) continue;
       used.add(v.lank); W.daily.items.push({...v, extra:true});
       out.push({v: W.daily.items[W.daily.items.length - 1], n: W.daily.items.length - 1});
@@ -1284,7 +1314,7 @@ async function moreVideos(k){
 }
 function videoSlideHTML(v, n){
   const saved = db.ideas.some(i => i.video && i.video.lank === v.lank && i.stashes && i.stashes.length);
-  return `<div class="vslide ${CROP.has(v.cat) ? 'crop' : ''}" data-n="${n}">
+  return `<div class="vslide ${CROP.has(v.cat) ? 'crop' : ''}" data-n="${n}" data-lank="${esc(v.lank)}">
     <div class="bg" style="background-image:url('${esc(v.img)}')"></div>
     <video playsinline muted preload="${n < 2 ? 'metadata' : 'none'}" poster="${esc(v.img)}" src="${esc(v.src)}"></video>
     <div class="playi">▶️</div>
@@ -1418,7 +1448,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v11 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v12 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

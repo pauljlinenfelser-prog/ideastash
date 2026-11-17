@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v11)
+IdeaStash — your own free Deepstash (current: v12)
 =======================================
 
 FOLDERS
@@ -87,4 +87,8 @@ VERSIONS
       points and bullets, and read to the end of the article (scroll inside the card). Each one
       ends with "Read the full article on jw.org". Cards made earlier fetch the full article
       the first time they come on screen. The photo now scrolls away with the text.
+  v12 No more repeated videos. jw.org posts some talks more than once (Morning Worship
+      "John Ekrann: We All Stumble Many Times" is also in Apply Bible Principles; some have
+      "-Excerpt" copies). IdeaStash now compares the talk itself, keeps one per day, and won't
+      bring back another version of a talk you've already watched.
   Next: Listening (driving) mode
