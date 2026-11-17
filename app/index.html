@@ -209,7 +209,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
 <div id="toast"></div>
 
-<script src="sources.js"></script>
+<script src="sources.js?v=16"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'ideastash.v1';
@@ -362,7 +362,7 @@ function cardHTML(i){
       style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
-      ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>`}
+      ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
@@ -549,13 +549,48 @@ function speakable(s){
     .replace(/(\d+):(\d+)/g, '$1, verse $2')
     .replace(/[—–]/g, ', ').replace(/¶/g, 'paragraph ');
 }
-function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => b.textContent = b.closest('.card').dataset.id === speakingId ? '⏹️' : '🔊'); }
-function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} setListenIcons(); }
-function listen(id){
-  if (!('speechSynthesis' in window)) return toast('This browser can\'t read aloud');
+// (v16) jw.org's own recordings: most jw.org articles have an MP3 reading. Each list entry carries its jw.org document
+// number (doc), found once from the page's <body id="midNNN">; jw.org's pub-media service gives the MP3 (open to apps).
+let DOC_BY_URL = null;
+function docFor(i){
+  if (!i || i.video || i.image || i.pics) return '';
+  if (i.doc) return i.doc;
+  if (!DOC_BY_URL){ DOC_BY_URL = {}; Object.values(KIND_LIST).forEach(f => f().forEach(e => { if (e.doc) DOC_BY_URL[e.u] = e.doc; })); }
+  return DOC_BY_URL[i.url] || '';
+}
+const listenIcon = i => docFor(i) ? '🎧' : '🔊';
+let jwAudio = null;
+async function jwAudioUrl(doc){
+  const r = await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${doc}&output=json&fileformat=MP3&alllangs=0&langwritten=E&txtCMSLang=E`, 20000);
+  const f = (await r.json()).files?.E?.MP3?.[0];
+  if (!f) throw new Error('no recording');
+  return f.file.url;
+}
+function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => {
+  const id = b.closest('.card').dataset.id; b.textContent = id === speakingId ? '⏹️' : listenIcon(findIdea(id)); }); }
+function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} if (jwAudio){ jwAudio.pause(); jwAudio = null; } setListenIcons(); }
+async function listen(id){
   if (speakingId === id) return stopListening();
   stopListening();
   const i = findIdea(id); if (!i) return;
+  const doc = docFor(i);
+  if (doc){                                             // a real jw.org reader
+    speakingId = id; setListenIcons();
+    try {
+      const a = new Audio(i.audio || await jwAudioUrl(doc));
+      if (speakingId !== id) return;                    // stopped while we looked it up
+      jwAudio = a;
+      a.onended = () => { if (jwAudio === a){ jwAudio = null; speakingId = null; setListenIcons(); } };
+      a.onerror = () => { if (jwAudio === a){ jwAudio = null; i.audio = ''; toast('Couldn’t play the recording'); speakingId = null; setListenIcons(); } };
+      await a.play();
+      if (!i.audio){ i.audio = a.src; save(); }
+      return;
+    } catch(e){
+      if (speakingId !== id) return;
+      speakingId = null; toast('Recording not available, using the phone’s voice');
+    }
+  }
+  if (!('speechSynthesis' in window)) return toast('This browser can\'t read aloud');
   // short pieces: Chrome on Android cuts off long speech
   const parts = [i.title, ...i.body.split(/\n+/).map(x => x.replace(/^(## |• )/, ''))].flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
   const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
@@ -1077,7 +1112,7 @@ async function articleCard(entry, kind){
   if (kind === 'bqa') blocks = blocks.filter(b => !/^## The Bible’s answer$/i.test(b));
   const body = joinBlocks(blocks);
   if (body.replace(/## .*/g, '').trim().length < 80) throw new Error('could not read answer');
-  return {id:uid(), title, body, topic:'Q&A', full:true,
+  return {id:uid(), title, body, topic:'Q&A', full:true, doc: entry.doc || '',
     source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
     url: entry.u, created:Date.now(), stashes:[]};
 }
@@ -1095,7 +1130,7 @@ function seriesCard(entry, kind, md){
   }
   const body = joinBlocks(blocks);
   const mp4 = (md.match(/https:\/\/[^\s)"']+?_r(?:480|720|360)P\.mp4/) || [])[0];
-  const base = {id:uid(), title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
+  const base = {id:uid(), doc: entry.doc || '', title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
     topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[], full:true};
   const words = body.replace(/## .*/g, '').trim();
   if (mp4 && words.length < 300){
@@ -1473,7 +1508,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v15 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v16 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v15)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v16)
 =======================================
 
 FOLDERS
@@ -103,4 +103,8 @@ VERSIONS
       "This is a modal window", Speed 2x...0.6x, Cast, AirPlay) instead of the answer. Those
       are now skipped, and a card that already caught them re-reads the page the next time
       it comes on screen.
+  v16 Real jw.org readers: cards with a recording on jw.org show 🎧 instead of 🔊 and play
+      jw.org's own reading (344 of 371 articles: all Bible Questions Answered and Bible
+      Verses Explained, most Help for the Family, From Our Archives, Was It Designed?).
+      The Daily Text and Questions From Readers have no recording, so they keep the phone voice.
   Next: Listening (driving) mode
