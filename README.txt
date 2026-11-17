@@ -67,6 +67,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 5: Was It Designed? sorted by what jw.org offers - 17 full videos play full screen,
   19 narration-only articles get an audio card (title card + the article's picture, or the
   nautilus art), 11 narration+clip keep the composite card, 1 with nothing is skipped.
+  Beta 6: fixed narration-only cards (like A Mother's Milk) switching to an empty middle band
+  after loading; they keep the title card + picture layout.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
