@@ -192,6 +192,16 @@ function ensureDailyShelf(){
     order:'seq', lastPull:'', paused:false, added:Date.now()};
   it.paused = false;
   db.shelf = [it, ...db.shelf.filter(x => x.kind !== 'daily')];
+  // (v4) Questions From Readers + Bible Questions Answered start on the shelf — once only, so Remove sticks
+  db.seeded = db.seeded || [];
+  ['qfr','bqa'].forEach(kind => {
+    if (db.seeded.includes(kind)) return;
+    db.seeded.push(kind);
+    if (db.shelf.some(x => x.kind === kind)) return;
+    const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
+      total: kind==='qfr' ? QFR_LIST.length : BQA_LIST.length, lastPull:'', paused:false, added:Date.now()};
+    setOrder(s, 'random'); db.shelf.push(s);
+  });
   save();
 }
 function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
@@ -230,6 +240,7 @@ function cardHTML(i){
     <div class="body">${esc(i.body)}</div>
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
+      <button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>
       <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">${saved?'🔖':'📑'}</button>
       <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
       <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
@@ -314,6 +325,45 @@ function refreshCard(id){
     c.outerHTML = cardHTML(i);
   });
   if (currentView==='library') renderLibrary();
+}
+
+/* ================= listen (v4) ================= */
+// reads a card aloud with the phone's own voice; tap again to stop
+let speakingId = null;
+const BOOKS = {Gen:'Genesis',Ex:'Exodus',Lev:'Leviticus',Num:'Numbers',Deut:'Deuteronomy',Josh:'Joshua',Judg:'Judges',
+  Sam:'Samuel',Ki:'Kings',Chron:'Chronicles',Neh:'Nehemiah',Esth:'Esther',Ps:'Psalm',Prov:'Proverbs',Eccl:'Ecclesiastes',
+  Song:'Song of Solomon',Isa:'Isaiah',Jer:'Jeremiah',Lam:'Lamentations',Ezek:'Ezekiel',Dan:'Daniel',Hos:'Hosea',Obad:'Obadiah',
+  Mic:'Micah',Nah:'Nahum',Hab:'Habakkuk',Zeph:'Zephaniah',Hag:'Haggai',Zech:'Zechariah',Mal:'Malachi',Matt:'Matthew',
+  Rom:'Romans',Cor:'Corinthians',Gal:'Galatians',Eph:'Ephesians',Phil:'Philippians',Col:'Colossians',Thess:'Thessalonians',
+  Tim:'Timothy',Philem:'Philemon',Heb:'Hebrews',Jas:'James',Pet:'Peter',Rev:'Revelation'};
+function speakable(s){
+  return s
+    .replace(/\b([1-3]) (Sam|Ki|Chron|Cor|Thess|Tim|Pet|John)\.?(?= \d)/g, (m,n,b) => ['','First','Second','Third'][n] + ' ' + (BOOKS[b]||b))
+    .replace(/\b([A-Z][a-z]{1,5})\.(?= \d)/g, (m,b) => BOOKS[b] || m)
+    .replace(/(\d+):(\d+)-(\d+)/g, '$1, verses $2 to $3')
+    .replace(/(\d+):(\d+)/g, '$1, verse $2')
+    .replace(/[—–]/g, ', ').replace(/¶/g, 'paragraph ');
+}
+function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => b.textContent = b.closest('.card').dataset.id === speakingId ? '⏹️' : '🔊'); }
+function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} setListenIcons(); }
+function listen(id){
+  if (!('speechSynthesis' in window)) return toast('This browser can\'t read aloud');
+  if (speakingId === id) return stopListening();
+  stopListening();
+  const i = findIdea(id); if (!i) return;
+  // short pieces: Chrome on Android cuts off long speech
+  const parts = [i.title, ...i.body.split(/\n+/)].flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
+  const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
+                speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
+  speakingId = id; setListenIcons();
+  parts.forEach((p, n) => {
+    const u = new SpeechSynthesisUtterance(p);
+    if (voice) u.voice = voice;
+    u.rate = 1;
+    if (n === parts.length - 1) u.onend = () => { if (speakingId === id){ speakingId = null; setListenIcons(); } };
+    u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
+    speechSynthesis.speak(u);
+  });
 }
 
 /* ================= actions ================= */
@@ -700,7 +750,8 @@ async function articleCard(entry, kind){
     let score = 0; wordsOf(p).forEach(w => { if (want.has(w)) score++; });
     if (score > best){ best = score; qi = ix; }
   });
-  const title = qi > -1 ? p0(paras[qi]) : entry.q;
+  // (v4) BQA pages put a "1. Bible Teachings 2. …" breadcrumb on the question — the index question is already clean
+  const title = kind === 'bqa' || qi < 0 ? entry.q : p0(paras[qi]).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
   let body = '';
   for (const p of paras.slice(qi + 1)){
     const ok = goodPara(p) || (p.length > 100 && p.length < 900 && /:$/.test(p) && sentences(p).length >= 2);
@@ -713,7 +764,7 @@ async function articleCard(entry, kind){
     source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
     url: entry.u, created:Date.now(), stashes:[]};
 }
-function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').trim(); }
+function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
 
 let pulling = null;
 function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
@@ -835,7 +886,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v3 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v4 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
@@ -856,6 +907,7 @@ function importData(file){
 /* ================= boot ================= */
 db = load();
 ensureDailyShelf();
+try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>

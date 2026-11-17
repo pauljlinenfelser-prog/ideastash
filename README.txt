@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v3)
+IdeaStash — your own free Deepstash (current: v4)
 =======================================
 
 FOLDERS
@@ -20,8 +20,8 @@ WHAT IT DOES
               Finishing the 5 grows your 🔥 streak.
   Shelf (v2)  the sources YOU pick. Every morning, new ideas from each one land in Today:
                 📅 Daily Text (always on, always the first card in Today)
-                ❓ Questions From Readers — all 553 from the Watchtower Index
-                📘 Bible Questions Answered — 191 questions from jw.org
+                ❓ Questions From Readers (on from the start) — all 553 from the Watchtower Index
+                📘 Bible Questions Answered (on from the start) — 191 questions from jw.org
                 📖 Any Gutenberg book you add (2 passages a day by default)
               Tap a shelf item to set ideas-per-day, In order / Random (never repeats),
               pause, start over, or remove. Progress bars show how far through you are.
@@ -50,4 +50,8 @@ VERSIONS
       Bible Questions Answered. Also fixes Gutenberg license text slipping into cards.
   v3  Daily Text always on — it's on the shelf for good (no Pause/Remove), always the
       first card in Today, and if it can't load you get a "tap to retry" card instead.
-  Next: v4 Watch — jw.org video categories (Morning Worship, News, Bible, Interviews…)
+  v4  🔊 Listen button on every card (reads it aloud; tap again to stop; Bible references
+      read as "Proverbs 16, verse 3"). Questions From Readers and Bible Questions Answered
+      are on the shelf from the start (remove them if you like - they won't come back).
+      Fixes Bible Questions Answered titles that showed jw.org's menu path.
+  Next: v5 Watch — jw.org video categories (Morning Worship, News, Bible, Interviews…)
