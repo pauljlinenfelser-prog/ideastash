@@ -51,6 +51,14 @@ HOW IT READS WEBSITES
 Opening index.html straight off your PC works for testing, but book/jw.org import and
 install-to-phone need it hosted (DEPLOY.bat).
 
+BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
+  A separate copy for trying changes before they reach the real app. It has its own name
+  (GemStash Beta), its own storage and its own offline cache, so it never touches the real app's
+  hearts, stashes or streak. Experiments are switched on in More -> Beta experiments.
+  Beta 1 (2026-11-17): layered card for Was It Designed? - picture + jw.org narration + short
+  video, built only from jw.org's own media files (no page reading). Toggle: Show the Remora example.
+  To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
+
 VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup
   v2  My Shelf — daily auto-delivery from books, Daily Text, Questions From Readers,
