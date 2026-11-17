@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v13)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v14)
 =======================================
 
 FOLDERS
@@ -96,4 +96,7 @@ VERSIONS
       the next swipe goes to the next item. (Before, the end was hidden in a small box.)
       Bookmarks are now gems: 💎 saves to a stash (faded until saved, bright once saved),
       and the Stashes tab is a 💎. The web address and your saved data stay the same.
-  Next: gems icon (waiting on Mike's OK), then Listening (driving) mode
+  v14 New home-screen icon: a collection of gems (diamond, ruby, sapphire, emerald). Drawing in
+      art\icon-gems.svg (the old lamp is kept as art\icon-lamp.svg). To see it: remove the app
+      from your home screen and add it again from Chrome (your saved cards stay).
+  Next: Listening (driving) mode
