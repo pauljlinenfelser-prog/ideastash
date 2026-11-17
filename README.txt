@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v31)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v32)
 =======================================
 
 FOLDERS
@@ -194,4 +194,9 @@ VERSIONS
   v31 New video channel: Convention Videos (short) - the short videos and excerpts from every
       convention 2019-2026 (171 of 10 minutes or less; invitations and trailers left out), on by
       default, one a day.
+  v32 Many more jw.org video series to choose from in Watch > Channels (all off until you turn them
+      on): Series (Reasons for Faith, Walk Courageously With God, Lessons From The Watchtower, Learn
+      From Them, Imitate Their Faith, Love People, Enjoy Life Forever, Dig for Treasures, Our History in
+      Motion, Organizational Accomplishments, For a Happy Marriage), Teenagers, Family, Our Activities,
+      Dramas, The Bible Changes Lives, Viewpoints on the Origin of Life, Learn From Jehovah's Friends.
   Next: Daily Text from the es26 EPUB (in the beta)
