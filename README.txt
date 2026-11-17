@@ -89,6 +89,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 13: the beta's number shows in More (Beta experiments heading and About).
   Beta 14: the Daily Text card links to the jw.org EPUB it came from (source line + a
   "Taken from jw.org's download" link), so it's plain the text isn't taken from jw.org's pages.
+  Beta 15: More > About has "How does GemStash work?": a short FAQ on where everything comes
+  from and how that fits jw.org's Terms of Use (personal, free, jw.org's own files, links back).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
