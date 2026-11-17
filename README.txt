@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v4)
+IdeaStash — your own free Deepstash (current: v5)
 =======================================
 
 FOLDERS
@@ -18,6 +18,13 @@ GET IT ON YOUR PHONE (one time, ~5 minutes)
 WHAT IT DOES
   Today tab   5 fresh idea cards each day, scroll-snap like Deepstash, then endless "explore".
               Finishing the 5 grows your 🔥 streak.
+  Watch (v5) jw.org videos in a full-screen swipe feed. Swipe up for the next video; tap for
+              sound; tap again to pause. 🔖 saves to a stash, 🔗 opens it on jw.org.
+              ⚙️ Channels: pick which jw.org video channels come in, how many a day, and a length
+              limit. Starts with Morning Worship, Truth Transforms Lives and Apply Bible Principles.
+              Morning Worship always comes in; besides it only ONE video over 5 minutes a day.
+              ＋ Link: paste a jw.org / JW Library video share link to watch it here.
+              Not endless: after today's videos it says "That's today's videos".
   Shelf (v2)  the sources YOU pick. Every morning, new ideas from each one land in Today:
                 📅 Daily Text (always on, always the first card in Today)
                 ❓ Questions From Readers (on from the start) — all 553 from the Watchtower Index
@@ -54,4 +61,6 @@ VERSIONS
       read as "Proverbs 16, verse 3"). Questions From Readers and Bible Questions Answered
       are on the shelf from the start (remove them if you like - they won't come back).
       Fixes Bible Questions Answered titles that showed jw.org's menu path.
-  Next: v5 Watch — jw.org video categories (Morning Worship, News, Bible, Interviews…)
+  v5  📺 Watch tab — jw.org videos, swipe feed like TikTok (limited to today's set), channel
+      picker with per-day count and length limit, paste a video link, save videos to stashes.
+  Next: v6 Limited drops + Listening (driving) mode

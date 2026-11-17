@@ -12,4 +12,4 @@
 ## Next up
 1. ~~Confirm the deploy~~ (done). ~~v3 Daily Text always on~~ (done).
 2. ~~v4 Listen button + QFR/BQA on from the start~~ (done).
-3. v5: Watch tab (jw.org videos). Mike's top priority.
+3. ~~v5 Watch tab~~ (done). Next: see HANDOFF section 6 (own e-books, then drops + Listening mode). Ask Mike which.
