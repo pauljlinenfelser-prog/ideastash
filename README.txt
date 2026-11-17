@@ -78,6 +78,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   narrated (most older Questions From Readers) show the picture and title with a big
   "Read on jw.org" button. Old text cards turn into listen cards, keeping hearts and gems.
   Today's Daily Text is still read the old way until the Daily Text download is added.
+  Beta 10: narrated articles only (Mike's call). Articles jw.org hasn't narrated are skipped
+  when the shelf delivers, and any Read-on-jw.org cards stay out of Today (still in your gems).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

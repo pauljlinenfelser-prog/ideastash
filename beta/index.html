@@ -250,7 +250,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
 <div id="toast"></div>
 
-<script src="sources.js?v=b9"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script src="sources.js?v=b10"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'gemstash.beta.v1';   // BETA: its own storage, never touches the real app's data
@@ -350,8 +350,8 @@ function ensureDaily(){
   const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
   let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !db.seen[i.id] && !ids.includes(i.id));
-    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !ids.includes(i.id))).slice(0, 4-ids.length);
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id))).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
   }
   db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
@@ -580,7 +580,7 @@ async function renderFeed(){
   toListenCards();                                       // BETA 9
   ensureDaily();
   const el = document.getElementById('feed');
-  const daily = db.daily.ids.map(findIdea).filter(isJwGem), dt = todaysText();
+  const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
   const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
   const qfr = ofKind('qfr'), bqa = ofKind('bqa');
   const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
@@ -594,7 +594,7 @@ async function renderFeed(){
   if (db.betaRemora){ const e = WID_LIST.find(x => /remora/.test(x.u)); let r = db.ideas.find(x => x.layered && x.doc === e.doc); if (!r){ r = layeredCard(e); db.ideas.push(r); save(); } if (!seq.some(x => x.card === r)) seq.splice(1, 0, C(r)); }   // BETA example
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
-  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !db.daily.ids.includes(i.id)));
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -703,7 +703,7 @@ async function appendExplore(){
   const el = document.getElementById('feed');
   const gen = feedGen;
   try {
-    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video));
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link));
     const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
     if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
@@ -1750,6 +1750,7 @@ async function doPull(){
         it.total = list.length;
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
+          if (LISTEN_SERIES[it.kind] && !list[entryIndex(it)].doc){ it.pos++; continue; }   // beta 10 (Mike): narrated articles only
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
@@ -2088,7 +2089,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash BETA (test copy, based on v23) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
-    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (beta 9). Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article; only articles jw.org has narrated are used (beta 10). Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
