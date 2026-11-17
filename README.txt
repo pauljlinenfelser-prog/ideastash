@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v17)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v18)
 =======================================
 
 FOLDERS
@@ -110,4 +110,8 @@ VERSIONS
   v17 📤 Share: opens your phone's share menu (Messages, WhatsApp, email...) with the direct
       jw.org link - videos use jw.org's own share link, articles/posters/stories their jw.org
       page, the Daily Text its wol.jw.org page. On cards it replaces Copy; on videos it replaces 🔗.
-  Next: Listening (driving) mode; maybe comments between friends (needs a small free server)
+  v18 ▶ Auto button (top right of Today): hands-off scrolling. Text cards glide down at reading
+      pace then move on, videos play to the end, posters stay ~8 s, picture stories turn their
+      pages. Touch the screen to pause it for a few seconds. Remembers on/off. Time limit still applies.
+  Next: comments between friends (plan in HANDOFF.md; needs a free Firebase project Mike creates),
+        Listening (driving) mode

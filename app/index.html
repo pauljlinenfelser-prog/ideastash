@@ -29,6 +29,8 @@ header{padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:cen
 header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.pill.auto{font-weight:600}
+.pill.auto.on{background:var(--accent);color:#1b1408}   /* (v18) auto-scroll is running */
 main{flex:1;overflow:hidden;position:relative}
 .view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
 .view.active{display:block}
@@ -189,6 +191,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="app">
   <header>
     <h1>Gem<span>Stash</span></h1>
+    <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
     <span class="pill" id="streak">🔥 0</span>
   </header>
   <main>
@@ -262,6 +265,7 @@ let currentView = 'feed';
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
 function go(v){
   currentView = v;
+  document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
@@ -605,6 +609,64 @@ async function listen(id){
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
     speechSynthesis.speak(u);
   });
+}
+
+/* ================= auto-scroll (v18) ================= */
+// Hands-off reading: text cards scroll down at reading pace then move on, videos play to the end, posters stay ~8 s,
+// picture stories turn their pages. Touching the screen pauses it for a few seconds. The daily time limit still applies.
+const READ_WPM = 200, POSTER_MS = 8000, PAGE_MS = 7000, START_MS = 1500, END_MS = 1500, TOUCH_PAUSE_MS = 6000;
+let autoOn = false, autoState = null, autoHold = 0, autoLast = 0;
+function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn); b.textContent = autoOn ? '⏸ Auto' : '▶ Auto'; }
+function toggleAuto(){
+  autoOn = !autoOn; db.auto = autoOn; save(); setAutoButton(); autoState = null; autoHold = 0;
+  toast(autoOn ? 'Auto-scroll on: touch the screen to pause' : 'Auto-scroll off');
+  if (autoOn){ autoLast = performance.now(); requestAnimationFrame(autoTick); }
+}
+['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(ev => document.addEventListener(ev, e => {
+  if (!autoOn || e.target.closest && e.target.closest('#autoBtn')) return;
+  autoHold = performance.now() + TOUCH_PAUSE_MS; autoState = null;            // you're in charge for a moment
+}, {passive: true}));
+function autoNext(s){
+  const f = document.getElementById('feed'), nx = s.nextElementSibling;
+  if (!nx) return;
+  f.scrollTo({top: nx.offsetTop, behavior: 'smooth'});
+  autoHold = performance.now() + 1200;                                     // let the feed settle on the next item
+}
+function readMs(s){
+  const words = (s.querySelector('.card')?.innerText || '').split(/\s+/).length;
+  return Math.max(5000, words / READ_WPM * 60000);
+}
+function autoTick(now){
+  if (!autoOn) return;
+  requestAnimationFrame(autoTick);
+  const dt = Math.min(200, now - autoLast); autoLast = now;
+  const f = document.getElementById('feed'), s = feedCurrent;
+  if (currentView !== 'feed' || document.hidden || now < autoHold || !s || !f.contains(s) ||
+      document.getElementById('sheet').classList.contains('on')) return;
+  if (!autoState || autoState.s !== s) autoState = {s, t: 0, page: 0};
+  const st = autoState; st.t += dt;
+  const vid = s.querySelector('video');
+  if (vid){                                                                 // videos: to the end
+    if (vid.ended) autoNext(s);
+    else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
+    return;
+  }
+  const strip = s.querySelector('.pcard .strip');
+  if (strip && strip.children.length > 1){                                  // picture story: turn the pages
+    const pg = Math.floor(st.t / PAGE_MS);
+    if (pg >= strip.children.length) return autoNext(s);
+    if (pg !== st.page){ st.page = pg; strip.scrollTo({left: pg * strip.clientWidth, behavior: 'smooth'}); }
+    return;
+  }
+  if (s.querySelector('.pcard')) { if (st.t > POSTER_MS) autoNext(s); return; }   // single poster
+  if (!s.querySelector('.card[data-id]') || s.classList.contains('timeup')) return;   // end / retry screens: stop here
+  const total = readMs(s), extra = s.offsetHeight - f.clientHeight;         // text card
+  if (extra > 4){                                                           // longer than the screen: glide down while you read
+    const p = Math.min(1, Math.max(0, (st.t - START_MS) / (total - START_MS)));
+    const want = s.offsetTop + extra * p;
+    if (Math.abs(f.scrollTop - want) > 0.5) f.scrollTop = want;
+    if (st.t > total + END_MS) autoNext(s);
+  } else if (st.t > total) autoNext(s);
 }
 
 /* ================= share (v17) ================= */
@@ -1528,7 +1590,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v17 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v18 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
@@ -1549,6 +1611,7 @@ function importData(file){
 /* ================= boot ================= */
 db = load();
 ensureDailyShelf();
+autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
