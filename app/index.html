@@ -162,7 +162,6 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   </header>
   <main>
     <section class="view active" id="feed"></section>
-    <section class="view" id="watch"></section>
     <section class="view" id="shelf"></section>
     <section class="view" id="library"></section>
     <section class="view" id="add"></section>
@@ -170,7 +169,6 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   </main>
   <nav>
     <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
-    <button data-v="watch"><span class="ic">📺</span>Watch</button>
     <button data-v="shelf"><span class="ic">📖</span>Shelf</button>
     <button data-v="library"><span class="ic">🔖</span>Stashes</button>
     <button data-v="add"><span class="ic">➕</span>Add</button>
@@ -197,7 +195,8 @@ let db;
 function blank(){
   return { ideas: [], stashes: [{id:'fav', name:'Favorites', emoji:'⭐'}],
     daily: {date:'', ids:[]}, streak: {count:0, last:''}, seen: {}, shelf: [],
-    watch: {cats: [], seen: {}, daily: {date:'', items:[], done:{}}, sound: false} };
+    watch: {cats: [], seen: {}, daily: {date:'', items:[], done:{}}, sound: false},
+    limitMin: 20, usage: {} };   // (v8) daily scrolling time in minutes (0 = no limit)
 }
 function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
@@ -233,8 +232,8 @@ function go(v){
   currentView = v;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
-  if (v !== 'watch') document.querySelectorAll('#watch video').forEach(x => x.pause());
-  ({feed:renderFeed, watch:renderWatch, shelf:renderShelf, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
+  if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
+  ({feed:renderFeed, shelf:renderShelf, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
 }
 
 /* ================= daily + streak ================= */
@@ -314,30 +313,71 @@ function cardHTML(i){
 /* ================= feed ================= */
 let exploreQueue = [];
 function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
+// (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
+// then more cards and videos mixed, until the daily scrolling time runs out.
+let feedCore = -1, exploring = false, feedCurrent = null;
 async function renderFeed(){
   const el0 = document.getElementById('feed');
-  if (shelfNeedsPull() && navigator.onLine !== false){
+  const W = db.watch;
+  const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
+  if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
     el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
-      <p style="color:var(--muted)">Pulling from your shelf</p></div></div>`;
-    await pullShelf();
+      <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
+    if (shelfNeedsPull()) await pullShelf();
+    if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
     if (currentView !== 'feed') return;
   }
   ensureDaily();
   const el = document.getElementById('feed');
-  const daily = db.daily.ids.map(findIdea).filter(Boolean);
-  const retry = todaysText() ? '' : dailyRetryHTML();
-  if (!db.ideas.length){
-    el.innerHTML = retry + `<div class="slide endslide"><div class="card"><div class="big">🌱</div><h2>No ideas yet</h2>
-      <p style="color:var(--muted)">Put a book or jw.org source on your shelf and ideas arrive every day.</p>
-      <button class="btn sm" onclick="go('shelf')">Open my shelf</button></div></div>`;
-    return;
-  }
+  const daily = db.daily.ids.map(findIdea).filter(Boolean), dt = todaysText();
+  const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
+  const qfr = ofKind('qfr'), bqa = ofKind('bqa');
+  const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
+  const vq = W.daily.items.map((v, n) => ({v, n}));
+  const C = card => ({card}), V = vid => ({vid});
+  const seq = [dt ? C(dt) : {retry:true}];
+  vq.splice(0, 2).forEach(x => seq.push(V(x)));
+  qfr.forEach(i => seq.push(C(i)));
+  vq.splice(0, 1).forEach(x => seq.push(V(x)));
+  bqa.forEach(i => seq.push(C(i)));
+  feedCore = seq.length - 1;                      // reaching here keeps the streak going
+  while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
   exploreQueue = shuffle(db.ideas.filter(i => !i.video && !db.daily.ids.includes(i.id)));
-  el.innerHTML = retry + daily.map(i => `<div class="slide">${cardHTML(i)}</div>`).join('') +
-    `<div class="slide endslide" id="doneSlide"><div class="card"><div class="big">🎉</div>
-      <h2>That's today's 5</h2><p style="color:var(--muted)">Streak keeps going when you finish your daily ideas.<br>Keep scrolling to explore more.</p></div></div>`;
+  feedCurrent = null;
+  el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
+  el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
   el.scrollTop = 0;
   observeFeed();
+}
+function slideHTML(x, k){
+  if (x.retry) return dailyRetryHTML();
+  const core = k === feedCore ? ' data-core="1"' : '';
+  if (x.card) return `<div class="slide"${core}>${cardHTML(x.card)}</div>`;
+  return videoSlideHTML(x.vid.v, x.vid.n).replace('<div class="vslide', `<div${core} class="vslide`);
+}
+/* ---- (v8) daily scrolling time ---- */
+const LIMITS = [5, 10, 20, 30, 60, 0];
+const usedSecs = () => (db.usage && db.usage[today()]) || 0;
+const timeUp = () => db.limitMin > 0 && usedSecs() >= db.limitMin * 60;
+setInterval(() => {                               // counts only while Today is on screen
+  if (currentView !== 'feed' || document.hidden || !db) return;
+  const t = today(); if (!db.usage || !(t in db.usage)) db.usage = {[t]: 0};
+  db.usage[t]++; if (db.usage[t] % 10 === 0) save();
+}, 1000);
+function timeUpHTML(){
+  return `<div class="slide endslide timeup"><div class="card"><div class="big">⏳</div>
+    <h2>That's your time for today</h2>
+    <p style="color:var(--muted)">You've had your ${db.limitMin} minutes. New ideas and videos come tomorrow.</p>
+    <button class="btn sm alt" onclick="go('library')">🔖 Open your stashes</button>
+    <p style="color:var(--muted);font-size:13px">You can change the limit in More.</p></div></div>`;
+}
+// time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
+function cutFeedAt(s){
+  const el = document.getElementById('feed');
+  while (s.nextElementSibling) s.nextElementSibling.remove();
+  s.remove();
+  el.insertAdjacentHTML('beforeend', timeUpHTML());
+  const t = el.lastElementChild; feedObs.observe(t); t.scrollIntoView({block:'start'});
 }
 // (v3) stands in for today's text when it couldn't be fetched (offline, reader busy)
 function dailyRetryHTML(){
@@ -362,24 +402,31 @@ let feedObs;
 function observeFeed(){
   const el = document.getElementById('feed');
   if (feedObs) feedObs.disconnect();
-  feedObs = new IntersectionObserver(ents => {
-    ents.forEach(en => {
-      if (!en.isIntersecting) return;
-      const c = en.target.querySelector('.card[data-id]');
-      if (c){ db.seen[c.dataset.id] = 1; save(); }
-      if (en.target.id === 'doneSlide') bumpStreak();
-      if (en.target === el.lastElementChild) appendExplore();
-    });
-  }, {root: el, threshold: .6});
-  el.querySelectorAll('.slide').forEach(s => feedObs.observe(s));
+  feedObs = new IntersectionObserver(ents => ents.forEach(en => {
+    const s = en.target, vid = s.querySelector('video');
+    if (!en.isIntersecting){ if (vid) vid.pause(); return; }
+    if (timeUp() && feedCurrent && s !== feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
+    feedCurrent = s;
+    const c = s.querySelector('.card[data-id]');
+    if (c){ db.seen[c.dataset.id] = 1; save(); }
+    if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1; save(); } }
+    if (s.dataset.core) bumpStreak();
+    if (s === el.lastElementChild && !timeUp() && !s.classList.contains('timeup')) appendExplore();
+  }), {root: el, threshold: .6});
+  el.querySelectorAll('.slide, .vslide').forEach(s => feedObs.observe(s));
 }
-function appendExplore(){
+// (v8) past today's set: more cards with a short video after every second card
+async function appendExplore(){
+  if (exploring) return; exploring = true;
   const el = document.getElementById('feed');
-  if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => !i.video));
-  exploreQueue.splice(0,5).forEach(i => {
-    const s = document.createElement('div'); s.className='slide'; s.innerHTML = cardHTML(i);
-    el.appendChild(s); feedObs.observe(s);
-  });
+  try {
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => !i.video));
+    const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
+    cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
+    vids.forEach(vid => add.push({vid}));
+    add.forEach(x => { el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
+      if (s.matches('.vslide')) wireVideoSlide(s); feedObs.observe(s); });
+  } finally { exploring = false; }
 }
 function refreshCard(id){
   const i = findIdea(id);
@@ -627,7 +674,7 @@ let addTab = 'books', preview = [];
 function renderAdd(){
   const el = document.getElementById('add');
   el.innerHTML = `<div class="tabs">
-      ${[['books','📖 Books'],['web','🌐 Web / jw.org'],['paste','📝 Paste'],['one','✍️ Write one']].map(([k,l])=>
+      ${[['books','📖 Books'],['web','🌐 Web / jw.org'],['paste','📝 Paste'],['one','✍️ Write one'],['video','🎬 Video link']].map(([k,l])=>
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
   const b = document.getElementById('addBody');
@@ -652,6 +699,12 @@ function renderAdd(){
       <label class="l">Source</label><input id="oS">
       <label class="l">Topic</label>${topicSelect('oP','Wisdom')}
       <button class="btn" onclick="writeOne()">Save idea</button>`;
+  if (addTab==='video') b.innerHTML = `
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">On jw.org or in JW Library, tap Share → Copy link, then paste it here.
+        It plays in Today right after the Daily Text.</p>
+      <input id="vlink" placeholder="https://www.jw.org/finder?…lank=…" autocomplete="off" inputmode="url">
+      <div class="status" id="vst"></div>
+      <button class="btn" onclick="addVideoLink()">Add video</button>`;
   if (preview.length) renderPreview();
 }
 function setSt(msg, err){ const s=document.getElementById('st'); if(s){ s.textContent=msg; s.className='status'+(err?' err':''); } }
@@ -919,6 +972,10 @@ function renderShelf(){
         ${it.total ? `<div class="prog"><i style="width:${Math.min(100, 100*it.pos/it.total)}%"></i></div>` : ''}</span>
       <span>›</span></button>`).join('')}
     ${db.shelf.length ? `<button class="btn alt" onclick="pullNow()">🔄 Get today's ideas now</button>` : ''}
+    <div class="sec">Videos</div>
+    <button class="shelfitem" onclick="channelsSheet()"><span class="e">📺</span>
+      <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
+      <span>›</span></button>
     <div class="sec">Add to shelf</div>
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${k==='qfr'?' · '+QFR_LIST.length+' questions':k==='bqa'?' · '+BQA_LIST.length+' questions':''}</small></span>
@@ -983,6 +1040,7 @@ const WATCH_GROUPS = [
 const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
 const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
 const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
+const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
 const fmtDur = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
 const finderUrl = lank => `https://www.jw.org/finder?lank=${encodeURIComponent(lank)}&wtlocale=E`;
 function slimVideo(m, cat){
@@ -1010,7 +1068,7 @@ async function buildWatchDaily(){
   if (W.daily.date !== t) W.daily = {date:t, items:W.daily.items.filter(v => v.pasted && !W.seen[v.lank]), done:{}};
   const errors = [];
   // Mike: Morning Worship always; besides it, only ONE long video (over 5 min) a day
-  const isLong = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
+  const isLong = isLongV;
   for (const c of W.cats){
     if (W.daily.done[c.key]) continue;
     try {
@@ -1028,43 +1086,30 @@ async function buildWatchDaily(){
   }
   // Morning Worship first, then the order of your channels
   const order = k => { const i = W.cats.findIndex(c => c.key === k); return i < 0 ? 99 : i; };
-  W.daily.items.sort((a, b) => (b.pasted ? 1 : 0) - (a.pasted ? 1 : 0) || order(a.cat) - order(b.cat));
+  const base = W.daily.items.filter(v => !v.extra), extra = W.daily.items.filter(v => v.extra);   // (v8) explore extras stay at the end
+  base.sort((a, b) => (b.pasted ? 1 : 0) - (a.pasted ? 1 : 0) || order(a.cat) - order(b.cat));
+  W.daily.items = [...base, ...extra];
   save();
   return errors;
 }
-let watchObs;
-async function renderWatch(){
-  const el = document.getElementById('watch');
-  el.innerHTML = `<div id="wtop"><span class="n" id="wcount">📺 Today's videos</span>
-      <button onclick="pasteVideoSheet()">＋ Link</button><button onclick="channelsSheet()">⚙️ Channels</button></div>
-    <div id="wfeed"><div class="vslide msg"><div class="big">📺</div><h2>Getting today's videos…</h2></div></div>`;
-  const errors = navigator.onLine === false ? ['offline'] : await buildWatchDaily();
-  if (currentView !== 'watch') return;
-  const W = db.watch, items = W.daily.items, feed = document.getElementById('wfeed');
-  const errNote = errors.length ? `<p style="color:var(--danger)">${errors[0]==='offline' ? 'You\'re offline.' : 'Couldn\'t reach: ' + esc(errors.join(', '))}</p>
-      <button class="btn sm" onclick="renderWatch()">🔄 Retry</button>` : '';
-  if (!items.length){
-    feed.innerHTML = `<div class="vslide msg"><div class="big">📺</div>
-      <h2>${W.cats.length ? 'No new videos today' : 'Pick your channels'}</h2>
-      <p>${W.cats.length ? 'You\'ve seen everything in your channels. Add more channels or a longer length limit.' : 'Choose which jw.org videos come in each day.'}</p>
-      ${errNote}<button class="btn sm" onclick="channelsSheet()">⚙️ Channels</button></div>`;
-    return;
+// (v8) more short videos for the explore part of the feed, one per channel in turn (no extra Morning Worship)
+async function moreVideos(k){
+  const W = db.watch; if (!W.cats.length || navigator.onLine === false) return [];
+  const out = [], used = new Set(W.daily.items.map(v => v.lank));
+  for (let round = 0; round < 3 && out.length < k; round++){
+    for (const c of W.cats){
+      if (out.length >= k) break;
+      if (CROP.has(c.key)) continue;
+      let list; try { list = await catVideos(c.key); } catch(e){ continue; }
+      const longUsed = W.daily.items.some(isLongV);
+      const v = list.slice().sort((a, b) => b.pub.localeCompare(a.pub)).find(v => !W.seen[v.lank] && !used.has(v.lank)
+        && (!c.maxMin || v.dur <= c.maxMin * 60) && !(isLongV(v) && longUsed));
+      if (!v) continue;
+      used.add(v.lank); W.daily.items.push({...v, extra:true});
+      out.push({v: W.daily.items[W.daily.items.length - 1], n: W.daily.items.length - 1});
+    }
   }
-  feed.innerHTML = items.map((v, n) => videoSlideHTML(v, n)).join('') +
-    `<div class="vslide msg" id="wdone"><div class="big">🎬</div><h2>That's today's videos</h2>
-      <p>New ones arrive tomorrow.<br>Want more each day? Change it in Channels.</p>${errNote}
-      <button class="btn sm" onclick="go('feed')">✨ Back to Today's cards</button>
-      <button class="btn sm alt" onclick="channelsSheet()">⚙️ Channels</button></div>`;
-  feed.querySelectorAll('.vslide[data-n]').forEach(s => wireVideoSlide(s));
-  if (watchObs) watchObs.disconnect();
-  watchObs = new IntersectionObserver(ents => ents.forEach(en => {
-    const s = en.target, vid = s.querySelector('video');
-    if (en.isIntersecting){
-      if (vid){ playSlide(s); W.seen[items[s.dataset.n].lank] = 1; save(); }
-      document.getElementById('wcount').textContent = vid ? `📺 ${+s.dataset.n + 1} of ${items.length} today` : '📺 All done for today';
-    } else if (vid){ vid.pause(); }
-  }), {root: feed, threshold: .7});
-  feed.querySelectorAll('.vslide').forEach(s => watchObs.observe(s));
+  save(); return out;
 }
 function videoSlideHTML(v, n){
   const saved = db.ideas.some(i => i.video && i.video.lank === v.lank && i.stashes && i.stashes.length);
@@ -1094,8 +1139,8 @@ function wireVideoSlide(s){
       if (!videoHearted(db.watch.daily.items[s.dataset.n])) heartVideo(+s.dataset.n, true);
       return; }
     tapT = setTimeout(() => { tapT = null;
-      if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#watch .note').forEach(x => x.remove());
-        document.querySelectorAll('#watch video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
+      if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#feed .note').forEach(x => x.remove());
+        document.querySelectorAll('#feed video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
       vid.paused ? vid.play() : vid.pause();
     }, 280);
   });
@@ -1128,14 +1173,14 @@ function heartVideo(n, quiet){
   if (on){ ensureFav(); toggleStash(videoToIdea(v).id, 'fav', true); }
   else { const i = videoIdeaOf(v); toggleStash(i.id, 'fav', false);
     if (!i.stashes.length){ db.ideas = db.ideas.filter(x => x !== i); save(); } }   // un-hearted and in no stash: drop it
-  const s = document.querySelector(`#wfeed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
-  if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#wfeed .vslide[data-n="${n}"] .heart`); }
+  const s = document.querySelector(`#feed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
+  if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#feed .vslide[data-n="${n}"] .heart`); }
   if (on && !quiet && s){ const r = s.getBoundingClientRect(); heartBurst(s, r.width/2, r.height/2); }
   if (on) toast('❤️ Saved to Favorites');
 }
 function saveVideo(n){
   const v = db.watch.daily.items[n]; if (!v) return;
-  const vid = document.querySelector(`#wfeed .vslide[data-n="${n}"] video`); vid && vid.pause();
+  const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
   stashSheet(videoToIdea(v).id);
 }
 function channelsSheet(){
@@ -1168,14 +1213,7 @@ function chanSet(k, key, d){
   save(); keepSheetScroll(channelsSheet);
 }
 function keepSheetScroll(fn){ const s = document.getElementById('sheetIn'), y = s.scrollTop; fn(); s.scrollTop = y; }
-function redoWatch(){ if (currentView === 'watch') renderWatch(); }
-function pasteVideoSheet(){
-  openSheet(`<h3>＋ Add a jw.org video</h3>
-    <p style="color:var(--muted);font-size:14px;margin-top:-4px">On jw.org or in JW Library, tap Share → Copy link, then paste it here.</p>
-    <input id="vlink" placeholder="https://www.jw.org/finder?…lank=…" autocomplete="off">
-    <div class="status" id="vst"></div>
-    <button class="btn" onclick="addVideoLink()">Add video</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`);
-}
+function redoWatch(){ if (currentView === 'shelf') renderShelf(); }   // (v8) Today re-picks on its next open
 async function addVideoLink(){
   const raw = document.getElementById('vlink').value.trim(), st = document.getElementById('vst');
   let txt = raw; try { txt = decodeURIComponent(raw); } catch(e){}
@@ -1188,7 +1226,7 @@ async function addVideoLink(){
     if (!v) throw new Error('not found');
     v.pasted = true;
     const W = db.watch; W.daily.items = [v, ...W.daily.items.filter(x => x.lank !== v.lank)]; delete W.seen[v.lank]; save();
-    closeSheet(); toast('Video added'); if (currentView === 'watch') renderWatch(); else go('watch');
+    toast('Video added: it plays right after the Daily Text'); go('feed');
   } catch(e){ st.className = 'status err'; st.textContent = 'Couldn\'t find that video: ' + e.message; }
 }
 
@@ -1201,11 +1239,15 @@ function renderMore(){
     <div class="sec">Backup</div>
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
     <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
+    <div class="sec">Daily scrolling time</div>
+    <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="db.limitMin=${m};save();renderMore()">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
+      When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v7 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v8 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

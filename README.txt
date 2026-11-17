@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v7)
+IdeaStash — your own free Deepstash (current: v8)
 =======================================
 
 FOLDERS
@@ -68,4 +68,10 @@ VERSIONS
   v7  New home-screen icon: a lit oil lamp (Psalm 119:105). Name stays IdeaStash.
       Drawing kept in art\icon-lamp.svg. To see it: remove the app from your home screen
       and add it again from Chrome (your saved cards stay).
-  Next: Limited drops + Listening (driving) mode
+  v8  ONE feed: videos are now in Today. Order: Daily Text, Morning Worship, a 2nd video,
+      Questions From Readers, a video, Bible Questions Answered, then more cards and short
+      videos mixed. No more 5-card limit: More > "Daily scrolling time" (5/10/20/30/60 min or
+      None, default 20). When it's up, Today ends with "That's your time for today" (a video
+      you're watching isn't cut off). Watch tab removed: Video channels are on the Shelf tab,
+      video links in Add > Video link.
+  Next: Listening (driving) mode
