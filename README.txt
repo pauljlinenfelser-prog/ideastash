@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v29)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v30)
 =======================================
 
 FOLDERS
@@ -189,4 +189,6 @@ VERSIONS
   v28 Morning Worship is no longer zoomed in: you see the whole picture (use full screen for big).
   v29 Full screen fix: going full screen (or turning the phone) no longer starts the next video
       behind the one you're watching; coming back lands on the same video.
-  Next: Daily Text from the es26 EPUB
+  v30 New video channel: A Day in the Life of... (jw.org's series: Bethel commuter, need-greater,
+      translator), on by default, one a day; also listed under Our Organization in Watch.
+  Next: Daily Text from the es26 EPUB (in the beta)
