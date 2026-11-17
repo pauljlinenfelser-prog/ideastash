@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v6)
+IdeaStash — your own free Deepstash (current: v7)
 =======================================
 
 FOLDERS
@@ -65,4 +65,7 @@ VERSIONS
       picker with per-day count and length limit, paste a video link, save videos to stashes.
   v6  ❤️ Hearts, TikTok style: double-tap any card or video (or tap 🤍) to save it to
       Favorites with a big heart pop. Tap ❤️ again to un-heart. 🔖 still picks other stashes.
-  Next: new home-screen icon (and maybe a new name), then Limited drops + Listening mode
+  v7  New home-screen icon: a lit oil lamp (Psalm 119:105). Name stays IdeaStash.
+      Drawing kept in art\icon-lamp.svg. To see it: remove the app from your home screen
+      and add it again from Chrome (your saved cards stay).
+  Next: Limited drops + Listening (driving) mode
