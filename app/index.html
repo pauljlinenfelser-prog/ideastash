@@ -269,7 +269,7 @@ function closeSheet(){ document.getElementById('sheet').classList.remove('on'); 
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 const findIdea = id => db.ideas.find(i => i.id===id);
-const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*jw\.org(\/|$)/i.test(i.url || '')));   // (v21) strictly from jw.org
+const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*(jw\.org|gutenberg\.org)(\/|$)/i.test(i.url || '') || (i.topic === 'Books' && i.shelfId)));   // (v21) jw.org only; (v23) + your books
 
 /* ================= navigation ================= */
 let currentView = 'feed';
@@ -1076,13 +1076,16 @@ let addTab = 'web', preview = [];   // (v21) jw.org only: Books / Paste / Write 
 function renderAdd(){
   const el = document.getElementById('add');
   el.innerHTML = `<div class="tabs">
-      ${[['web','🌐 jw.org link'],['video','🎬 Video link']].map(([k,l])=>
+      ${[['web','🌐 jw.org link'],['books','📖 Books'],['video','🎬 Video link']].map(([k,l])=>
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
   const b = document.getElementById('addBody');
-  if (!['web','video'].includes(addTab)) addTab = 'web';
+  if (!['web','books','video'].includes(addTab)) addTab = 'web';   // (v23) Books are back (Mike); Paste / Write one stay retired
   if (addTab==='books') b.innerHTML = `
-      <p style="color:var(--muted);font-size:14px;margin:4px 0">Free public-domain books from Project Gutenberg.</p>
+      <label class="btn" style="display:block;text-align:center">📄 Add a book from my files (PDF or EPUB)
+        <input type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onchange="addFileBook(this.files[0]); this.value=''"></label>
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 14px">Read on your phone and saved there (nothing is uploaded). Kindle and Audible books are copy-locked and won't open.</p>
+      <p style="color:var(--muted);font-size:14px;margin:4px 0">Or search free public-domain books on Project Gutenberg:</p>
       <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
       <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
   if (addTab==='web') b.innerHTML = `
@@ -1126,11 +1129,11 @@ async function bookSearch(){
       data = {results};
     }
     const books = (data.results||[]).slice(0,15);
-    setSt(books.length ? 'Tap a book to put it on your shelf or pick passages now.' : 'No books found.');
+    setSt(books.length ? 'Tap a book to put it on your shelf or pick passages now.' : 'No books found (Gutenberg’s search may be busy, try again later).');
     window._books = books;
     document.getElementById('bres').innerHTML = books.map((bk,ix)=>`<button class="row" style="width:100%;text-align:left" onclick="bookChoice(${ix})">
       <span class="t"><b>${esc(bk.title)}</b><small>${esc((bk.authors||[]).map(a=>a.name).join(', ')||'Unknown')}</small></span><span>›</span></button>`).join('');
-  } catch(e){ setSt('Search failed: ' + e.message, true); }
+  } catch(e){ setSt('The book search is busy right now, try again later. (' + e.message + ')', true); }
 }
 function bookTextUrl(bk){
   const f = bk.formats || {};
@@ -1304,8 +1307,114 @@ async function addBookToShelf(ix){
     toast('Added to your shelf');
   } catch(e){ setSt('Could not add the book: ' + e.message, true); }
 }
+/* ---- (v23) your own books: PDF or EPUB, read on the phone (pdf.js / JSZip from cdnjs, loaded only when used) ---- */
+function loadScript(src){ return new Promise((ok, bad) => { if ([...document.scripts].some(x => x.src === src)) return ok();
+  const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = () => bad(new Error('could not load the reader')); document.head.appendChild(e); }); }
+// book text → passages: real paragraphs where the file has them, otherwise groups of whole sentences (~500–900 characters)
+function passagesFrom(blocks){
+  const out = [];
+  for (let b of blocks){
+    b = b.replace(/\s+/g, ' ').trim();
+    if (!b) continue;
+    if (b.length <= 1200){ if (goodPara(b)) out.push(b); continue; }
+    let cur = '';
+    for (const sn of sentences(b)){
+      if ((cur + ' ' + sn).length > 900 && cur.length > 400){ if (goodPara(cur)) out.push(cur); cur = ''; }
+      cur = cur ? cur + ' ' + sn : sn;
+    }
+    if (goodPara(cur)) out.push(cur);
+  }
+  return out;
+}
+async function pdfBlocks(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  const meta = (await pdf.getMetadata().catch(() => ({}))).info || {};
+  // a PDF only knows lines placed on a page: collect each line's text, left edge, height and position
+  const pages = [];
+  for (let n = 1; n <= pdf.numPages; n++){
+    const tc = await (await pdf.getPage(n)).getTextContent();
+    const lines = []; let cur = null;
+    for (const it of tc.items){
+      if (!it.transform) continue;
+      const x = it.transform[4], y = it.transform[5], h = Math.abs(it.transform[3]) || it.height || 0;
+      if (!cur || Math.abs(y - cur.y) > 2){ if (cur) lines.push(cur); cur = {t: '', x, y, h}; }
+      cur.t += (cur.t && !/\s$/.test(cur.t) && !/^\s/.test(it.str) ? ' ' : '') + it.str;
+      cur.x = Math.min(cur.x, x); cur.h = Math.max(cur.h, h);
+    }
+    if (cur) lines.push(cur);
+    pages.push(lines.map(l => ({...l, t: l.t.replace(/\s+/g, ' ').trim()})).filter(l => l.t));
+    if (n % 20 === 0) setSt(`Reading page ${n} of ${pdf.numPages}…`);
+  }
+  // running headers/footers (same text on many pages) and page numbers: drop them
+  const freq = {}; pages.forEach(ls => new Set(ls.map(l => l.t.replace(/\d+/g, '#'))).forEach(k => freq[k] = (freq[k] || 0) + 1));
+  const many = Math.max(3, pages.length * 0.3);
+  const edge = (ls, k) => k < 2 || k >= ls.length - 2;                      // headers/footers live at the top or bottom of a page
+  const body = pages.map(ls => ls.filter((l, k) => !(edge(ls, k) && (/^\d+$/.test(l.t) || freq[l.t.replace(/\d+/g, '#')] >= many))));
+  // the usual left edge, line height and line gap of body text
+  const all = body.flat(), mode = a => { const c = {}; let best = a[0], m = 0; a.forEach(v => { c[v] = (c[v] || 0) + 1; if (c[v] > m){ m = c[v]; best = v; } }); return best; };
+  const left = mode(all.map(l => Math.round(l.x))), bodyH = mode(all.map(l => Math.round(l.h)));
+  const gaps = []; body.forEach(ls => ls.forEach((l, k) => { if (k) gaps.push(Math.round(ls[k - 1].y - l.y)); }));
+  const gap = mode(gaps.filter(g => g > 0)) || bodyH * 1.2;
+  // new paragraph at: an indented first line, a bigger gap than usual, or a heading (bigger text)
+  // a paragraph can run on to the next page: only the first line's indent decides there
+  const blocks = []; let para = '';
+  for (const ls of body){
+    ls.forEach((l, k) => {
+      const prev = ls[k - 1];
+      const heading = l.h > bodyH * 1.25, wasHeading = prev && prev.h > bodyH * 1.25;
+      const brk = heading || wasHeading || l.x > left + 4 || (prev && (prev.y - l.y) > gap * 1.4) || (!prev && /[.!?”"’)]$/.test(para) && /^[A-Z“"‘(]/.test(l.t) && l.x > left + 1);
+      if (brk && para){ blocks.push(para); para = ''; }
+      if (para.endsWith('-')) para = para.slice(0, -1) + l.t; else para += (para ? ' ' : '') + l.t;
+    });
+  }
+  if (para) blocks.push(para);
+  return {title: meta.Title || '', author: meta.Author || '', blocks};
+}
+async function epubBlocks(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  const zip = await JSZip.loadAsync(file);
+  const enc = zip.file('META-INF/encryption.xml');
+  if (enc && /EncryptedData/.test(await enc.async('text')) && !/font/i.test(await enc.async('text'))) throw new Error('this book is copy-protected (DRM)');
+  const xml = t => new DOMParser().parseFromString(t, 'application/xml');
+  const container = xml(await zip.file('META-INF/container.xml').async('text'));
+  const opfPath = container.querySelector('rootfile').getAttribute('full-path'), base = opfPath.replace(/[^/]*$/, '');
+  const opf = xml(await zip.file(opfPath).async('text'));
+  const items = {}; opf.querySelectorAll('manifest > item').forEach(i => items[i.getAttribute('id')] = i.getAttribute('href'));
+  const title = opf.querySelector('metadata title, metadata > *|title')?.textContent || '';
+  const author = opf.querySelector('metadata creator, metadata > *|creator')?.textContent || '';
+  const blocks = [];
+  for (const ref of opf.querySelectorAll('spine > itemref')){
+    const href = items[ref.getAttribute('idref')]; if (!href) continue;
+    const f = zip.file(decodeURIComponent(base + href).replace(/\/\.\//g, '/')); if (!f) continue;
+    const doc = new DOMParser().parseFromString(await f.async('text'), 'application/xhtml+xml');
+    doc.querySelectorAll('p, blockquote, li').forEach(el => { const t = el.textContent.trim(); if (t) blocks.push(t); });
+  }
+  return {title, author, blocks};
+}
+async function addFileBook(file){
+  if (!file) return;
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf', isEpub = /\.epub$/i.test(file.name) || /epub/.test(file.type);
+  if (!isPdf && !isEpub) return setSt('Pick a PDF or EPUB file.', true);
+  setSt(`Reading “${file.name}”…`);
+  try {
+    const r = isPdf ? await pdfBlocks(file) : await epubBlocks(file);
+    const paras = passagesFrom(r.blocks).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
+    if (paras.length < 3) throw new Error(isPdf ? 'no readable text found (a scanned PDF has pictures of pages, not text)' : 'no readable text found');
+    const title = (r.title || file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]+/g, ' ')).trim().slice(0, 120);
+    const it = {id:uid(), kind:'book', file:true, title, sub:r.author || 'From your files', link:'', perDay:2, pos:0, total:paras.length,
+      lastPull:'', paused:false, added:Date.now()};
+    setOrder(it, 'seq');
+    await idb.set('book:' + it.id, paras);
+    db.shelf.push(it); save();
+    setSt(`“${title}” is on your shelf — ${paras.length} passages, 2 a day, in order. Change that on the Shelf tab.`);
+    toast('Added to your shelf');
+  } catch(e){ setSt('Could not read that file: ' + e.message, true); }
+}
 async function loadBookParas(it){
   try { const c = await idb.get('book:' + it.id); if (c) return c; } catch(e){}
+  if (it.file) throw new Error('this book’s file is no longer on the phone, add it again');   // (v23)
   let {text} = await fetchText(it.textUrl);
   text = cleanMarkdown(stripGutenberg(text));
   const paras = paragraphs(text).filter(goodPara).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
@@ -1502,7 +1611,9 @@ function renderShelf(){
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
       <span style="font-size:22px">＋</span></button>`).join('')}
-`;
+    <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
+      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
+      <span style="font-size:22px">＋</span></button>`;   // (v23) back
 }
 async function pullNow(){
   db.shelf.forEach(it => { if (it.error) it.lastPull = ''; });
@@ -1792,7 +1903,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v22 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org.
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v23 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
@@ -1812,7 +1923,6 @@ function importData(file){
 
 /* ================= boot ================= */
 db = load();
-db.shelf = db.shelf.filter(it => it.kind !== 'book');                                         // (v21) jw.org only
 db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes || []).length));
 ensureDailyShelf();
 autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
