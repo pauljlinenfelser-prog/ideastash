@@ -163,6 +163,31 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .info b{display:block;font-size:17px}
 .pcard .info small{color:#fffb}
 
+/* BETA: layered card — series art / video / article picture */
+.card.lcard{position:absolute;inset:0;border-radius:0;background:#0b0a12;box-shadow:none;display:block}
+.lcard .series{position:absolute;left:0;right:0;top:0;height:30%;background-size:cover;background-position:center}
+.lcard .series video.art{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .series span{position:absolute;left:14px;bottom:10px;background:#000a;color:#fff;font-weight:700;font-size:15px;
+  letter-spacing:.3px;border-radius:999px;padding:5px 12px}
+.lcard .clipbox{position:absolute;left:0;right:0;top:30%;height:30%;background:#000;overflow:hidden}
+.lcard .clipbox video{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .lplay{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;
+  background:var(--accent);color:#1b1408;font-size:28px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
+.lcard.audio .hero{top:30%}
+.lcard.audio .lplay{top:58%}
+.lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
+.lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero .ht{display:none}
+.lcard.noimg .hero img{display:none}   /* the nautilus art (hero background) shows instead */
+.lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
+.lcard .lmeta b{display:block;font-size:19px;line-height:1.3}
+.lcard .lmeta small{color:#fffb}
+.lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
+.lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
+.lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
+.lcard .side button,.lcard .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.lcard .side .saved{background:var(--accent)}
+
 /* watch (v5) */
 #watch{padding:0;overflow:hidden;background:#000}
 #wfeed{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory}
@@ -222,7 +247,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
 <div id="toast"></div>
 
-<script src="sources.js?v=16"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script src="sources.js?v=24"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'ideastash.v1';
@@ -367,7 +392,114 @@ function openPic(btn){
 }
 // (v11) "## " lines are headings / highlighted questions
 const bodyHTML = b => esc(b).replace(/^## (.+)(\n\n)?/gm, '<b class="bh">$1</b>');
+/* ================= (v24) Was It Designed? cards (tested in the beta, promoted) ================= */
+// Everything comes from jw.org's own media service by document number (GETPUBMEDIALINKS): the narration MP3 and the
+// article's short MP4, plus the article picture on jw.org's image server. No article page is read or copied.
+// BETA 5: Was It Designed? articles that jw.org made into a full video play as a normal full-screen video
+async function widVideoCard(e){
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${e.v}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const mp4 = ((j.files || {}).E || {}).MP4 || [];
+  const pick = ['480p', '720p', '360p'].map(l => mp4.find(f => f.label === l)).find(Boolean);
+  if (!pick) throw new Error('no video');
+  const title = e.q.replace(/[—-]\s*Was It Designed\?$/, '');
+  return {id:uid(), title, body:'▶ Was It Designed? video', topic:'Science', source:'Was It Designed? — jw.org', url:e.u, created:Date.now(), stashes:[], full:true,
+    video:{lank:e.u, title, dur:Math.round(pick.duration || 0), pub:'', img:`https://cms-imgp.jw-cdn.org/img/p/${e.v}/univ/art/${e.v}_univ_lsr_xl.jpg`, src:pick.file.url, cat:'SERIES_wid'}};
+}
+function layeredCard(e){
+  return {id:uid(), title:e.q.replace(/[—-]\s*Was It Designed\?$/, ''), body:'', topic:'Science', source:'Was It Designed? — jw.org',
+    url:e.u, doc:e.doc, layered:true, clip: e.m !== 'audio', image:`https://cms-imgp.jw-cdn.org/img/p/${e.doc}/univ/art/${e.doc}_univ_sqr_xl.jpg`,
+    created:Date.now(), stashes:[], full:true};
+}
+async function layerMedia(i){
+  if (i.audio && i.adur && typeof i.clip === 'boolean') return i;   // beta 6: older cards refresh their details once
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${i.doc}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const E = (j.files || {}).E || {}, mp3 = (E.MP3 || [])[0], mp4s = E.MP4 || [];
+  const clip = ['480p', '360p', '720p', '240p'].map(l => mp4s.find(f => f.label === l)).find(Boolean);
+  i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
+  return i;
+}
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art (fallback)
+// Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
+// jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
+const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
+function layeredHTML(i){
+  const saved = i.stashes && i.stashes.length;
+  const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
+  const audioOnly = i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
+  return `<div class="card lcard${audioOnly ? ' audio' : ''}" data-id="${i.id}">
+    <div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>
+    ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
+    <button class="lplay" onclick="layerToggle('${i.id}')">▶</button>
+    <div class="hero" style="background:url('${WID_ART}') center/cover"><img src="${esc(i.image)}" alt="" onerror="heroFallback(this)"><div class="ht">${esc(i.title)}</div>
+      <div class="lmeta"><b>${esc(i.title)}</b><small>narrated by jw.org <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+        <div class="lbar"><i></i></div></div></div>
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      ${commentBtn(i.url, i.title)}
+      <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
+    </div></div>`;
+}
+// beta 7: the article picture — try jw.org's square, then wide, then tall version; none at all → the nautilus art shows
+function heroFallback(img){
+  const tries = ['_univ_sqr_xl.jpg', '_univ_lss_lg.jpg', '_univ_pnr_lg.jpg'], cur = tries.findIndex(t => img.src.endsWith(t));
+  if (cur > -1 && cur < tries.length - 1) img.src = img.src.slice(0, -tries[cur].length) + tries[cur + 1];
+  else img.closest('.lcard').classList.add('noimg');
+}
+let layer = null;                                           // the card that's playing: {id, a, v, stopping}
+// Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
+// out of view. Wait a moment and look again; only stop if the card is really gone.
+function layerStopIfGone(lc){
+  const id = lc.dataset.id;
+  setTimeout(() => {
+    if (!layer || layer.id !== id) return;
+    const f = document.getElementById('feed'), r = lc.getBoundingClientRect(), fr = f.getBoundingClientRect();
+    const seen = Math.max(0, Math.min(r.bottom, fr.bottom) - Math.max(r.top, fr.top));
+    if (seen < fr.height * 0.5) layerStop();
+  }, 900);
+}
+// when the screen changes size, put the feed back on the item you were looking at
+let resizeT = null;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
+  const f = document.getElementById('feed');
+  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')) f.scrollTop = feedCurrent.offsetTop;
+}, 150); });
+// coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
+document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
+function layerStop(){
+  if (!layer) return;
+  layer.stopping = true; layer.a.pause(); if (layer.v) layer.v.pause();
+  const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶';
+  layer = null;
+}
+async function layerToggle(id){
+  const c = document.querySelector(`.lcard[data-id="${id}"]`); if (!c) return;
+  if (layer && layer.id === id){ layerStop(); return; }
+  layerStop(); stopListening();
+  const i = findIdea(id), btn = c.querySelector('.lplay');
+  btn.textContent = '…';
+  try {
+    await layerMedia(i);
+    if (!i.audio) throw new Error('no narration');
+    const a = new Audio(i.audio), v = c.querySelector('video.clip');   // null on an audio-only card
+    const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0};   // no clip element on an audio card
+    if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
+    a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%'; };
+    a.onended = () => { c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
+      const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
+    a.onpause = () => {                                      // paused by the phone (not by you)? carry on
+      if (me.stopping || a.ended || layer !== me || me.resumes > 5) return;
+      me.resumes++; setTimeout(() => { if (layer === me && a.paused && !a.ended) a.play().catch(() => {}); }, 400);
+    };
+    c.dataset.started = '1'; delete c.dataset.ended;
+    await a.play();
+    btn.textContent = '❚❚';
+    c.querySelector('.ldur').textContent = i.adur ? '· ' + fmtDur(i.adur) : '';
+  } catch(e){ btn.textContent = '▶'; if (layer && layer.id === id) layer = null; toast('Couldn’t play the narration'); }
+}
 function cardHTML(i){
+  if (i.layered) return layeredHTML(i);
   if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
   const saved = i.stashes && i.stashes.length;
@@ -408,6 +540,15 @@ async function renderFeed(){
     if (currentView !== 'feed' || gen !== feedGen) return;
   }
   dedupeVideos();
+  // (v24) Was It Designed? cards delivered as text before v24: switch them to the new video / audio / composite style, once
+  if (!db.widV24){
+    for (const i of db.ideas.filter(x => !x.video && !x.layered && /^Was It Designed\?/.test(x.source || ''))){
+      const e = WID_LIST.find(x => x.u === i.url); if (!e || e.m === 'none') continue;
+      try { const n = e.v ? await widVideoCard(e) : e.doc ? layeredCard(e) : null;
+        if (n) Object.assign(i, n, {id: i.id, stashes: i.stashes, pulledOn: i.pulledOn, shelfId: i.shelfId, created: i.created}); } catch(err){}
+    }
+    db.widV24 = true; save();
+  }
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(isJwGem), dt = todaysText();
@@ -433,6 +574,7 @@ async function renderFeed(){
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
   const core = k === feedCore ? ' data-core="1"' : '';
+  if (x.card && x.card.layered) return `<div class="vslide lslide"${core}>${cardHTML(x.card)}</div>`;   // BETA
   if (x.card && (x.card.image || x.card.pics)) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
   if (x.card && x.card.video){                                                                   // (v9) series video
     const W = db.watch; let n = W.daily.items.findIndex(v => v.lank === x.card.video.lank);
@@ -490,15 +632,16 @@ function observeFeed(){
   const el = document.getElementById('feed');
   if (feedObs) feedObs.disconnect();
   feedObs = new IntersectionObserver(ents => ents.forEach(en => {
-    const s = en.target, vid = s.querySelector('video');
+    const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
     // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
     const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
-    if (!on){ if (vid) vid.pause(); return; }
+    if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStopIfGone(lc); return; }
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s;
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
     if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
@@ -666,12 +809,14 @@ function autoTick(now){
       document.getElementById('sheet').classList.contains('on')) return;
   if (!autoState || autoState.s !== s) autoState = {s, t: 0, page: 0};
   const st = autoState; st.t += dt;
-  const vid = s.querySelector('video');
+  const vid = s.querySelector('video:not(.clip):not(.art)');   // BETA
   if (vid){                                                                 // videos: to the end
     if (vid.ended) autoNext(s);
     else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
     return;
   }
+  const lc = s.querySelector('.lcard');                                    // BETA layered card
+  if (lc){ if (lc.dataset.ended) return autoNext(s); if (!lc.dataset.started && st.t > 1500){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); } return; }
   const strip = s.querySelector('.pcard .strip');
   if (strip && strip.children.length > 1){                                  // picture story: turn the pages
     const pg = Math.floor(st.t / PAGE_MS);
@@ -1573,7 +1718,9 @@ async function doPull(){
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
           tries++;
-          try { const c = it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+          try { const we = list[entryIndex(it)];
+            if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -1903,7 +2050,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v23 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v24 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
