@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v8)
+IdeaStash — your own free Deepstash (current: v9)
 =======================================
 
 FOLDERS
@@ -74,4 +74,10 @@ VERSIONS
       None, default 20). When it's up, Today ends with "That's your time for today" (a video
       you're watching isn't cut off). Watch tab removed: Video channels are on the Shelf tab,
       video links in Add > Video link.
+  v9  More from jw.org, all on the Shelf from the start (1 a day each, remove any you like):
+      🦉 Was It Designed? (48 - articles with a photo, or short videos that play full screen)
+      📜 Bible Verses Explained (55)   🏡 Help for the Family (42)
+      🏛️ From Our Archives - our history (35)
+      🖼️ Become Jehovah's Friend posters (8) - full-screen pictures, 🔍 opens full size.
+      Video channels also turned on: Blessings of Sacred Service, Enduring Trials, History.
   Next: Listening (driving) mode

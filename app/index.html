@@ -120,6 +120,19 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pop{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
 
+/* (v9) article photo + full-screen posters */
+.card .pic{width:100%;height:170px;object-fit:cover;display:block;flex:none}
+.card.pcard{position:absolute;inset:0;border-radius:0;background:#000;box-shadow:none}
+.pcard .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(26px) brightness(.45)}
+.pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:14px;z-index:2}
+.pcard .side button,.pcard .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
+  align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.pcard .side .saved{background:var(--accent)}
+.pcard .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;background:linear-gradient(transparent,#000b 40%)}
+.pcard .info b{display:block;font-size:17px}
+.pcard .info small{color:#fffb}
+
 /* watch (v5) */
 #watch{padding:0;overflow:hidden;background:#000}
 #wfeed{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory}
@@ -189,6 +202,7 @@ const TOPICS = {
   'Science': ['#18506b','#4ad7ff'], 'Q&A': ['#22406e','#7cc4ff'], 'Other': ['#3a3558','#a39fbd']
 };
 TOPICS.Video = ['#5a1f3a','#ff6b8b'];   // (v5) videos saved from Watch
+TOPICS.Family = TOPICS.Family || ['#6b2f4a','#ff9db8']; TOPICS.History = TOPICS.History || ['#5c4a1e','#e8c26a'];   // (v9)
 function topicColors(t){ return TOPICS[t] || TOPICS.Other; }
 
 let db;
@@ -247,16 +261,17 @@ function ensureDailyShelf(){
   db.shelf = [it, ...db.shelf.filter(x => x.kind !== 'daily')];
   // (v4) Questions From Readers + Bible Questions Answered start on the shelf — once only, so Remove sticks
   db.seeded = db.seeded || [];
-  ['qfr','bqa'].forEach(kind => {
+  Object.keys(KIND_LIST).forEach(kind => {   // (v9) all list sources start on
     if (db.seeded.includes(kind)) return;
     db.seeded.push(kind);
     if (db.shelf.some(x => x.kind === kind)) return;
     const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
-      total: kind==='qfr' ? QFR_LIST.length : BQA_LIST.length, lastPull:'', paused:false, added:Date.now()};
+      total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
     setOrder(s, 'random'); db.shelf.push(s);
   });
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
-  [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5]].forEach(([key, maxMin]) => {
+  [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15]].forEach(([key, maxMin]) => {   // (v9) + experiences and our history
     const tag = 'w:' + key;
     if (db.seeded.includes(tag)) return;
     db.seeded.push(tag);
@@ -290,13 +305,28 @@ function bumpStreak(){
 function renderStreak(){ document.getElementById('streak').textContent = '🔥 ' + db.streak.count; }
 
 /* ================= card ================= */
+// (v9) poster = full-screen picture; double-tap and ❤️ work like videos
+function posterHTML(i){
+  const saved = i.stashes && i.stashes.length, big = i.image.replace(/_md\.jpg$/, '_lg.jpg');
+  return `<div class="card pcard" data-id="${i.id}">
+    <div class="bg" style="background-image:url('${esc(i.image)}')"></div>
+    <img class="poster" src="${esc(i.image)}" alt="${esc(i.title)}" loading="lazy">
+    <div class="side">
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">🔖</button>
+      <a title="Full size" href="${esc(big)}" target="_blank" rel="noopener">🔍</a>
+    </div>
+    <div class="info"><b>${esc(i.title)}</b><small>Become Jehovah’s Friend · poster</small></div></div>`;
+}
 function cardHTML(i){
+  if (i.image) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
   const saved = i.stashes && i.stashes.length;
   const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
   return `<div class="card" data-id="${i.id}">
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
+    ${i.pic && !i.video ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
       style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${esc(i.body)}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
@@ -333,7 +363,7 @@ async function renderFeed(){
   const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
   const qfr = ofKind('qfr'), bqa = ofKind('bqa');
   const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
-  const vq = W.daily.items.map((v, n) => ({v, n}));
+  const vq = W.daily.items.map((v, n) => ({v, n})).filter(x => !x.v.series);   // (v9) series videos come with their card
   const C = card => ({card}), V = vid => ({vid});
   const seq = [dt ? C(dt) : {retry:true}];
   vq.splice(0, 2).forEach(x => seq.push(V(x)));
@@ -352,6 +382,12 @@ async function renderFeed(){
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
   const core = k === feedCore ? ' data-core="1"' : '';
+  if (x.card && x.card.image) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
+  if (x.card && x.card.video){                                                                   // (v9) series video
+    const W = db.watch; let n = W.daily.items.findIndex(v => v.lank === x.card.video.lank);
+    if (n < 0){ W.daily.items.push({...x.card.video, extra:true, series:true}); n = W.daily.items.length - 1; save(); }
+    return videoSlideHTML(W.daily.items[n], n).replace('<div class="vslide', `<div${core} class="vslide`);
+  }
   if (x.card) return `<div class="slide"${core}>${cardHTML(x.card)}</div>`;
   return videoSlideHTML(x.vid.v, x.vid.n).replace('<div class="vslide', `<div${core} class="vslide`);
 }
@@ -592,7 +628,7 @@ function delStash(sid){
   libFilter='all'; save(); renderLibrary(); toast('Stash deleted (ideas kept)');
 }
 function viewIdea(id){
-  openSheet(`<div style="height:70vh;display:flex">${cardHTML(findIdea(id))}</div>
+  openSheet(`<div style="height:70vh;display:flex;position:relative">${cardHTML(findIdea(id))}</div>
     <button class="btn alt" onclick="closeSheet()">Close</button>`);
 }
 
@@ -843,8 +879,20 @@ const SHELF_KINDS = {
   daily: {emoji:'📅', title:'Daily Text', sub:'Examining the Scriptures Daily · wol.jw.org'},
   qfr:   {emoji:'❓', title:'Questions From Readers', sub:'The Watchtower · wol.jw.org'},
   bqa:   {emoji:'📘', title:'Bible Questions Answered', sub:'jw.org'},
+  wid:   {emoji:'🦉', title:'Was It Designed?', sub:'Awake! · jw.org', unit:'articles and short videos'},
+  bve:   {emoji:'📜', title:'Bible Verses Explained', sub:'jw.org', unit:'verses'},
+  fam:   {emoji:'🏡', title:'Help for the Family', sub:'jw.org', unit:'articles'},
+  arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
+  bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
   book:  {emoji:'📖'}
 };
+// (v9) every list-based source, in the order they start on the shelf
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST};
+const KIND_INFO = {
+  wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
+  bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
+  fam:  {topic:'Family',    source:'Help for the Family — jw.org'},
+  arch: {topic:'History',   source:'From Our Archives — jw.org'}};
 const gcd = (a,b) => b ? gcd(b, a%b) : a;
 function setOrder(it, order){
   it.order = order;
@@ -858,7 +906,7 @@ const entryIndex = it => it.order === 'random' && it.step ? (it.pos * it.step + 
 
 function addSourceToShelf(kind){
   if (db.shelf.some(it => it.kind === kind)) return toast('Already on your shelf');
-  const total = kind==='qfr' ? QFR_LIST.length : kind==='bqa' ? BQA_LIST.length : 0;
+  const total = KIND_LIST[kind] ? KIND_LIST[kind]().length : 0;
   const it = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0, total, lastPull:'', paused:false, added:Date.now()};
   setOrder(it, kind==='daily' ? 'seq' : 'random');
   db.shelf.push(it); save(); toast('Added to your shelf'); renderShelf();
@@ -889,6 +937,7 @@ async function loadBookParas(it){
 function wordsOf(s){ return new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>3)); }
 async function articleCard(entry, kind){
   const {text, html} = await fetchText(entry.u);
+  if (KIND_INFO[kind]) return seriesCard(entry, kind, text, html);   // (v9)
   const t = html ? htmlToText(text) : cleanMarkdown(text);
   const paras = paragraphs(t);
   // find the question on the page that best matches the index entry
@@ -911,6 +960,41 @@ async function articleCard(entry, kind){
   return {id:uid(), title, body, topic:'Q&A',
     source: kind==='qfr' ? 'Questions From Readers — ' + entry.ref : 'Bible Questions Answered — jw.org',
     url: entry.u, created:Date.now(), stashes:[]};
+}
+// (v9) Was It Designed? / Bible Verses Explained / Help for the Family / From Our Archives.
+// The reader puts jw.org's menu and cookie notice first: start at the article's own "# Title" heading.
+// Video pages (some Was It Designed? entries) become full-screen videos in Today.
+function seriesCard(entry, kind, text, html){
+  const info = KIND_INFO[kind];
+  let md = html ? htmlToText(text) : text;
+  const lines = md.split('\n'), h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));
+  if (h1 > -1) md = lines.slice(h1 + 1).join('\n');
+  md = md.split(/\n#{1,3}\s+(?:Related Topics|You May Also Like|Read More|Share)\b/i)[0]
+    .replace(/\[[a-z*]\]\([^)]*#footnote[^)]*\)/g, '');                   // footnote markers ("Jehovah[a]")
+  const pic = (md.match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
+  const paras = paragraphs(cleanMarkdown(md)).filter(p => !/cookie|JavaScript|Skip to content|Media is loading|Play video/i.test(p));
+  let body = '';
+  for (const p of paras){
+    const ok = goodPara(p) || (p.length > 100 && p.length < 900 && sentences(p).length >= 2);
+    if (!ok || /^[a-z]\s/.test(p)) continue;                     // skip headings, bullets and footnotes, keep reading
+    if (kind === 'bve' && body && /^“/.test(p) && /(Version|Translation|Bible)[._ ]*$/.test(p)) continue;   // other translations
+    if (body && (body + '\n\n' + p).length > 950) break;
+    body += (body ? '\n\n' : '') + trimBody(p, 950);
+  }
+  const mp4 = (md.match(/https:\/\/[^\s)"']+?_r(?:480|720|360)P\.mp4/) || [])[0];
+  const base = {id:uid(), title:entry.q.replace(/[—-]\s*Was It Designed\?$/,'').replace(/\s+Explained—/, ' — '),
+    topic:info.topic, source:info.source, url:entry.u, created:Date.now(), stashes:[]};
+  if (mp4 && body.length < 300){
+    const intro = paras.find(p => p.length > 30 && p.length < 300) || '';
+    return {...base, body: intro || '▶ Short video', video:{lank:entry.u, title:base.title, dur:0, pub:'', img:pic, src:mp4, cat:'SERIES_' + kind}};
+  }
+  if (!body) throw new Error('could not read article');
+  return {...base, body, pic};
+}
+// (v9) Become Jehovah's Friend poster: one full-screen picture
+function posterCard(e){
+  return {id:uid(), title:e.q, body:e.d || 'Become Jehovah’s Friend poster', topic:'Spiritual',
+    source:'Become Jehovah’s Friend — Poster', url:e.u, image:e.img, created:Date.now(), stashes:[]};
 }
 function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
 
@@ -937,12 +1021,12 @@ async function doPull(){
           it.pos++;
         }
       } else {
-        const list = it.kind === 'qfr' ? QFR_LIST : BQA_LIST;
+        const list = KIND_LIST[it.kind]();
         it.total = list.length;
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
           tries++;
-          try { const c = await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+          try { const c = it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -960,7 +1044,7 @@ function shelfSub(it){
 }
 function renderShelf(){
   const el = document.getElementById('shelf');
-  const missing = ['daily','qfr','bqa'].filter(k => !db.shelf.some(it => it.kind === k));
+  const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
   el.innerHTML = `
     <div class="sec">My Shelf</div>
     ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
@@ -978,7 +1062,7 @@ function renderShelf(){
       <span>›</span></button>
     <div class="sec">Add to shelf</div>
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
-      <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${k==='qfr'?' · '+QFR_LIST.length+' questions':k==='bqa'?' · '+BQA_LIST.length+' questions':''}</small></span>
+      <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
       <span style="font-size:22px">＋</span></button>`).join('')}
     <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
       <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
@@ -1038,6 +1122,7 @@ const WATCH_GROUPS = [
   ['Children', [['BJF','Video Lessons'],['ChildrenSongs','Songs'],['ChildrenMovies','Dramas']]],
 ];
 const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
+Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the Family', SERIES_bve:'Bible Verses Explained', SERIES_arch:'From Our Archives'});   // (v9)
 const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
 const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
 const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
@@ -1123,7 +1208,7 @@ function videoSlideHTML(v, n){
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})">🔖</button>
       <a title="Open on jw.org" href="${finderUrl(v.lank)}" target="_blank" rel="noopener">🔗</a>
     </div>
-    <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')} · ${fmtDur(v.dur)}</small></div>
+    <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="bar"></div></div>`;
 }
 function wireVideoSlide(s){
@@ -1247,7 +1332,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v8 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v9 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
