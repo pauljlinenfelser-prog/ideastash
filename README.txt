@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v24)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v25)
 =======================================
 
 FOLDERS
@@ -154,4 +154,6 @@ VERSIONS
   v24 Was It Designed? from the beta: 17 full videos play full screen; 19 narration-only get the
       title card + picture card; 11 narration+clip get the composite card; all from jw.org's own
       media files (no page reading). Older text cards switch to the new style once.
+  v25 Updates show up right away: the app always checks GitHub for the newest copy (before, the
+      phone could keep using an old copy for up to 10 minutes after a release). Beta too.
   Next: other series audio-first, Daily Text from the es26 EPUB, retire the page reader
