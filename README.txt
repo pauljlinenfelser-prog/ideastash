@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v32)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v33)
 =======================================
 
 FOLDERS
@@ -199,4 +199,6 @@ VERSIONS
       From Them, Imitate Their Faith, Love People, Enjoy Life Forever, Dig for Treasures, Our History in
       Motion, Organizational Accomplishments, For a Happy Marriage), Teenagers, Family, Our Activities,
       Dramas, The Bible Changes Lives, Viewpoints on the Origin of Life, Learn From Jehovah's Friends.
+  v33 Children's Activities on the shelf: one jw.org printable a day (30 Bible Character Cards,
+      30 Picture Activities), shown as a picture with a 🖨️ button that opens jw.org's PDF to print.
   Next: Daily Text from the es26 EPUB (in the beta)
