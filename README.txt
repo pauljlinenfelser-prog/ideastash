@@ -81,6 +81,11 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 10: narrated articles only (Mike's call). Articles jw.org hasn't narrated are skipped
   when the shelf delivers, and any Read-on-jw.org cards stay out of Today (still in your gems).
   Beta 11: the beta has its own icon - the gems with a pink B (art/icon-gems-beta.svg).
+  Beta 12: the Daily Text comes from jw.org's own download of Examining the Scriptures Daily
+  (an EPUB file, once a year). Today shows an "Add this year's Daily Text" card with
+  1. Download it from jw.org, 2. Pick the downloaded file. After that, each day's text comes
+  from the file on the phone; nothing is read from jw.org's pages. Picking the file with
+  Add a book works too. In January the card asks for the new year's file.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
