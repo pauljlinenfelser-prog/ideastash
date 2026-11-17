@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v35)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v36)
 =======================================
 
 FOLDERS
@@ -206,4 +206,6 @@ VERSIONS
   v35 Listen to the Bible: a new shelf item that plays jw.org's own audio recording of the New World
       Translation, one chapter a day in order, Genesis 1 to Revelation 22 (1,189 chapters). Change it
       to 2 or 3 a day, or Start over, on the Shelf tab.
+  v36 Pick up where you left off: open GemStash again the same day and Today goes back to the card or
+      video you were on (and how far down a long card you were), not to the top. A new day starts at the top.
   Next: Daily Text from the es26 EPUB (in the beta)
