@@ -62,6 +62,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   picture with title + progress. Fixed: the narration no longer stops when the video ends.
   Beta 3: the top third is the Was It Designed? title card (drafting desk + logo), shown from
   jw.org's own video paused at 0:04 - nothing copied. Nautilus art stays as the fallback.
+  Beta 4: the narration no longer stops when the screen changes size for a moment (address bar
+  sliding, rotating); it only stops when you really move on. The feed re-centers after a resize.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

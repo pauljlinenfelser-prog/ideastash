@@ -428,6 +428,23 @@ function layeredHTML(i){
     </div></div>`;
 }
 let layer = null;                                           // the card that's playing: {id, a, v, stopping}
+// Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
+// out of view. Wait a moment and look again; only stop if the card is really gone.
+function layerStopIfGone(lc){
+  const id = lc.dataset.id;
+  setTimeout(() => {
+    if (!layer || layer.id !== id) return;
+    const f = document.getElementById('feed'), r = lc.getBoundingClientRect(), fr = f.getBoundingClientRect();
+    const seen = Math.max(0, Math.min(r.bottom, fr.bottom) - Math.max(r.top, fr.top));
+    if (seen < fr.height * 0.5) layerStop();
+  }, 900);
+}
+// when the screen changes size, put the feed back on the item you were looking at
+let resizeT = null;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
+  const f = document.getElementById('feed');
+  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')) f.scrollTop = feedCurrent.offsetTop;
+}, 150); });
 // coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
 document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
 function layerStop(){
@@ -590,7 +607,7 @@ function observeFeed(){
     const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
     // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
     const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
-    if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStop(); return; }
+    if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStopIfGone(lc); return; }
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s;
