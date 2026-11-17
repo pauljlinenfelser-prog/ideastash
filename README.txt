@@ -86,6 +86,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   1. Download it from jw.org, 2. Pick the downloaded file. After that, each day's text comes
   from the file on the phone; nothing is read from jw.org's pages. Picking the file with
   Add a book works too. In January the card asks for the new year's file.
+  Beta 13: the beta's number shows in More (Beta experiments heading and About).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

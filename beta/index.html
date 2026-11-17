@@ -1347,6 +1347,7 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
+const BETA_NO = 13;   // beta 13: shown in More (Beta experiments + About); bump with each beta
 const DT_NEED = 'add this year’s Daily Text';
 const dtStore = y => 'dailytext:' + y;
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2144,7 +2145,7 @@ function renderMore(){
   el.innerHTML = `
     <div class="sec">Your library</div>
     <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
-    <div class="sec">🧪 Beta experiments</div>
+    <div class="sec">🧪 Beta experiments · Beta ${BETA_NO}</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">This is the test copy of GemStash, with its own separate data. Your real app isn't affected.</p>
     <label class="row chk"><input type="checkbox" ${db.betaRemora ? 'checked' : ''} onchange="db.betaRemora=this.checked;save();toast(this.checked?'The Remora card is now right after the Daily Text':'Remora example off')">
       <span class="t"><b>Show the Remora example card</b><small>A layered card right after the Daily Text: picture, jw.org narration, short video</small></span></label>
@@ -2160,7 +2161,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash BETA (test copy, based on v23) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy; the real app is on its own version) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article; only articles jw.org has narrated are used (beta 10). Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
