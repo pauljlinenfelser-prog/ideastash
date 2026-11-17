@@ -69,6 +69,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   nautilus art), 11 narration+clip keep the composite card, 1 with nothing is skipped.
   Beta 6: fixed narration-only cards (like A Mother's Milk) switching to an empty middle band
   after loading; they keep the title card + picture layout.
+  Beta 7: all 19 narration-only articles use title card (top third) + picture (bottom two-thirds);
+  the card tries jw.org's square, wide and tall pictures; only the Pomelo has none (nautilus art).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

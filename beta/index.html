@@ -430,7 +430,7 @@ function layeredHTML(i){
     <div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>
     ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
     <button class="lplay" onclick="layerToggle('${i.id}')">▶</button>
-    <div class="hero" style="background:url('${WID_ART}') center/cover"><img src="${esc(i.image)}" alt="" onerror="this.closest('.lcard').classList.add('noimg')"><div class="ht">${esc(i.title)}</div>
+    <div class="hero" style="background:url('${WID_ART}') center/cover"><img src="${esc(i.image)}" alt="" onerror="heroFallback(this)"><div class="ht">${esc(i.title)}</div>
       <div class="lmeta"><b>${esc(i.title)}</b><small>narrated by jw.org <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i></i></div></div></div>
     <div class="side">
@@ -440,6 +440,12 @@ function layeredHTML(i){
       ${commentBtn(i.url, i.title)}
       <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
     </div></div>`;
+}
+// beta 7: the article picture — try jw.org's square, then wide, then tall version; none at all → the nautilus art shows
+function heroFallback(img){
+  const tries = ['_univ_sqr_xl.jpg', '_univ_lss_lg.jpg', '_univ_pnr_lg.jpg'], cur = tries.findIndex(t => img.src.endsWith(t));
+  if (cur > -1 && cur < tries.length - 1) img.src = img.src.slice(0, -tries[cur].length) + tries[cur + 1];
+  else img.closest('.lcard').classList.add('noimg');
 }
 let layer = null;                                           // the card that's playing: {id, a, v, stopping}
 // Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
