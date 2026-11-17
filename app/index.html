@@ -104,6 +104,22 @@ nav button.on{color:var(--accent)}
 .seg button.on{background:var(--accent);color:#1b1408;font-weight:700}
 label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 
+/* hearts (v6): double-tap or ❤️ saves to Favorites, TikTok style */
+.slide{position:relative}
+.card{-webkit-user-select:none;user-select:none}
+.card .acts button{padding:8px 10px}
+.burst{position:absolute;font-size:110px;line-height:1;pointer-events:none;z-index:9;opacity:0;
+  animation:burst .9s ease-out forwards;filter:drop-shadow(0 6px 18px #0009)}
+@keyframes burst{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-12deg);opacity:0}
+  15%{transform:translate(-50%,-50%) scale(1.25) rotate(-8deg);opacity:1}
+  30%{transform:translate(-50%,-50%) scale(.92) rotate(-8deg);opacity:1}
+  45%{transform:translate(-50%,-50%) scale(1.04) rotate(-8deg);opacity:1}
+  75%{transform:translate(-50%,-70%) scale(1.04) rotate(-8deg);opacity:1}
+  100%{transform:translate(-50%,-170%) scale(1.15) rotate(-8deg);opacity:0}}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+
 /* watch (v5) */
 #watch{padding:0;overflow:hidden;background:#000}
 #wfeed{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory}
@@ -287,6 +303,7 @@ function cardHTML(i){
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':'🔊'}</button>`}
+      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')">${saved?'🔖':'📑'}</button>
       <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
       <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
@@ -455,6 +472,38 @@ function toggleStash(id, sid, on){
   const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on) i.stashes.push(sid);
   save(); refreshCard(id);
 }
+/* ---- hearts (v6) ---- */
+const isHearted = i => !!i && (i.stashes || []).includes('fav');
+function ensureFav(){ if (!db.stashes.some(s => s.id === 'fav')) db.stashes.unshift({id:'fav', name:'Favorites', emoji:'⭐'}); }
+function heartBurst(host, x, y){
+  const b = document.createElement('div'); b.className = 'burst'; b.textContent = '❤️';
+  b.style.left = x + 'px'; b.style.top = y + 'px'; host.appendChild(b); setTimeout(() => b.remove(), 950);
+  try { navigator.vibrate && navigator.vibrate(15); } catch(e){}
+}
+function popHeart(sel){ document.querySelectorAll(sel).forEach(b => { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }); }
+function heartIdea(id){
+  const on = !isHearted(findIdea(id));
+  ensureFav(); toggleStash(id, 'fav', on);
+  if (on){
+    const c = document.querySelector(`.card[data-id="${id}"]`), host = c && c.parentElement;
+    if (host){ const r = c.getBoundingClientRect(), h = host.getBoundingClientRect(); heartBurst(host, r.left - h.left + r.width/2, r.top - h.top + r.height/2); }
+    toast('❤️ Saved to Favorites');
+  }
+  popHeart(`.card[data-id="${id}"] .heart`);
+}
+// double-tap a card anywhere (not on a button) = heart it. Like TikTok, a double-tap never un-hearts.
+let lastTap = {t:0};
+document.addEventListener('click', e => {
+  const card = e.target.closest('.card[data-id]');
+  if (!card || e.target.closest('button,a,video,input,textarea,select,label')) return;
+  const now = Date.now(), id = card.dataset.id;
+  if (lastTap.id === id && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40){
+    lastTap = {t:0};
+    const host = card.parentElement, h = host.getBoundingClientRect();
+    heartBurst(host, e.clientX - h.left, e.clientY - h.top);
+    if (!isHearted(findIdea(id))){ ensureFav(); toggleStash(id, 'fav', true); popHeart(`.card[data-id="${id}"] .heart`); }
+  } else lastTap = {t:now, id, x:e.clientX, y:e.clientY};
+});
 function newStash(id){
   const n = document.getElementById('newStash').value.trim(); if (!n) return;
   const emojis = ['📘','🕊️','💡','🌿','🔥','🧭','🏛️','🎯','🪔','📜'];
@@ -1025,7 +1074,8 @@ function videoSlideHTML(v, n){
     <div class="playi">▶️</div>
     ${db.watch.sound ? '' : '<div class="note">🔇 Tap for sound</div>'}
     <div class="side">
-      <button title="Save" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})">🔖</button>
+      <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
+      <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})">🔖</button>
       <a title="Open on jw.org" href="${finderUrl(v.lank)}" target="_blank" rel="noopener">🔗</a>
     </div>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')} · ${fmtDur(v.dur)}</small></div>
@@ -1036,10 +1086,18 @@ function wireVideoSlide(s){
   vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (100 * vid.currentTime / vid.duration) + '%'; });
   vid.addEventListener('play', () => s.classList.remove('paused'));
   vid.addEventListener('pause', () => s.classList.add('paused'));
-  vid.addEventListener('click', () => {
-    if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#watch .note').forEach(x => x.remove());
-      document.querySelectorAll('#watch video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
-    vid.paused ? vid.play() : vid.pause();
+  // (v6) one tap = sound / pause; double-tap = heart (wait a moment to tell them apart)
+  let tapT = null;
+  vid.addEventListener('click', e => {
+    if (tapT){ clearTimeout(tapT); tapT = null;
+      const h = s.getBoundingClientRect(); heartBurst(s, e.clientX - h.left, e.clientY - h.top);
+      if (!videoHearted(db.watch.daily.items[s.dataset.n])) heartVideo(+s.dataset.n, true);
+      return; }
+    tapT = setTimeout(() => { tapT = null;
+      if (vid.muted){ db.watch.sound = true; save(); document.querySelectorAll('#watch .note').forEach(x => x.remove());
+        document.querySelectorAll('#watch video').forEach(x => x.muted = false); if (vid.paused) vid.play(); return; }
+      vid.paused ? vid.play() : vid.pause();
+    }, 280);
   });
   // load the next one ahead of time
   vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
@@ -1060,6 +1118,20 @@ function videoToIdea(v){
     db.ideas.push(i); save();
   }
   return i;
+}
+const videoIdeaOf = v => v && db.ideas.find(x => x.video && x.video.lank === v.lank);
+const videoHearted = v => isHearted(videoIdeaOf(v));
+// (v6) ❤️ toggles Favorites; quiet=true is the double-tap (burst already shown, never un-hearts)
+function heartVideo(n, quiet){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const on = !videoHearted(v);
+  if (on){ ensureFav(); toggleStash(videoToIdea(v).id, 'fav', true); }
+  else { const i = videoIdeaOf(v); toggleStash(i.id, 'fav', false);
+    if (!i.stashes.length){ db.ideas = db.ideas.filter(x => x !== i); save(); } }   // un-hearted and in no stash: drop it
+  const s = document.querySelector(`#wfeed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
+  if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#wfeed .vslide[data-n="${n}"] .heart`); }
+  if (on && !quiet && s){ const r = s.getBoundingClientRect(); heartBurst(s, r.width/2, r.height/2); }
+  if (on) toast('❤️ Saved to Favorites');
 }
 function saveVideo(n){
   const v = db.watch.daily.items[n]; if (!v) return;
@@ -1133,7 +1205,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v5 — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">IdeaStash v6 — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

@@ -1,4 +1,4 @@
-IdeaStash — your own free Deepstash (current: v5)
+IdeaStash — your own free Deepstash (current: v6)
 =======================================
 
 FOLDERS
@@ -63,4 +63,6 @@ VERSIONS
       Fixes Bible Questions Answered titles that showed jw.org's menu path.
   v5  📺 Watch tab — jw.org videos, swipe feed like TikTok (limited to today's set), channel
       picker with per-day count and length limit, paste a video link, save videos to stashes.
-  Next: v6 Limited drops + Listening (driving) mode
+  v6  ❤️ Hearts, TikTok style: double-tap any card or video (or tap 🤍) to save it to
+      Favorites with a big heart pop. Tap ❤️ again to un-heart. 🔖 still picks other stashes.
+  Next: new home-screen icon (and maybe a new name), then Limited drops + Listening mode
