@@ -91,6 +91,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   "Taken from jw.org's download" link), so it's plain the text isn't taken from jw.org's pages.
   Beta 15: More > About has "How does GemStash work?": a short FAQ on where everything comes
   from and how that fits jw.org's Terms of Use (personal, free, jw.org's own files, links back).
+  Beta 16: each listen card says "from jw.org's MP3 download" and links to that MP3 (its sound,
+  title and the picture packed inside it). The FAQ says so too. Series banners stay for now.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
