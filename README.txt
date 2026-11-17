@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v16)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v17)
 =======================================
 
 FOLDERS
@@ -107,4 +107,7 @@ VERSIONS
       jw.org's own reading (344 of 371 articles: all Bible Questions Answered and Bible
       Verses Explained, most Help for the Family, From Our Archives, Was It Designed?).
       The Daily Text and Questions From Readers have no recording, so they keep the phone voice.
-  Next: Listening (driving) mode
+  v17 📤 Share: opens your phone's share menu (Messages, WhatsApp, email...) with the direct
+      jw.org link - videos use jw.org's own share link, articles/posters/stories their jw.org
+      page, the Daily Text its wol.jw.org page. On cards it replaces Copy; on videos it replaces 🔗.
+  Next: Listening (driving) mode; maybe comments between friends (needs a small free server)

@@ -334,6 +334,7 @@ function posterHTML(i){
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       <button title="Full size" onclick="openPic(this)">🔍</button>
     </div>
     <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
@@ -365,7 +366,7 @@ function cardHTML(i){
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
-      <button title="Copy" onclick="copyIdea('${i.id}')">📋</button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       <button title="Edit" onclick="editIdea('${i.id}')">✏️</button>
       <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
     </div></div>`;
@@ -604,6 +605,25 @@ async function listen(id){
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
     speechSynthesis.speak(u);
   });
+}
+
+/* ================= share (v17) ================= */
+// Opens the phone's share menu (Messages, WhatsApp, email…) with jw.org's direct link. No phone share menu → copy the link.
+function shareLink(title, url){
+  if (navigator.share) return navigator.share({title, text: title, url}).catch(() => {});
+  const txt = url ? `${title}\n${url}` : title;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Link copied — paste it in a message'), () => toast('Sharing isn’t available here'));
+}
+function shareIdea(id){
+  const i = findIdea(id); if (!i) return;
+  const url = i.video ? finderUrl(i.video.lank) : i.url;
+  if (url) return shareLink(i.title, url);
+  shareLink(`${i.title}\n\n${i.body.slice(0, 600)}${i.body.length > 600 ? '…' : ''}${i.source ? '\n— ' + i.source : ''}`, '');   // own notes: share the text
+}
+function shareVideo(n){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
+  shareLink(v.title, finderUrl(v.lank));
 }
 
 /* ================= actions ================= */
@@ -1294,7 +1314,7 @@ function clashes(v, items){
   return items.some(x => x.lank !== v.lank && sameTalk(c, coreTitle(x.title))) || Object.keys(seen).some(k => sameTalk(c, k));
 }
 const fmtDur = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
-const finderUrl = lank => `https://www.jw.org/finder?lank=${encodeURIComponent(lank)}&wtlocale=E`;
+const finderUrl = lank => /^https?:/.test(lank) ? lank : `https://www.jw.org/finder?srcid=share&wtlocale=E&lank=${encodeURIComponent(lank)}`;   // (v17) jw.org's share-link format
 function slimVideo(m, cat){
   const mp4 = (m.files || []).filter(f => /\.mp4$/i.test(f.progressiveDownloadURL || ''));
   const pick = ['480p','720p','360p','240p'].map(l => mp4.find(f => f.label === l)).find(Boolean) || mp4[0];
@@ -1382,7 +1402,7 @@ function videoSlideHTML(v, n){
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
-      <a title="Open on jw.org" href="${finderUrl(v.lank)}" target="_blank" rel="noopener">🔗</a>
+      <button title="Share" onclick="shareVideo(${n})">📤</button>
     </div>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="bar"></div></div>`;
@@ -1508,7 +1528,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v16 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v17 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
