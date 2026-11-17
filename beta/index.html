@@ -540,12 +540,12 @@ function cardHTML(i){
   if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
   const saved = i.stashes && i.stashes.length;
-  const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
+  const src = i.srcUrl || i.url ? `<a href="${esc(i.srcUrl || i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');   // beta 14: srcUrl = the EPUB
   return `<div class="card" data-id="${i.id}">
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
-      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.srcUrl ? `\n\n<a class="more" href="${esc(i.srcUrl)}" target="_blank" rel="noopener">📥 Taken from jw.org’s download of this year’s Examining the Scriptures Daily (EPUB) ↗</a>` : i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
@@ -1347,18 +1347,29 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 13;   // beta 13: shown in More (Beta experiments + About); bump with each beta
+const BETA_NO = 14;   // beta 13: shown in More (Beta experiments + About); bump with each beta
 const DT_NEED = 'add this year’s Daily Text';
 const dtStore = y => 'dailytext:' + y;
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// beta 14 (Mike): the Daily Text card links to the jw.org EPUB it was taken from, so it's plain where the text comes from
+async function dtEpubUrl(y){
+  try {
+    const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?pub=es${String(y).slice(2)}&output=json&fileformat=EPUB&alllangs=0&langwritten=E&txtCMSLang=E`, 15000)).json();
+    const f = (((j.files || {}).E || {}).EPUB || [])[0]; if (f) return f.file.url;
+  } catch(e){}
+  return '';
+}
+const dtPageUrl = y => `https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}`;   // jw.org's page for that year's book
 async function getDailyCard(){
   const d = new Date(); let days = null;
   try { days = await idb.get(dtStore(d.getFullYear())); } catch(e){}
   if (!days) throw new Error(DT_NEED);
   const e = days[`${d.getMonth() + 1}-${d.getDate()}`];
   if (!e) throw new Error('today isn’t in the Daily Text book');
-  return {id:uid(), title:e.theme, body:e.body, topic:'Spiritual', source:'Examining the Scriptures Daily — ' + e.day,
-    url:dailyTextUrl(), created:Date.now(), stashes:[]};
+  const y = d.getFullYear(); db.dtLinks ||= {};
+  if (!db.dtLinks[y]){ const u = await dtEpubUrl(y); if (u){ db.dtLinks[y] = u; save(); } }
+  return {id:uid(), title:e.theme, body:e.body, topic:'Spiritual', source:`Examining the Scriptures Daily—${y} (jw.org EPUB) — ` + e.day,
+    url:dailyTextUrl(), srcUrl: db.dtLinks[y] || dtPageUrl(y), created:Date.now(), stashes:[]};   // url stays the day's page: comments and sharing
 }
 // reads the EPUB; returns null when the file isn't a Daily Text book (then it's added as an ordinary book)
 async function dailyTextFromEpub(file){
@@ -1378,7 +1389,9 @@ async function dailyTextFromEpub(file){
   const count = Object.keys(days).length;
   if (count < 300) throw new Error(`only ${count} days found in this Daily Text file`);
   await idb.set(dtStore(year), days);
-  db.dtYears = [...new Set([...(db.dtYears || []), year])].sort(); save();
+  db.dtYears = [...new Set([...(db.dtYears || []), year])].sort();
+  const u = await dtEpubUrl(year); if (u){ db.dtLinks ||= {}; db.dtLinks[year] = u; }   // beta 14
+  save();
   return {year, count};
 }
 async function pickDailyText(file){                       // the file picker on the Daily Text card / shelf sheet
@@ -1399,11 +1412,7 @@ function dailyTextAdded(r){
 // the download button: jw.org's own link to this year's EPUB (found through jw.org's media service)
 async function fillDtLink(){
   const a = document.getElementById('dtDl'); if (!a || a.dataset.ok) return;
-  const y = new Date().getFullYear();
-  try {
-    const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?pub=es${String(y).slice(2)}&output=json&fileformat=EPUB&alllangs=0&langwritten=E&txtCMSLang=E`, 15000)).json();
-    const f = (((j.files || {}).E || {}).EPUB || [])[0]; if (f){ a.href = f.file.url; a.dataset.ok = '1'; }
-  } catch(e){}
+  const u = await dtEpubUrl(new Date().getFullYear()); if (u){ a.href = u; a.dataset.ok = '1'; }
 }
 function dtAddHTML(){
   const y = new Date().getFullYear();
@@ -1807,7 +1816,7 @@ async function doPull(){
       if (it.kind === 'daily'){
         const c = await getDailyCard();
         const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
-        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; } else { c.shelfId = it.id; keep(c); }
+        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; if (c.srcUrl){ ex.srcUrl = c.srcUrl; ex.source = c.source; } } else { c.shelfId = it.id; keep(c); }
       } else if (it.kind === 'book'){
         const paras = await loadBookParas(it);
         it.total = paras.length;

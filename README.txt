@@ -87,6 +87,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   from the file on the phone; nothing is read from jw.org's pages. Picking the file with
   Add a book works too. In January the card asks for the new year's file.
   Beta 13: the beta's number shows in More (Beta experiments heading and About).
+  Beta 14: the Daily Text card links to the jw.org EPUB it came from (source line + a
+  "Taken from jw.org's download" link), so it's plain the text isn't taken from jw.org's pages.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
