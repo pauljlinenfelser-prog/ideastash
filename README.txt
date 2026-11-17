@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v19)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v20)
 =======================================
 
 FOLDERS
@@ -118,4 +118,5 @@ VERSIONS
       with the code. Every gem gets 💬 with a count: read and add comments with your circle.
       Delete your own; the circle's starter can delete any comment and remove members.
       Uses the free Firebase project gemstash-10786 (Mike's Google account); rules in firestore.rules.
+  v20 No ✏️ edit button: GemStash shows jw.org's own words, unchanged.
   Next: Listening (driving) mode
