@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v21)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v22)
 =======================================
 
 FOLDERS
@@ -123,4 +123,6 @@ VERSIONS
       complete gem, with 🎧 when jw.org has a recording) and "Video link". Other websites are
       turned away. No more Gutenberg books, Paste or Write one, and no starter guide cards.
       Nothing you saved was deleted; old book/self-made cards just stay out of Today.
+  v22 The phone's voice (🔊) skips what's in parentheses, like "(Luke 12:29-31)", and the closing
+      Watchtower reference, like "w25.03 28-29 ¶10-11". jw.org's own 🎧 recordings are unchanged.
   Next: Listening (driving) mode
