@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v25)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v26)
 =======================================
 
 FOLDERS
@@ -166,4 +166,9 @@ VERSIONS
       media files (no page reading). Older text cards switch to the new style once.
   v25 Updates show up right away: the app always checks GitHub for the newest copy (before, the
       phone could keep using an old copy for up to 10 minutes after a release). Beta too.
-  Next: other series audio-first, Daily Text from the es26 EPUB, retire the page reader
+  v26 No article text copied from jw.org: Questions From Readers, Bible Questions Answered, Bible
+      Verses Explained, Help for the Family and From Our Archives are listen cards (series picture,
+      the article's picture and jw.org's title, jw.org's own narration). Only narrated articles are
+      used. Old text cards turn into listen cards, keeping hearts and gems. Also fixes Was It
+      Designed? cards after the first one being skipped.
+  Next: rotate-to-fullscreen videos, Morning Worship not zoomed, Daily Text from the es26 EPUB

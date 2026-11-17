@@ -175,6 +175,9 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   background:var(--accent);color:#1b1408;font-size:28px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
 .lcard.audio .hero{top:30%}
 .lcard.audio .lplay{top:58%}
+.lcard .lplay.lread{width:auto;height:auto;border-radius:26px;padding:12px 22px;flex-direction:column;gap:2px;text-decoration:none;color:#fff;font-size:30px;display:flex;align-items:center}
+.lcard .lplay.lread small{font-size:13px;font-weight:700}
+.lcard.noimg .hero{background-size:cover !important}
 .lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
 .lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
 .lcard .hero .ht{display:none}
@@ -247,7 +250,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
 <div id="toast"></div>
 
-<script src="sources.js?v=24"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script src="sources.js?v=26"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'ideastash.v1';
@@ -347,8 +350,8 @@ function ensureDaily(){
   const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
   let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !db.seen[i.id] && !ids.includes(i.id));
-    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !ids.includes(i.id))).slice(0, 4-ids.length);
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id));
+    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id))).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
   }
   db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
@@ -410,6 +413,36 @@ function layeredCard(e){
     url:e.u, doc:e.doc, layered:true, clip: e.m !== 'audio', image:`https://cms-imgp.jw-cdn.org/img/p/${e.doc}/univ/art/${e.doc}_univ_sqr_xl.jpg`,
     created:Date.now(), stashes:[], full:true};
 }
+// (v26): no article text is taken from jw.org any more. Questions From Readers, Bible Questions Answered, Bible Verses
+// Explained, Help for the Family and From Our Archives become "listen cards" like the Was It Designed? ones: the series
+// picture on top, the article's picture below with its title (jw.org's own title from its audio service), and jw.org's
+// own narration. Articles jw.org hasn't narrated show the picture and title with a "Read on jw.org" button.
+const JWIMG = 'https://cms-imgp.jw-cdn.org/img/p/';
+const LISTEN_SERIES = {
+  qfr:  {name:'Questions From Readers',   topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},   // the open Bible (jw.org has no QFR series picture)
+  bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},
+  bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'},
+  fam:  {name:'Help for the Family',      topic:'Family',    art:JWIMG + '1011205/univ/art/1011205_univ_lsr_xl.jpg'},
+  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'}};
+function listenCard(e, kind){
+  const S = LISTEN_SERIES[kind];
+  return {id:uid(), title:e.t || e.q, body:'', topic:S.topic, url:e.u, doc:e.doc || '', layered:true, clip:false, lkind:kind,
+    source: kind === 'qfr' ? 'Questions From Readers — ' + e.ref : S.name + ' — jw.org',
+    image:e.img || '', link:!e.doc, created:Date.now(), stashes:[], full:true};
+}
+// cards made before v26 still hold the article text: turn them into listen cards (keeping hearts and stashes)
+function toListenCards(){
+  if (db.listenB9) return;
+  const byUrl = {};
+  for (const k of Object.keys(LISTEN_SERIES)) for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
+  for (const i of db.ideas){
+    if (i.layered || i.video || i.image || i.pics || !byUrl[i.url]) continue;
+    const [e, k] = byUrl[i.url], n = listenCard(e, k);
+    Object.assign(i, n, {id:i.id, stashes:i.stashes || [], pulledOn:i.pulledOn, shelfId:i.shelfId, created:i.created});
+    delete i.pic;
+  }
+  db.listenB9 = true; save();
+}
 async function layerMedia(i){
   if (i.audio && i.adur && typeof i.clip === 'boolean') return i;   // beta 6: older cards refresh their details once
   const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${i.doc}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
@@ -425,13 +458,17 @@ const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r
 function layeredHTML(i){
   const saved = i.stashes && i.stashes.length;
   const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
-  const audioOnly = i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
-  return `<div class="card lcard${audioOnly ? ' audio' : ''}" data-id="${i.id}">
-    <div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>
+  const S = LISTEN_SERIES[i.lkind];                        // (v26): a listen card from another series
+  const audioOnly = !!S || i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
+  const art = S ? S.art : WID_ART, cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
+  return `<div class="card lcard${cls}" data-id="${i.id}">
+    ${S ? `<div class="series" style="background-image:url('${art}')"><span>${S.name}</span></div>`
+        : `<div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>`}
     ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
-    <button class="lplay" onclick="layerToggle('${i.id}')">▶</button>
-    <div class="hero" style="background:url('${WID_ART}') center/cover"><img src="${esc(i.image)}" alt="" onerror="heroFallback(this)"><div class="ht">${esc(i.title)}</div>
-      <div class="lmeta"><b>${esc(i.title)}</b><small>narrated by jw.org <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+    ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
+             : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
+    <div class="hero" style="background:url('${art}') center/cover">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
+      <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : 'narrated by jw.org'} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i></i></div></div></div>
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
@@ -549,9 +586,10 @@ async function renderFeed(){
     }
     db.widV24 = true; save();
   }
+  toListenCards();                                       // (v26)
   ensureDaily();
   const el = document.getElementById('feed');
-  const daily = db.daily.ids.map(findIdea).filter(isJwGem), dt = todaysText();
+  const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
   const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
   const qfr = ofKind('qfr'), bqa = ofKind('bqa');
   const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
@@ -564,7 +602,7 @@ async function renderFeed(){
   bqa.forEach(i => seq.push(C(i)));
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
-  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !db.daily.ids.includes(i.id)));
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -652,6 +690,7 @@ function observeFeed(){
 }
 // (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
 function upgradeCard(id){
+  return;                                                 // (v26): article text is no longer taken from jw.org
   const i = findIdea(id);
   if (i && i.full === true && PLAYER_JUNK.test(i.body || '')) i.full = false;   // (v15) re-read cards that caught video-player text
   if (!i || i.full || i.video || i.image || i.pics || !i.url || !/jw\.org/.test(i.url)) return;
@@ -672,7 +711,7 @@ async function appendExplore(){
   const el = document.getElementById('feed');
   const gen = feedGen;
   try {
-    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video));
+    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link));
     const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
     if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
@@ -816,6 +855,7 @@ function autoTick(now){
     return;
   }
   const lc = s.querySelector('.lcard');                                    // BETA layered card
+  if (lc && lc.classList.contains('link')){ if (st.t > 6000) autoNext(s); return; }   // (v26): nothing to play
   if (lc){ if (lc.dataset.ended) return autoNext(s); if (!lc.dataset.started && st.t > 1500){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); } return; }
   const strip = s.querySelector('.pcard .strip');
   if (strip && strip.children.length > 1){                                  // picture story: turn the pages
@@ -1694,8 +1734,9 @@ let pulling = null;
 function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
 async function doPull(){
   const t = today(); let added = 0;
-  const have = new Set(db.ideas.map(i => i.body));
-  const keep = card => { if (have.has(card.body)) return; have.add(card.body); card.pulledOn = t; db.ideas.push(card); added++; };
+  const key = c => c.layered || c.video ? c.url : c.body;   // (v26): listen / video cards have no text, so tell them apart by their jw.org link
+  const have = new Set(db.ideas.map(key));
+  const keep = card => { if (have.has(key(card))) return; have.add(key(card)); card.pulledOn = t; db.ideas.push(card); added++; };
   for (const it of db.shelf){
     if (it.paused || it.lastPull === t || (it.total && it.pos >= it.total)) continue;
     try {
@@ -1717,10 +1758,11 @@ async function doPull(){
         it.total = list.length;
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
+          if (LISTEN_SERIES[it.kind] && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
-            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -2050,8 +2092,8 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v25 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
-    Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v26 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
