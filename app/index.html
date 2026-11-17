@@ -332,7 +332,7 @@ function ensureDailyShelf(){
     if (db.shelf.some(x => x.kind === kind)) return;
     const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
       total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
-    setOrder(s, 'random'); db.shelf.push(s);
+    setOrder(s, kind === 'nwt' ? 'seq' : 'random'); db.shelf.push(s);   // (v35) the Bible goes in order
   });
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
   [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
@@ -429,7 +429,8 @@ const LISTEN_SERIES = {
   bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},
   bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'},
   fam:  {name:'Help for the Family',      topic:'Family',    art:JWIMG + '1011205/univ/art/1011205_univ_lsr_xl.jpg'},
-  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'}};
+  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'},
+  nwt:  {name:'Listen to the Bible',      topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'}};   // (v35)
 function listenCard(e, kind){
   const S = LISTEN_SERIES[kind];
   return {id:uid(), title:e.t || e.q, body:'', topic:S.topic, url:e.u, doc:e.doc || '', layered:true, clip:false, lkind:kind,
@@ -440,7 +441,7 @@ function listenCard(e, kind){
 function toListenCards(){
   if (db.listenB9) return;
   const byUrl = {};
-  for (const k of Object.keys(LISTEN_SERIES)) for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
+  for (const k of Object.keys(LISTEN_SERIES)) if (k !== 'nwt') for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
   for (const i of db.ideas){
     if (i.layered || i.video || i.image || i.pics || !byUrl[i.url]) continue;
     const [e, k] = byUrl[i.url], n = listenCard(e, k);
@@ -1458,11 +1459,25 @@ const SHELF_KINDS = {
   arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
   bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
   ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
+  nwt:   {emoji:'🎧', title:'Listen to the Bible', sub:'jw.org audio · a chapter a day, Genesis to Revelation', unit:'chapters'},   // (v35)
   kids:  {emoji:'✂️', title:'Children’s Activities', sub:'jw.org · Bible character cards and picture activities to print', unit:'activities'},   // (v33)
   book:  {emoji:'📖'}
 };
 // (v9) every list-based source, in the order they start on the shelf
-const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST, kids:() => KIDS_LIST};
+// (v35) Listen to the Bible: jw.org's own audio recording of the New World Translation, one chapter a day, in order
+const NWT_BOOKS = [['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],['Deuteronomy',34],['Joshua',24],['Judges',21],['Ruth',4],['1 Samuel',31],['2 Samuel',24],['1 Kings',22],['2 Kings',25],['1 Chronicles',29],['2 Chronicles',36],['Ezra',10],['Nehemiah',13],['Esther',10],['Job',42],['Psalms',150],['Proverbs',31],['Ecclesiastes',12],['Song of Solomon',8],['Isaiah',66],['Jeremiah',52],['Lamentations',5],['Ezekiel',48],['Daniel',12],['Hosea',14],['Joel',3],['Amos',9],['Obadiah',1],['Jonah',4],['Micah',7],['Nahum',3],['Habakkuk',3],['Zephaniah',3],['Haggai',2],['Zechariah',14],['Malachi',4],['Matthew',28],['Mark',16],['Luke',24],['John',21],['Acts',28],['Romans',16],['1 Corinthians',16],['2 Corinthians',13],['Galatians',6],['Ephesians',6],['Philippians',4],['Colossians',4],['1 Thessalonians',5],['2 Thessalonians',3],['1 Timothy',6],['2 Timothy',4],['Titus',3],['Philemon',1],['Hebrews',13],['James',5],['1 Peter',5],['2 Peter',3],['1 John',5],['2 John',1],['3 John',1],['Jude',1],['Revelation',22]];
+const NWT_LIST = NWT_BOOKS.flatMap(([name, n], k) => Array.from({length: n}, (_, c) => ({q: `${name} ${c + 1}`, b: k + 1, c: c + 1,
+  u: `https://www.jw.org/en/library/bible/study-bible/books/${name.toLowerCase().replace(/ /g, '-')}/${c + 1}/`})));
+async function bibleCard(e){
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?pub=nwt&booknum=${e.b}&output=json&fileformat=MP3&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const f = (((j.files || {}).E || {}).MP3 || []).find(x => x.track === e.c);
+  if (!f) throw new Error('no recording');
+  const book = (j.pubName || '').replace(/\s*\(.*\)$/, '') || e.q.replace(/ \d+$/, '');
+  return {id:uid(), title:`${book} ${e.c}`, body:'', topic:'Spiritual', url:e.u, layered:true, clip:false, lkind:'nwt',
+    source:'The Bible (New World Translation) — jw.org audio', image:'', audio:f.file.url, adur:Math.round(f.duration || 0),
+    created:Date.now(), stashes:[], full:true};
+}
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST, kids:() => KIDS_LIST, nwt:() => NWT_LIST};
 const KIND_INFO = {
   wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
   bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
@@ -1772,11 +1787,11 @@ async function doPull(){
         it.total = list.length;
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
-          if (LISTEN_SERIES[it.kind] && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
+          if (LISTEN_SERIES[it.kind] && it.kind !== 'nwt' && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
-            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'kids' ? kidsCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'kids' ? kidsCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : it.kind === 'nwt' ? await bibleCard(we) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -2153,7 +2168,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v34 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v35 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

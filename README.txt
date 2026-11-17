@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v34)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v35)
 =======================================
 
 FOLDERS
@@ -203,4 +203,7 @@ VERSIONS
       30 Picture Activities), shown as a picture with a 🖨️ button that opens jw.org's PDF to print.
   v34 A music video a day: jw.org's Original Songs channel is now on (newest first, up to 10 min).
       Turn it off in Watch > Channels if you'd rather not.
+  v35 Listen to the Bible: a new shelf item that plays jw.org's own audio recording of the New World
+      Translation, one chapter a day in order, Genesis 1 to Revelation 22 (1,189 chapters). Change it
+      to 2 or 3 a day, or Start over, on the Shelf tab.
   Next: Daily Text from the es26 EPUB (in the beta)
