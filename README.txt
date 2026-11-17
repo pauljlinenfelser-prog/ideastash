@@ -64,6 +64,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   jw.org's own video paused at 0:04 - nothing copied. Nautilus art stays as the fallback.
   Beta 4: the narration no longer stops when the screen changes size for a moment (address bar
   sliding, rotating); it only stops when you really move on. The feed re-centers after a resize.
+  Beta 5: Was It Designed? sorted by what jw.org offers - 17 full videos play full screen,
+  19 narration-only articles get an audio card (title card + the article's picture, or the
+  nautilus art), 11 narration+clip keep the composite card, 1 with nothing is skipped.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
