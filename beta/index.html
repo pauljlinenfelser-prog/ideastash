@@ -163,25 +163,27 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .info b{display:block;font-size:17px}
 .pcard .info small{color:#fffb}
 
-/* BETA: layered card */
+/* BETA: layered card — series art / video / article picture */
 .card.lcard{position:absolute;inset:0;border-radius:0;background:#0b0a12;box-shadow:none;display:block}
-.lcard .hero{position:absolute;left:0;right:0;top:0;height:50%;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
+.lcard .series{position:absolute;left:0;right:0;top:0;height:30%;background-size:cover;background-position:center}
+.lcard .series span{position:absolute;left:14px;bottom:10px;background:#000a;color:#fff;font-weight:700;font-size:15px;
+  letter-spacing:.3px;border-radius:999px;padding:5px 12px}
+.lcard .clipbox{position:absolute;left:0;right:0;top:30%;height:30%;background:#000;overflow:hidden}
+.lcard .clipbox video{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .lplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;
+  background:var(--accent);color:#1b1408;font-size:28px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
+.lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
 .lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
 .lcard .hero .ht{display:none}
 .lcard.noimg .hero img{display:none}
-.lcard.noimg .hero .ht{display:flex;height:100%;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:26px;font-weight:700}
-.lcard .clipbox{position:absolute;left:0;right:0;top:50%;height:24%;background:#000;overflow:hidden}
-.lcard .clipbox video{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
-.lcard .lplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;
-  background:var(--accent);color:#1b1408;font-size:30px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
-.lcard .side{position:absolute;right:10px;bottom:28px;display:flex;flex-direction:column;gap:12px;z-index:2}
-.lcard .side button,.lcard .side a{width:48px;height:48px;border-radius:50%;background:#0008;font-size:21px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
-.lcard .side .saved{background:var(--accent)}
-.lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:14px 16px 22px}
+.lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
 .lcard .lmeta b{display:block;font-size:19px;line-height:1.3}
 .lcard .lmeta small{color:#fffb}
-.lcard .lbar{height:5px;background:#ffffff22;border-radius:9px;margin-top:10px;overflow:hidden}
+.lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
 .lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
+.lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
+.lcard .side button,.lcard .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.lcard .side .saved{background:var(--accent)}
 
 /* watch (v5) */
 #watch{padding:0;overflow:hidden;background:#000}
@@ -403,24 +405,33 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clip = clip ? clip.file.url : ''; save();
   return i;
 }
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art
 function layeredHTML(i){
   const saved = i.stashes && i.stashes.length;
   return `<div class="card lcard" data-id="${i.id}">
-    <div class="hero"><img src="${esc(i.image)}" alt="" onerror="this.closest('.lcard').classList.add('noimg')"><div class="ht">${esc(i.title)}</div></div>
-    <div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>
-    <button class="lplay" onclick="layerToggle('${i.id}')">▶</button>
+    <div class="series" style="background-image:url('${WID_ART}')"><span>Was It Designed?</span></div>
+    <div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video>
+      <button class="lplay" onclick="layerToggle('${i.id}')">▶</button></div>
+    <div class="hero"><img src="${esc(i.image)}" alt="" onerror="this.closest('.lcard').classList.add('noimg')"><div class="ht">${esc(i.title)}</div>
+      <div class="lmeta"><b>${esc(i.title)}</b><small>narrated by jw.org <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+        <div class="lbar"><i></i></div></div></div>
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       ${commentBtn(i.url, i.title)}
       <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
-    </div>
-    <div class="lmeta"><b>${esc(i.title)}</b><small>Was It Designed? · narrated by jw.org <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
-      <div class="lbar"><i></i></div></div></div>`;
+    </div></div>`;
 }
-let layer = null;                                           // the card that's playing: {id, a, v}
-function layerStop(){ if (!layer) return; layer.a.pause(); if (layer.v) layer.v.pause(); const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶'; layer = null; }
+let layer = null;                                           // the card that's playing: {id, a, v, stopping}
+// coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
+document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
+function layerStop(){
+  if (!layer) return;
+  layer.stopping = true; layer.a.pause(); if (layer.v) layer.v.pause();
+  const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶';
+  layer = null;
+}
 async function layerToggle(id){
   const c = document.querySelector(`.lcard[data-id="${id}"]`); if (!c) return;
   if (layer && layer.id === id){ layerStop(); return; }
@@ -431,15 +442,20 @@ async function layerToggle(id){
     await layerMedia(i);
     if (!i.audio) throw new Error('no narration');
     const a = new Audio(i.audio), v = c.querySelector('video.clip');
-    layer = {id, a, v: i.clip ? v : null};
-    if (i.clip){ if (!v.src) v.src = i.clip; v.muted = false; v.volume = 0.12; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
+    const me = layer = {id, a, v: i.clip ? v : null, stopping: false, resumes: 0};
+    if (i.clip){ if (!v.src) v.src = i.clip; v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
     a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%'; };
-    a.onended = () => { c.dataset.ended = '1'; layerStop(); const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
-    c.dataset.started = '1';
+    a.onended = () => { c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
+      const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
+    a.onpause = () => {                                      // paused by the phone (not by you)? carry on
+      if (me.stopping || a.ended || layer !== me || me.resumes > 5) return;
+      me.resumes++; setTimeout(() => { if (layer === me && a.paused && !a.ended) a.play().catch(() => {}); }, 400);
+    };
+    c.dataset.started = '1'; delete c.dataset.ended;
     await a.play();
     btn.textContent = '❚❚';
     c.querySelector('.ldur').textContent = i.adur ? '· ' + fmtDur(i.adur) : '';
-  } catch(e){ btn.textContent = '▶'; layer = null; toast('Couldn’t play the narration'); }
+  } catch(e){ btn.textContent = '▶'; if (layer && layer.id === id) layer = null; toast('Couldn’t play the narration'); }
 }
 function cardHTML(i){
   if (i.layered) return layeredHTML(i);

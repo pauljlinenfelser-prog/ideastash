@@ -57,6 +57,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   hearts, stashes or streak. Experiments are switched on in More -> Beta experiments.
   Beta 1 (2026-11-17): layered card for Was It Designed? - picture + jw.org narration + short
   video, built only from jw.org's own media files (no page reading). Toggle: Show the Remora example.
+  Beta 2 (2026-11-17): new layout - top third the jw.org Was It Designed? art (nautilus),
+  middle the article's short video (silent, loops until the narration ends), bottom the article
+  picture with title + progress. Fixed: the narration no longer stops when the video ends.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
