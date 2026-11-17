@@ -492,6 +492,7 @@ function observeFeed(){
 // (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
 function upgradeCard(id){
   const i = findIdea(id);
+  if (i && i.full === true && PLAYER_JUNK.test(i.body || '')) i.full = false;   // (v15) re-read cards that caught video-player text
   if (!i || i.full || i.video || i.image || i.pics || !i.url || !/jw\.org/.test(i.url)) return;
   const it = db.shelf.find(x => x.id === i.shelfId);
   const kind = it && (KIND_INFO[it.kind] || it.kind === 'qfr' || it.kind === 'bqa') ? it.kind
@@ -757,7 +758,7 @@ async function fetchText(url){
 }
 function htmlToText(html){
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  doc.querySelectorAll('script,style,nav,header,footer,noscript,aside,form').forEach(n=>n.remove());
+  doc.querySelectorAll('script,style,nav,header,footer,noscript,aside,form,button,[role=dialog],.video-js,[class*=vjs-]').forEach(n=>n.remove());   // (v15) + video player
   const root = doc.querySelector('article, main, #article, .article') || doc.body;
   root.querySelectorAll('p,div,h1,h2,h3,li,br').forEach(n => n.insertAdjacentText('afterend','\n\n'));
   return root.textContent;
@@ -997,6 +998,9 @@ function wordsOf(s){ return new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').s
 // (v11) Whole articles: keep headings ("## …"), highlighted questions and points, bullets and numbered lists,
 // and read to the end of the article (stop at footnotes / Related / page tools) instead of ~950 characters.
 const JUNK_LINE = /^(PLAY|CLOSE|Play video|Media is loading|Loaded: ?\d*%?|Current time.*|Duration.*|Mute|Play Back.*|Download|Share|Print|Font Size|Previous|Next|\/|Questions From Readers|Play & Download|SHOW MENU)$/i;
+// (v15) jw.org's video player (video.js) hides its settings menus as text in the page: Settings, Speed 2x…0.6x, Cast, AirPlay, captions dialog
+const PLAYER_LINE = /^(Settings|Back|Speed|Speed \d(\.\d+)?x\b.*|\d(\.\d+)?x( · Normal)?(, selected)?|Normal|Cast|AirPlay|Close Modal Dialog|This is a modal window\.?|Text Color.*Transparency.*|Font Size Text Edge.*|Reset restore all settings.*|Captions( and Subtitles)?( off| settings.*)?|Subtitles( off)?|Chapters|Descriptions( off)?|Audio Track|Quality|Auto|Picture-in-Picture|Fullscreen|Non-Fullscreen|Unmute|Pause|Replay|Remaining Time.*|Stream Type.*|LIVE|Seek to live.*|(Audio|Video) \d+)$/i;
+const PLAYER_JUNK = /This is a modal window|Beginning of dialog window|Close Modal Dialog|Reset restore all settings/i;
 const END_LINE = /^(\*\*)?\[?(Footnotes?|Related Topics|You May Also Like|Read More|Related|See also|Share)\]?(\*\*)?$/i;
 function inlineMd(t){
   return t.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
@@ -1011,12 +1015,16 @@ function articleBlocks(md){
   const lines = md.replace(/\r/g, '').split('\n');
   const h1 = lines.findIndex(l => /^#\s+\S/.test(l) && !/Play & Download/i.test(l));   // jw.org pages: skip menu + cookie notice
   const out = [];
-  let afterPic = 0, num = '', inPlayer = false;                                 // picture captions follow a picture
+  let afterPic = 0, num = '', inPlayer = false, inDialog = false;                                 // picture captions follow a picture
   for (const raw of (h1 > -1 ? lines.slice(h1 + 1) : lines)){
     let l = raw.trim();
     if (!l) continue;
     if (/^#\s+Play & Download/i.test(l)) { inPlayer = true; continue; }          // jw.org video player menus
     if (inPlayer) { if (/\d{3}p\s*\(MP4/i.test(l)) inPlayer = false; continue; }
+    const plain = l.replace(/^(#{1,6}|[*+-•])\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+    if (/^Beginning of dialog window/i.test(plain)) { inDialog = true; continue; }   // (v15) video player captions dialog
+    if (inDialog) { if (/End of dialog window/i.test(plain)) inDialog = false; continue; }
+    if (/End of dialog window/i.test(plain) || PLAYER_LINE.test(plain)) continue;      // (v15) video player menus
     const bare = l.replace(/^#{1,6}\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
     if (END_LINE.test(bare) || /^#{1,3}\s+(Related|You May Also Like|Read More)/i.test(l)) break;
     if (/^\[[a-z]\]\([^)]*#footnotesource/.test(l)) break;                     // footnote list
@@ -1034,7 +1042,7 @@ function articleBlocks(md){
     if ((m = l.match(/^[*+-]\s+(.+)/))) { const b = inlineMd(m[1]); if (b && !JUNK_LINE.test(b)) out.push('• ' + b); continue; }
     if ((m = l.match(/^(\d+)\.\s+(.+)/))) { const b = inlineMd(m[2]); if (b) out.push(m[1] + '. ' + b); continue; }
     l = inlineMd(l.replace(/^>\s?/, ''));
-    if (!l || JUNK_LINE.test(l) || /cookie|JavaScript|Skip to content/i.test(l)) continue;
+    if (!l || JUNK_LINE.test(l) || PLAYER_LINE.test(l) || /cookie|JavaScript|Skip to content/i.test(l)) continue;
     out.push(l);
   }
   return out;
@@ -1060,6 +1068,8 @@ async function articleCard(entry, kind){
   });
   const title = kind === 'bqa' || qi < 0 ? entry.q : p0(blocks[qi].replace(/^## /, '')).replace(/^(?:\d+\.\s+.*?\s+)+(?=\d+\.\s)/, '').replace(/^\d+\.\s+/, '');
   blocks = blocks.slice(qi + 1);
+  const norm = t => t.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');   // (v15) page repeats the question
+  while (blocks.length && norm(blocks[0]) === norm(title)) blocks.shift();
   if (kind === 'qfr'){                                   // a wol page can hold several Questions From Readers: stop at the next one
     const next = blocks.findIndex((b, ix) => ix > 0 && /^## .{10,320}\?["”’)]*$/.test(b) && b.length > 40);
     if (next > 0) blocks = blocks.slice(0, next);
@@ -1076,6 +1086,9 @@ function seriesCard(entry, kind, md){
   const info = KIND_INFO[kind];
   const pic = (md.split('Markdown Content:').pop().match(/https:\/\/cms-imgp\.jw-cdn\.org\/img\/p\/[^\s)"']+?_(?:md|lg)\.jpg/) || [])[0] || '';
   let blocks = articleBlocks(md);
+  const norm = t => t.replace(/^## /, '').toLowerCase().replace(/[^a-z0-9]+/g, '');   // (v15) page repeats the title
+  const t0 = norm(entry.q.replace(/[—-]\s*Was It Designed\?$/, ''));
+  while (blocks.length && t0 && (norm(blocks[0]) === t0 || norm(blocks[0]) === norm(entry.q))) blocks.shift();
   if (kind === 'bve'){                                    // keep the NWT quote, drop the same verse in other translations
     let first = true;
     blocks = blocks.filter(b => { if (/^“/.test(b) && /(Version|Translation|Bible)[._ ]*$/.test(b)){ const keep = first; first = false; return keep; } return true; });
@@ -1460,7 +1473,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v14 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v15 (formerly IdeaStash) — free, private, no account. Books come from Project Gutenberg (public domain).
     Web pages are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

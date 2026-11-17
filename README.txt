@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v14)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v15)
 =======================================
 
 FOLDERS
@@ -99,4 +99,8 @@ VERSIONS
   v14 New home-screen icon: a collection of gems (diamond, ruby, sapphire, emerald). Drawing in
       art\icon-gems.svg (the old lamp is kept as art\icon-lamp.svg). To see it: remove the app
       from your home screen and add it again from Chrome (your saved cards stay).
+  v15 Fix: some Bible Questions Answered cards showed jw.org's video-player menus (Settings,
+      "This is a modal window", Speed 2x...0.6x, Cast, AirPlay) instead of the answer. Those
+      are now skipped, and a card that already caught them re-reads the page the next time
+      it comes on screen.
   Next: Listening (driving) mode
