@@ -80,6 +80,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Today's Daily Text is still read the old way until the Daily Text download is added.
   Beta 10: narrated articles only (Mike's call). Articles jw.org hasn't narrated are skipped
   when the shelf delivers, and any Read-on-jw.org cards stay out of Today (still in your gems).
+  Beta 11: the beta has its own icon - the gems with a pink B (art/icon-gems-beta.svg).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
