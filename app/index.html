@@ -336,7 +336,7 @@ function ensureDailyShelf(){
   });
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
   [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
-   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15]].forEach(   // (v30) + A Day in the Life of…
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15], ['CONV_SHORT', 10]].forEach(   // (v30) + A Day in the Life of…; (v31) + short convention videos
   ([key, maxMin]) => {   // (v9) + experiences and our history
     const tag = 'w:' + key;
     if (db.seeded.includes(tag)) return;
@@ -1856,7 +1856,7 @@ function shelfRemove(id){
 // jw.org's public video catalog allows direct app access (open CORS); MP4s play straight from jw-cdn.
 const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
 const WATCH_GROUPS = [
-  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings']]],
+  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings'],['CONV_SHORT','Convention Videos (short)']]],
   ['JW Broadcasting', [['StudioNewsReports','News and Announcements'],['StudioTalks','Talks'],['StudioMonthlyPrograms','Monthly Programs'],['StudioFeatured','Featured Videos']]],
   ['Interviews and Experiences', [['VODIntExpTransformations','Truth Transforms Lives'],['VODIntExpBlessings','Blessings of Sacred Service'],['VODIntExpEndurance','Enduring Trials'],['VODIntExpYouth','Young People'],['OriginsLife','Science'],['VODIntExpArchives','From Our Archives']]],
   ['The Bible', [['VODBiblePrinciples','Apply Bible Principles'],['VODBibleTeachings','Bible Teachings'],['BibleBooks','Books of the Bible'],['VODBibleReadingStudy','Bible Reading and Study'],['VODBibleMedia','People, Places, and Things'],['VODBibleCreation','Creation'],['VODBibleAccounts','Bible Accounts'],['VODBibleTranslations','Bible Translations']]],
@@ -1893,8 +1893,17 @@ function slimVideo(m, cat){
     img: img.lg || img.xl || img.sm || '', src: pick.progressiveDownloadURL, cat: cat || m.primaryCategory};
 }
 const catCache = {};
+// (v31) a channel made of several jw.org categories: the short videos from every year's convention
+const MULTI_CATS = {CONV_SHORT: ['2026Convention', '2025Convention', '2024Convention', '2023Convention', '2022Convention', '2021Convention', '2020Convention', '2019Convention']};
+const MULTI_SKIP = {CONV_SHORT: /^You Are Invited|Trailer|Preview|^\d{4} Convention of Jehovah/i};   // invitations and trailers aren't worth a slot
 async function catVideos(key){
   if (catCache[key]) return catCache[key];
+  if (MULTI_CATS[key]){
+    const all = [];
+    for (const k of MULTI_CATS[key]){ try { all.push(...(await catVideos(k)).filter(v => !MULTI_SKIP[key].test(v.title)).map(v => ({...v, cat:key}))); } catch(e){} }
+    if (!all.length) throw new Error('jw.org video list unavailable');
+    return catCache[key] = all;
+  }
   const r = await timed(`${JW_API}categories/E/${key}?detailed=1&clientType=www`, 30000);
   if (!r.ok) throw new Error('jw.org video list returned ' + r.status);
   const out = [];
@@ -2132,7 +2141,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v30 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v31 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

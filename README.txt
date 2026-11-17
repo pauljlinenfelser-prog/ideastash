@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v30)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v31)
 =======================================
 
 FOLDERS
@@ -191,4 +191,7 @@ VERSIONS
       behind the one you're watching; coming back lands on the same video.
   v30 New video channel: A Day in the Life of... (jw.org's series: Bethel commuter, need-greater,
       translator), on by default, one a day; also listed under Our Organization in Watch.
+  v31 New video channel: Convention Videos (short) - the short videos and excerpts from every
+      convention 2019-2026 (171 of 10 minutes or less; invitations and trailers left out), on by
+      default, one a day.
   Next: Daily Text from the es26 EPUB (in the beta)
