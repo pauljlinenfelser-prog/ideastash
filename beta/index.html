@@ -322,9 +322,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 29;
+const BETA_NO = 30;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [30, 'Things you open from Stashes play again: tapping ▶ on a story you’d opened was starting the hidden copy in Today instead. Closing it stops the sound.', ''],
   [29, 'Reading aloud with the phone’s voice no longer misses the first few words: it waits a moment for the speaker to wake up before it starts.', ''],
   [28, 'How long finished things rest is now set in months (1 to 12) in More, or Auto, which works it out from how much jw.org has on your shelf and how much you get through a day.', ''],
   [27, 'Like TikTok: hearting or saving something keeps it in Stashes, now shown as pictures you tap to open, and it stops coming back in Today. Each stash has a “Replay in Today” switch if you want its gems to come round again.', ''],
@@ -422,7 +423,8 @@ function openFaq(){
     ${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}
     <button class="btn alt" onclick="closeSheet()">Close</button>`);
 }
-function closeSheet(){ document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
+function closeSheet(){ if (layer && layer.el && layer.el.closest('#sheet')) layerStop(); document.querySelectorAll('#sheet video').forEach(v => v.pause());   // beta 30
+  document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 const findIdea = id => db.ideas.find(i => i.id===id);
@@ -645,7 +647,7 @@ let layer = null;                                           // the card that's p
 function layerStopIfGone(lc){
   const id = lc.dataset.id;
   setTimeout(() => {
-    if (!layer || layer.id !== id) return;
+    if (!layer || layer.id !== id || (layer.el && layer.el.closest('#sheet'))) return;   // beta 30: playing in an opened card, not the feed
     const f = document.getElementById('feed'), r = lc.getBoundingClientRect(), fr = f.getBoundingClientRect();
     const seen = Math.max(0, Math.min(r.bottom, fr.bottom) - Math.max(r.top, fr.top));
     if (seen < fr.height * 0.5) layerStop();
@@ -667,7 +669,7 @@ function layerStop(){
   if (!layer) return;
   layer.stopping = true; layer.a.pause(); if (layer.v) layer.v.pause();
   { const i = findIdea(layer.id); if (i && !layer.a.ended && layer.a.currentTime > 1){ i.lpos = Math.floor(layer.a.currentTime); save(); } }   // (v49)
-  const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶';
+  const b = (layer.el || lcardEl(layer.id)).querySelector('.lplay'); if (b) b.textContent = '▶';
   layer = null;
 }
 // (v49) at the end of a Bible chapter: go straight on to the next one
@@ -690,8 +692,10 @@ async function nextChapter(btn){
     tlog('next chapter: ' + c.title); layerToggle(c.id);
   } catch(e){ btn.disabled = false; btn.textContent = 'Next chapter ▶'; toast('Couldn’t load the next chapter'); }
 }
+// beta 30 (Mike): a card opened from Stashes wouldn't play: ▶ found the hidden copy in Today. The open one comes first now.
+const lcardEl = id => document.querySelector(`#sheet.on .lcard[data-id="${id}"]`) || document.querySelector(`.lcard[data-id="${id}"]`);
 async function layerToggle(id){
-  const c = document.querySelector(`.lcard[data-id="${id}"]`); if (!c) return;
+  const c = lcardEl(id); if (!c) return;
   if (layer && layer.id === id){ layerStop(); return; }
   layerStop(); stopListening();
   const i = findIdea(id), btn = c.querySelector('.lplay');
@@ -702,7 +706,7 @@ async function layerToggle(id){
     const a = new Audio(i.audio), v = c.querySelector('video.clip');   // null on an audio-only card
     const from = i.lpos > 5 && (!i.adur || i.lpos < i.adur - 5) ? Math.max(0, i.lpos - 3) : 0;   // (v49) carry on where you stopped
     if (from){ a.currentTime = from; a.addEventListener('loadedmetadata', () => { if (a.currentTime < from - 1) a.currentTime = from; }, {once: true}); }
-    const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0};   // no clip element on an audio card
+    const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0, el: c};   // beta 30: el = the card it plays on   // no clip element on an audio card
     if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
     a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
       if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)

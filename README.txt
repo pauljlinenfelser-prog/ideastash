@@ -119,6 +119,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 28: rest time in months (1-12) or Auto (jw.org cards on the shelf / cards a day), set in More.
   Beta 29: the phone's read-aloud voice waits 0.35 s and says a quiet pause first, so it no longer misses
   the opening words.
+  Beta 30: cards opened from Stashes (e.g. All ideas) play again; closing the card stops the sound.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
