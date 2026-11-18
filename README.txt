@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v47)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v48)
 =======================================
 
 FOLDERS
@@ -239,4 +239,6 @@ VERSIONS
   v46 The Shelf tab's icon is now 📚 (books), so 📖 means the Bible reading.
   v47 A 📖 Bible button at the top of Today (next to Auto) jumps straight to today's Listen to the Bible
       chapter. (Mike's phone doesn't show the home-screen icon menu from v44.)
+  v48 New look: Mike's treasure chest of gems (with G S on the front) is the app icon, and a small copy
+      sits in the top-left corner of the app instead of the word GemStash.
   Next: ask Mike

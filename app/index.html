@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>GemStash</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-chest-192.png">
+<link rel="apple-touch-icon" href="icon-chest-192.png">
 <style>
 :root{
   --bg:#14121f; --panel:#1e1b2e; --panel2:#272340; --text:#f3f1fb; --muted:#a39fbd;
@@ -28,6 +28,7 @@ textarea{min-height:160px;resize:vertical}
 header{padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);z-index:5}
 header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
+header h1 img.logo{height:46px;width:46px;display:block;margin:-6px 0}   /* (v48) */
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
 .pill.auto{font-weight:600}
 /* (v19) comments */
@@ -239,7 +240,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <body>
 <div id="app">
   <header>
-    <h1>Gem<span>Stash</span></h1>
+    <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash"></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
     <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖 Bible</button>   <!-- (v47) -->
     <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
     <span class="pill" id="streak">🔥 0</span>
@@ -2375,7 +2376,7 @@ function renderMore(){
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v47 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v48 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
