@@ -370,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 33;
+const BETA_NO = 34;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [34, 'Profile pictures now fit their circle: the whole picture shows, not a zoomed-in corner.', ''],
   [33, 'Profile pictures: tap your name at the top of the Circle tab to add yours. People in your circle see it next to your name, on your photos and on your comments.', ''],
   [32, 'Stashes is now Treasures, a treasure chest: ❤️ Hearted, 💎 Gems, 🕘 Recently finished, and a pouch for each tag. Tapping 💎 saves straight away; a tag is optional (tap 💎 again to skip). Your old stashes became tags.', ''],
   [31, '➕ Add in the bottom bar now shares your own photos with your circle. Adding a book or a jw.org video link moved to the bottom of the Shelf.', ''],
@@ -1753,7 +1754,7 @@ const avMem = {};
 const avColor = u => `hsl(${[...String(u)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360},70%,72%)`;
 function avHTML(u, name, size){
   const z = size ? `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px;` : '';
-  return `<span class="av" data-avu="${esc(u)}" style="${z}background:${avColor(u)}">${esc(((name || '?') + '')[0].toUpperCase())}</span>`;
+  return `<span class="av" data-avu="${esc(u)}" style="${z}background-color:${avColor(u)}">${esc(((name || '?') + '')[0].toUpperCase())}</span>`;
 }
 async function avData(u){
   if (avMem[u]) return avMem[u];
@@ -1770,7 +1771,7 @@ function fillAvatars(root){
   if (!circleReady()) return;
   (root || document).querySelectorAll('.av[data-avu]:not(.has)').forEach(async el => {
     const d = await avData(el.dataset.avu).catch(() => '');
-    if (d){ el.classList.add('has'); el.style.backgroundImage = `url(${d})`; el.textContent = ''; }
+    if (d){ el.classList.add('has'); el.style.backgroundImage = `url(${d})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; el.textContent = ''; }   // beta 34: fit the whole picture in the circle
   });
 }
 async function avPick(file){

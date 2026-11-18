@@ -126,6 +126,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   pouch per tag. 💎 saves in one tap with an optional tag strip (tap 💎 again to skip). Old stashes became tags.
   Beta 33: profile pictures: tap your name on the Circle tab. Kept free in Firestore photos/av_<uid>, seen
   only by your circle; shown on the Circle tab, on circle photos and on comments.
+  Beta 34: profile pictures fit their circle (the inline colour had reset the picture size: zoomed corner).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
