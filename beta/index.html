@@ -322,9 +322,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 28;
+const BETA_NO = 29;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [29, 'Reading aloud with the phone’s voice no longer misses the first few words: it waits a moment for the speaker to wake up before it starts.', ''],
   [28, 'How long finished things rest is now set in months (1 to 12) in More, or Auto, which works it out from how much jw.org has on your shelf and how much you get through a day.', ''],
   [27, 'Like TikTok: hearting or saving something keeps it in Stashes, now shown as pictures you tap to open, and it stops coming back in Today. Each stash has a “Replay in Today” switch if you want its gems to come round again.', ''],
   [26, 'Your circle is on the Shelf: choose whose photos mix into Today (none, only yours, or yours and your circle’s), how many a day, and how spread out they are.', ''],
@@ -1065,6 +1066,10 @@ async function listen(id){
   const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
                 speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
   speakingId = id; setListenIcons();
+  // beta 29 (Mike): the phone's voice always missed the first few words. Android wakes its speaker (or Bluetooth) only
+  // when speech starts, and drops speech sent straight after a stop. So wait a moment, then say a short silent pause first.
+  setTimeout(() => { if (speakingId !== id) return;
+  const warm = new SpeechSynthesisUtterance(', , ,'); if (voice) warm.voice = voice; warm.volume = 0.05; speechSynthesis.speak(warm);
   parts.forEach((p, n) => {
     const u = new SpeechSynthesisUtterance(p);
     if (voice) u.voice = voice;
@@ -1073,6 +1078,7 @@ async function listen(id){
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
     speechSynthesis.speak(u);
   });
+  }, 350);
 }
 
 /* ================= auto-scroll (v18) ================= */

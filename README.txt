@@ -114,6 +114,11 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   narration or series video played to the end); 1 month by default, set in More. Hearted/stashed never rest.
   Beta 26: "Photos from your circle" on the Shelf: whose photos mix into Today, how many a day (1-10), and
   how spread out (every other / 3rd / 5th / 8th slide). Always all on the Circle tab.
+  Beta 27: hearted/saved things stay out of Today for good (each stash has a "Replay in Today" switch);
+  Stashes show as a picture grid like TikTok's saved list.
+  Beta 28: rest time in months (1-12) or Auto (jw.org cards on the shelf / cards a day), set in More.
+  Beta 29: the phone's read-aloud voice waits 0.35 s and says a quiet pause first, so it no longer misses
+  the opening words.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
