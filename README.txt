@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v43)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v44)
 =======================================
 
 FOLDERS
@@ -231,4 +231,7 @@ VERSIONS
       from and how that fits jw.org's Terms of Use.
   v43 Each listen card says "🎧 from jw.org's MP3 download" and links to that MP3, the file its sound,
       title and picture come from (from Beta 16). The FAQ says so too. Everything from the beta is now in the app.
+  v44 Straight to the Bible reading: press and hold the GemStash icon on the home screen and tap
+      "Bible reading" (or drag it out as its own icon). GemStash opens on today's Listen to the Bible
+      chapter, even when the day's time is used up; tap ▶ to listen.
   Next: ask Mike

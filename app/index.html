@@ -674,7 +674,22 @@ async function renderFeed(){
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
   el.scrollTop = 0; restoreSpot(el);              // (v36) same day: back where you were
+  goBible(el);                                    // (v44)
   observeFeed();
+}
+function goBible(el){
+  const q = new URLSearchParams(location.search); if (q.get('go') !== 'bible') return;
+  history.replaceState(null, '', location.pathname);           // only once: a reload doesn't jump again
+  const isBible = c => c && (findIdea(c.dataset.id) || {}).lkind === 'nwt';
+  let s = [...el.children].find(x => isBible(x.querySelector('.lcard')));
+  if (!s){                                                      // not in Today (time's up, or it came in earlier): put it second
+    const it = db.shelf.find(x => x.kind === 'nwt');
+    const c = it && db.ideas.filter(i => i.shelfId === it.id).sort((a, b) => (b.created || 0) - (a.created || 0))[0];
+    if (!c){ toast('Turn on “Listen to the Bible” on the Shelf first'); return; }
+    el.children[0].insertAdjacentHTML('afterend', slideHTML({card: c}, -1)); s = el.children[1];
+  }
+  el.scrollTop = s.offsetTop; tlog('opened from the Bible reading shortcut');
+  toast('📖 Today’s Bible reading: tap ▶ to listen');
 }
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
@@ -2353,7 +2368,7 @@ function renderMore(){
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v43 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v44 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
