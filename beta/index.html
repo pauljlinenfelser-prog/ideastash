@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>GemStash Beta</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-chest-b-192.png">
-<link rel="apple-touch-icon" href="icon-chest-b-192.png">
+<link rel="icon" href="icon-chest-bt-192.png">
+<link rel="apple-touch-icon" href="icon-chest-bt-192.png">
 <style>
 :root{
   --bg:#14121f; --panel:#1e1b2e; --panel2:#272340; --text:#f3f1fb; --muted:#a39fbd;
@@ -370,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 38;
+const BETA_NO = 39;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [39, 'The pink B on the beta’s icon moved to the top corner, where Edge’s own little “e” doesn’t cover it.', ''],
   [38, 'The beta’s icon now matches the app: the treasure chest, with a pink B.', ''],
   [37, 'Parental controls also lock the daily scrolling time: changing it needs the parent’s PIN.', ''],
   [36, 'Parental controls: in More, set a parent’s PIN. It locks the Circle tab, sharing photos, comments and circle settings on this phone; you choose whether circle photos stay hidden or can be looked at. jw.org content stays open.', ''],

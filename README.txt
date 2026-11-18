@@ -134,6 +134,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 37: parental controls also lock the daily scrolling-time setting.
   Beta 38: beta icon = the app's treasure chest with a pink B (icon-chest-b-*.png; the old gems icon
   files icon-192/512.png are kept, no longer used).
+  Beta 39: the B moved to the top-right of the beta icon (Edge's "e" covers the bottom-right): icon-chest-bt-*.png.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
