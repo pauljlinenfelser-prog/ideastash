@@ -1,5 +1,5 @@
 // IdeaStash service worker — caches the app so it opens offline
-const CACHE = 'ideastash-v49';
+const CACHE = 'ideastash-v50';
 const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-chest-192.png', 'icon-chest-512.png', 'icon-chest-maskable-512.png', 'logo-chest-128.png',   /* (v48) icon-192/512 (gems) retired */ 'icon-book-192.png', 'icon-book-512.png'];   // (v45) icon-bible-192.png retired (v44's drawn book)
 // (v25) always ask GitHub for the newest copy ('no-cache' = check first, reuse only if unchanged). Before, the browser could
 // reuse GitHub's copy for up to 10 minutes, so a new version didn't show up right away.

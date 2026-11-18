@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v49)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v50)
 =======================================
 
 FOLDERS
@@ -99,6 +99,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   under Earlier betas), and which ones are now in the app. Each new beta adds its line there.
   Beta 18: the stuck-feed fix from app v40 (extra listen/picture cards no longer stop Today).
   Beta 19: What's new marks Betas 12, 14, 15 and 16 as now in the app (v41-v43).
+  Beta 20: Add no longer has paste a jw.org link (same as app v50).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
@@ -245,4 +246,6 @@ VERSIONS
       there (a few seconds back), even days later. A chapter stays as your Bible card until you've heard it
       to the end, and then a "Next chapter ▶" button lets you go straight on. Other listen cards remember
       their spot too.
+  v50 The Add tab no longer has "paste a jw.org link" (it read the article page, the last thing that
+      didn't fit jw.org's Terms). Add now has Books and Video link. (The beta too, Beta 20.)
   Next: ask Mike

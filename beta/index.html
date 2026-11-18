@@ -1284,15 +1284,16 @@ function htmlToText(html){
 }
 
 /* ================= add view ================= */
-let addTab = 'web', preview = [];   // (v21) jw.org only: Books / Paste / Write one retired
+let addTab = 'books', preview = [];   // beta 20 (app v50): pasting a jw.org link is retired (it read the page)
+// was: let addTab = 'web'   // (v21) jw.org only: Books / Paste / Write one retired
 function renderAdd(){
   const el = document.getElementById('add');
   el.innerHTML = `<div class="tabs">
-      ${[['web','🌐 jw.org link'],['books','📖 Books'],['video','🎬 Video link']].map(([k,l])=>
+      ${[['books','📖 Books'],['video','🎬 Video link']].map(([k,l])=>
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
   const b = document.getElementById('addBody');
-  if (!['web','books','video'].includes(addTab)) addTab = 'web';   // (v23) Books are back (Mike); Paste / Write one stay retired
+  if (!['books','video'].includes(addTab)) addTab = 'books';   // beta 20 (app v50):   // (v23) Books are back (Mike); Paste / Write one stay retired
   if (addTab==='books') b.innerHTML = `
       <label class="btn" style="display:block;text-align:center">📄 Add a book from my files (PDF or EPUB)
         <input type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onchange="addFileBook(this.files[0]); this.value=''"></label>
@@ -1300,7 +1301,7 @@ function renderAdd(){
       <p style="color:var(--muted);font-size:14px;margin:4px 0">Or search free public-domain books on Project Gutenberg:</p>
       <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
       <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
-  if (addTab==='web') b.innerHTML = `
+  if (addTab==='web_retired') b.innerHTML = `   // beta 20 (app v50): RETIRED: paste a jw.org link (read the article page)
       <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text</button>
       <label class="l">Or paste a jw.org or wol.jw.org link</label>
       <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
@@ -1379,9 +1380,10 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 19;
+const BETA_NO = 20;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [20, 'Add no longer has “paste a jw.org link” (it read the article page).', 'v50'],
   [19, 'The Daily Text download, the FAQ and the MP3 links are now in the app too (v41–v43).', ''],
   [18, 'Fixed: Today could get stuck after many cards, when an extra card at the end was a listen or picture card.', 'v40'],
   [17, 'This list: what each beta added, newest first.', ''],
