@@ -83,6 +83,13 @@ nav button.on{color:var(--accent)}
 .tile{background:var(--panel);border-radius:18px;padding:16px;text-align:left;min-height:96px;display:flex;flex-direction:column;gap:6px}
 .tile .e{font-size:26px}
 .tile small{color:var(--muted)}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:0 -4px 12px}
+.thumb{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;cursor:pointer;background:var(--panel)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .tt{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:11px;line-height:1.25;color:#fff;font-weight:600;
+  background:linear-gradient(transparent,rgba(0,0,0,.85));display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.thumb .tk{position:absolute;top:5px;right:6px;font-size:13px;text-shadow:0 1px 3px #000}
+.thumb .te{display:grid;place-items:center;height:100%;font-size:34px}
 .mini{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px}
 .mini b{display:block;margin-bottom:6px}
 .mini p{margin:0;color:#d6d2e8;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -315,9 +322,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 26;
+const BETA_NO = 27;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [27, 'Like TikTok: hearting or saving something keeps it in Stashes, now shown as pictures you tap to open, and it stops coming back in Today. Each stash has a “Replay in Today” switch if you want its gems to come round again.', ''],
   [26, 'Your circle is on the Shelf: choose whose photos mix into Today (none, only yours, or yours and your circle’s), how many a day, and how spread out they are.', ''],
   [25, 'Things you finish take a rest: a card you read, or a story or video you watch to the end, stays out of Today for a month (change it in More). Hearted or stashed ones never rest.', ''],
   [24, 'Share photos with your circle for free: they’re shrunk on your phone and kept in Firebase’s free space. Videos come later, when the paid storage is switched on.', ''],
@@ -482,11 +490,12 @@ function ensureDaily(){
 const REST_CHOICES = [7, 14, 30, 90];
 const restDays = () => db.restDays || 30;
 function finished(id, why){                                  // beta 25
-  const i = findIdea(id); if (!i || (i.stashes || []).length) return;
+  const i = findIdea(id); if (!i) return;
   (db.rest ||= {})[id] = Date.now(); save(); tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
 }
-const resting = i => { const t = (db.rest || {})[i.id]; return !!t && !(i.stashes || []).length && Date.now() - t < restDays() * 864e5; };
-const byRest = list => list.slice().sort((a, b) => ((db.rest || {})[a.id] || 0) - ((db.rest || {})[b.id] || 0));   // longest-rested first
+const kept = i => !!i && (i.stashes || []).length > 0 && !(i.stashes || []).some(sid => (db.stashes.find(x => x.id === sid) || {}).replay);   // beta 27: saved = out of Today for good, unless its stash replays
+const resting = i => { if (kept(i)) return true; const t = (db.rest || {})[i.id]; return !!t && Date.now() - t < restDays() * 864e5; };
+const byRest = list => list.filter(i => !kept(i)).sort((a, b) => ((db.rest || {})[a.id] || 0) - ((db.rest || {})[b.id] || 0));   // longest-rested first
 function bumpStreak(){
   const t = today(); if (db.streak.last === t) return;
   const y = new Date(); y.setDate(y.getDate()-1);
@@ -1777,7 +1786,7 @@ function stashSheet(id){
 }
 function toggleStash(id, sid, on){
   const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on) i.stashes.push(sid);
-  save(); refreshCard(id);
+  save(); refreshCard(id); if (on) finished(id, 'saved');   // beta 27: saved = out of the rotation, kept in Stashes
 }
 /* ---- hearts (v6) ---- */
 const isHearted = i => !!i && (i.stashes || []).includes('fav');
@@ -1839,12 +1848,23 @@ function renderLibrary(){
         <span class="e">➕</span><b>New stash</b><small>Group ideas</small></button>
     </div>
     <div class="search"><input id="libQ" placeholder="Search ideas…" value="${esc(q)}" oninput="clearTimeout(window._q);window._q=setTimeout(()=>{renderLibrary();const x=document.getElementById('libQ');x.focus();x.setSelectionRange(x.value.length,x.value.length)},250)"></div>
+    ${libFilter!=='all' ? (st => `<button class="btn ${st.replay ? '' : 'alt'} sm" onclick="stashReplay('${libFilter}')">🔁 Replay in Today: ${st.replay ? 'On' : 'Off'}</button>
+      <p style="color:var(--muted);font-size:13px;margin:4px 0 8px">${st.replay ? 'These come back in Today now and then.' : 'Saved here, they stay out of Today. Turn on to see them again now and then.'}</p>`)(db.stashes.find(x => x.id === libFilter) || {}) : ''}
     ${libFilter!=='all' && libFilter!=='fav' ? `<button class="btn alt sm" onclick="delStash('${libFilter}')">Delete this stash</button>`:''}
     <div class="sec">${list.length} ideas</div>
-    ${list.slice(0,300).map(i=>`<div class="mini" onclick="viewIdea('${i.id}')"><b>${esc(i.title)}</b><p>${esc(i.body)}</p>
-      <div class="m">${esc(i.topic)} · ${esc(i.source||'')}</div></div>`).join('')}
+    <div class="thumbs">${list.slice(0,300).map(thumbHTML).join('')}</div>
     ${list.length>300?'<div class="status">Showing newest 300 — use search to narrow.</div>':''}`;
 }
+function thumbOf(i){                                       // beta 27: the picture for a saved item
+  const cc = i.kids === 'Bible Character Card' && ccPics(i);
+  const u = (i.video && i.video.img) || (cc && cc[0]) || (i.pics && i.pics[0]) || i.image || i.pic || (i.lkind && LISTEN_SERIES[i.lkind] ? LISTEN_SERIES[i.lkind].art : '');
+  return u ? `<img src="${esc(u)}" alt="" loading="lazy"${/#front$/.test(u) ? ' class="cfront"' : ''}>` : `<div class="te" style="background:linear-gradient(160deg,${topicColors(i.topic).join(',')})">💡</div>`;
+}
+function thumbHTML(i){
+  const kind = i.video ? '▶️' : i.layered ? '🎧' : (i.pics && i.pics.length > 1) ? '🖼️' : '';
+  return `<div class="thumb" onclick="viewIdea('${i.id}')">${thumbOf(i)}${kind ? `<span class="tk">${kind}</span>` : ''}<div class="tt">${esc(i.title)}</div></div>`;
+}
+function stashReplay(sid){ const st = db.stashes.find(x => x.id === sid); if (!st) return; st.replay = !st.replay; save(); renderLibrary(); }
 function newStashSheet(){ openSheet(`<h3>New stash</h3><input id="newStash" placeholder="Name"><button class="btn" onclick="newStash()">Create</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`); }
 function delStash(sid){
   db.stashes = db.stashes.filter(s=>s.id!==sid);
@@ -2926,7 +2946,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">Things you’ve finished</div>
-    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Hearted or stashed ones never rest. Scrolling back up still shows today’s again.</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Anything you heart or save stays out of Today and waits for you in Stashes (each stash has a Replay switch). Scrolling back up still shows today’s again.</p>
     <div class="seg">${REST_CHOICES.map(d => `<button class="${restDays() === d ? 'on' : ''}" onclick="db.restDays=${d};save();renderMore()">${d < 30 ? d / 7 + (d === 7 ? ' week' : ' weeks') : d === 30 ? '1 month' : '3 months'}</button>`).join('')}</div>
     <button class="btn alt" onclick="db.rest={};save();renderMore();toast('Everything is back in the mix')">↩️ Bring them all back now (${Object.keys(db.rest || {}).filter(id => { const i = findIdea(id); return i && resting(i); }).length} resting)</button>
     <div class="sec">Something not working?</div>
