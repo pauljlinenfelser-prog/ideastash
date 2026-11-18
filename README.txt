@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v40)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v41)
 =======================================
 
 FOLDERS
@@ -223,4 +223,7 @@ VERSIONS
   v40 Fixed: Today got stuck after many cards. When an extra card at the end was a listen card or a
       picture card, it was set up as a video, which failed, so the feed couldn't move past it. Now every
       extra card works, and when there's truly nothing left a "You've seen everything for now" card says so.
+  v41 Daily Text from jw.org's download (from Beta 12 and 14): once a year, download jw.org's Examining
+      the Scriptures Daily (EPUB) and pick it in GemStash; each day's text then comes from that file on the
+      phone, and the card links to jw.org's EPUB. Nothing is read from jw.org's pages for it any more.
   Next: Daily Text from the es26 EPUB (in the beta)

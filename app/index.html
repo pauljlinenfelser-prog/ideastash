@@ -578,12 +578,12 @@ function cardHTML(i){
   if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
   const saved = i.stashes && i.stashes.length;
-  const src = i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');
+  const src = i.srcUrl || i.url ? `<a href="${esc(i.srcUrl || i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');   // beta 14: srcUrl = the EPUB
   return `<div class="card" data-id="${i.id}">
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
-      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
+      style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.srcUrl ? `\n\n<a class="more" href="${esc(i.srcUrl)}" target="_blank" rel="noopener">📥 Taken from jw.org’s download of this year’s Examining the Scriptures Daily (EPUB) ↗</a>` : i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
@@ -688,6 +688,9 @@ function cutFeedAt(s){
 }
 // (v3) stands in for today's text when it couldn't be fetched (offline, reader busy)
 function dailyRetryHTML(){
+  const it = dailyShelf();
+  if (it && it.error === DT_NEED) return `<div class="slide endslide" id="dtRetry"><div class="card">
+    <div class="big">📅</div><h2>Add this year’s Daily Text</h2>${dtAddHTML()}</div></div>`;   // BETA 12
   const why = navigator.onLine === false ? 'You\'re offline right now.' : 'The page reader may be busy.';
   return `<div class="slide endslide" id="dtRetry"><div class="card" onclick="retryDaily()" style="cursor:pointer">
     <div class="big">📅</div><h2>Today's text couldn't load, tap to retry</h2>
@@ -1356,7 +1359,7 @@ function renderAdd(){
       <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
       <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
   if (addTab==='web') b.innerHTML = `
-      <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text (wol.jw.org)</button>
+      <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text</button>
       <label class="l">Or paste a jw.org or wol.jw.org link</label>
       <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
       <p style="color:var(--muted);font-size:13px;margin:6px 0 0">On jw.org or in JW Library: Share → Copy link. The whole article becomes one gem.</p>
@@ -1432,7 +1435,83 @@ async function bookImport(ix){
     renderPreview(true);
   } catch(e){ setSt('Download failed: ' + e.message, true); }
 }
+// BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
+// picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
+const DT_NEED = 'add this year’s Daily Text';
+const dtStore = y => 'dailytext:' + y;
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// beta 14 (Mike): the Daily Text card links to the jw.org EPUB it was taken from, so it's plain where the text comes from
+async function dtEpubUrl(y){
+  try {
+    const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?pub=es${String(y).slice(2)}&output=json&fileformat=EPUB&alllangs=0&langwritten=E&txtCMSLang=E`, 15000)).json();
+    const f = (((j.files || {}).E || {}).EPUB || [])[0]; if (f) return f.file.url;
+  } catch(e){}
+  return '';
+}
+const dtPageUrl = y => `https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}`;   // jw.org's page for that year's book
 async function getDailyCard(){
+  const d = new Date(); let days = null;
+  try { days = await idb.get(dtStore(d.getFullYear())); } catch(e){}
+  if (!days) throw new Error(DT_NEED);
+  const e = days[`${d.getMonth() + 1}-${d.getDate()}`];
+  if (!e) throw new Error('today isn’t in the Daily Text book');
+  const y = d.getFullYear(); db.dtLinks ||= {};
+  if (!db.dtLinks[y]){ const u = await dtEpubUrl(y); if (u){ db.dtLinks[y] = u; save(); } }
+  return {id:uid(), title:e.theme, body:e.body, topic:'Spiritual', source:`Examining the Scriptures Daily—${y} (jw.org EPUB) — ` + e.day,
+    url:dailyTextUrl(), srcUrl: db.dtLinks[y] || dtPageUrl(y), created:Date.now(), stashes:[]};   // url stays the day's page: comments and sharing
+}
+// reads the EPUB; returns null when the file isn't a Daily Text book (then it's added as an ordinary book)
+async function dailyTextFromEpub(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  const zip = await JSZip.loadAsync(file), names = Object.keys(zip.files);
+  const opf = names.find(n => /\.opf$/i.test(n)); if (!opf) return null;
+  const m = (await zip.file(opf).async('text')).match(/Examining the Scriptures[^<\d]{0,20}(\d{4})/); if (!m) return null;   // its title: "Examining the Scriptures—2026 (es26-E)"
+  const year = +m[1], days = {}, clean = t => t.replace(/[​­]/g, '').replace(/\s+/g, ' ').trim();
+  for (const n of names.filter(n => /\.x?html?$/i.test(n))){
+    const t = await zip.file(n).async('text'); if (!/themeScrp/.test(t)) continue;
+    const doc = new DOMParser().parseFromString(t, 'application/xhtml+xml');
+    const h = doc.querySelector('h2'), th = doc.querySelector('.themeScrp'); if (!h || !th) continue;
+    const dm = clean(h.textContent).match(/([A-Z][a-z]+) (\d{1,2})$/), mo = dm ? MONTH_NAMES.indexOf(dm[1]) + 1 : 0; if (!mo) continue;
+    const body = [...doc.querySelectorAll('.bodyTxt p')].map(x => clean(x.textContent)).filter(Boolean).join('\n\n');
+    if (body) days[`${mo}-${+dm[2]}`] = {day: clean(h.textContent), theme: clean(th.textContent), body};
+  }
+  const count = Object.keys(days).length;
+  if (count < 300) throw new Error(`only ${count} days found in this Daily Text file`);
+  await idb.set(dtStore(year), days);
+  db.dtYears = [...new Set([...(db.dtYears || []), year])].sort();
+  const u = await dtEpubUrl(year); if (u){ db.dtLinks ||= {}; db.dtLinks[year] = u; }   // beta 14
+  save();
+  return {year, count};
+}
+async function pickDailyText(file){                       // the file picker on the Daily Text card / shelf sheet
+  if (!file) return;
+  toast('Reading the Daily Text…');
+  try {
+    const r = await dailyTextFromEpub(file);
+    if (!r) return toast('That file isn’t Examining the Scriptures Daily');
+    dailyTextAdded(r);
+  } catch(e){ toast('Couldn’t read it: ' + e.message); }
+}
+function dailyTextAdded(r){
+  toast(`Daily Text ${r.year} added: ${r.count} days`);
+  const it = dailyShelf(); if (it){ it.lastPull = ''; it.error = ''; } save();
+  closeSheet();
+  if (currentView === 'feed') renderFeed();
+}
+// the download button: jw.org's own link to this year's EPUB (found through jw.org's media service)
+async function fillDtLink(){
+  const a = document.getElementById('dtDl'); if (!a || a.dataset.ok) return;
+  const u = await dtEpubUrl(new Date().getFullYear()); if (u){ a.href = u; a.dataset.ok = '1'; }
+}
+function dtAddHTML(){
+  const y = new Date().getFullYear();
+  setTimeout(fillDtLink, 0);
+  return `<p style="color:var(--muted);line-height:1.5;margin:6px 0 12px">GemStash shows the Daily Text from jw.org’s own download of <i>Examining the Scriptures Daily—${y}</i>. Once a year:</p>
+    <a class="btn" id="dtDl" style="display:block;text-align:center;text-decoration:none" href="https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">1. ⬇️ Download it from jw.org</a>
+    <label class="btn alt" style="display:block;text-align:center;margin-top:10px" onclick="event.stopPropagation()">2. 📂 Pick the downloaded file
+      <input type="file" accept=".epub,application/epub+zip" hidden onchange="pickDailyText(this.files[0]); this.value=''"></label>`;
+}
+async function getDailyCardFromWeb_retired(){            // BETA 12: retired, read wol.jw.org through r.jina.ai
   const d = new Date();
   const url = `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   const raw = (await fetchText(url)).text;
@@ -1681,6 +1760,7 @@ async function addFileBook(file){
   if (!isPdf && !isEpub) return setSt('Pick a PDF or EPUB file.', true);
   setSt(`Reading “${file.name}”…`);
   try {
+    if (isEpub){ const dt = await dailyTextFromEpub(file); if (dt){ setSt(`Daily Text ${dt.year} added: ${dt.count} days. It shows first in Today each day.`); return dailyTextAdded(dt); } }   // BETA 12
     const r = isPdf ? await pdfBlocks(file) : await epubBlocks(file);
     const paras = passagesFrom(r.blocks).map(p => p.replace(/^(?:[IVXLC]+|\d+)\.\s+/, ''));
     if (paras.length < 3) throw new Error(isPdf ? 'no readable text found (a scanned PDF has pictures of pages, not text)' : 'no readable text found');
@@ -1845,7 +1925,7 @@ async function doPull(){
       if (it.kind === 'daily'){
         const c = await getDailyCard();
         const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
-        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; } else { c.shelfId = it.id; keep(c); }
+        if (ex){ ex.shelfId = it.id; ex.pulledOn = t; if (c.srcUrl){ ex.srcUrl = c.srcUrl; ex.source = c.source; } } else { c.shelfId = it.id; keep(c); }
       } else if (it.kind === 'book'){
         const paras = await loadBookParas(it);
         it.total = paras.length;
@@ -1923,7 +2003,8 @@ function shelfSheet(id){
       <div class="seg"><button class="${it.order!=='random'?'on':''}" onclick="shelfOrder('${id}','seq')">In order</button>
       <button class="${it.order==='random'?'on':''}" onclick="shelfOrder('${id}','random')">Random</button></div>
       <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
-    ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day. If it can't load, a retry card takes its place.</p>` : `
+    ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day.
+      ${(db.dtYears || []).length ? 'On this phone: ' + db.dtYears.join(', ') + '.' : 'No Daily Text added yet.'}</p>${dtAddHTML()}` : `
     <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
     ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
     <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
@@ -2243,8 +2324,8 @@ function renderMore(){
     <div class="sec">Something not working?</div>
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v40 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
-    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v41 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
