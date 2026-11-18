@@ -131,6 +131,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   "X invited you"; name + Join sends the request automatically (also for people who already have it).
   Beta 36: optional parental controls: a parent's PIN (More, or offered when first setting up the circle)
   locks the Circle tab, sharing, comments and circle settings; circle photos in Today hidden or look-only.
+  Beta 37: parental controls also lock the daily scrolling-time setting.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

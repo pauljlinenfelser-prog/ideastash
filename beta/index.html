@@ -370,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 36;
+const BETA_NO = 37;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [37, 'Parental controls also lock the daily scrolling time: changing it needs the parent’s PIN.', ''],
   [36, 'Parental controls: in More, set a parent’s PIN. It locks the Circle tab, sharing photos, comments and circle settings on this phone; you choose whether circle photos stay hidden or can be looked at. jw.org content stays open.', ''],
   [35, 'Invite links: 📤 Share on the Circle tab now sends a link. Someone new taps it, types their name, taps Join, and their request comes straight to you; just tap Accept.', ''],
   [34, 'Profile pictures now fit their circle: the whole picture shows, not a zoomed-in corner.', ''],
@@ -1422,10 +1423,11 @@ function parentSetup(){
 function parentOff(){ needPin(() => { if (!confirm('Turn off parental controls on this phone?')) return; delete db.parent; save(); toast('Parental controls are off'); refreshParent(); }, 'Type the PIN to turn parental controls off.'); }
 function parentChange(){ needPin(() => parentSetup(), 'Type the current PIN first.'); }
 function parentSee(v){ needPin(() => { db.parent.see = v; save(); renderMore(); }, 'Type the PIN to change this.'); }
+function setLimitMin(m){ needPin(() => { db.limitMin = m; save(); renderMore(); }, 'The daily scrolling time is set by a parent.'); }   // beta 37
 function parentHTML(){
   if (!parentOn()) return `<button class="btn alt" onclick="parentSetup()">👪 Set a parent’s PIN</button>
-    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">For a child using GemStash: the PIN locks everything to do with your circle (the Circle tab, sharing photos, comments). jw.org content in Today stays open.</p>`;
-  return `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">${parentLocked() ? '🔒 Locked.' : '🔓 Unlocked for a few minutes.'} The circle needs the parent’s PIN on this phone.</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">For a child using GemStash: the PIN locks everything to do with your circle (the Circle tab, sharing photos, comments) and the daily scrolling time. jw.org content in Today stays open.</p>`;
+  return `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">${parentLocked() ? '🔒 Locked.' : '🔓 Unlocked for a few minutes.'} The circle and the daily scrolling time need the parent’s PIN on this phone.</p>
     <label class="l">While locked, circle photos in Today</label>
     <div class="seg"><button class="${db.parent.see !== 'view' ? 'on' : ''}" onclick="parentSee('none')">Hidden</button><button class="${db.parent.see === 'view' ? 'on' : ''}" onclick="parentSee('view')">Can look, not reply</button></div>
     ${parentLocked() ? '' : `<button class="btn alt" onclick="parentLock()">🔒 Lock now</button>`}
@@ -3236,7 +3238,7 @@ function renderMore(){
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
     <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
     <div class="sec">Daily scrolling time</div>
-    <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="db.limitMin=${m};save();renderMore()">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
+    <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="setLimitMin(${m})">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
     <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
       When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
     <div class="sec">Daily</div>
