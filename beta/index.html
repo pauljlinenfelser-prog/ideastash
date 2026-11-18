@@ -370,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 35;
+const BETA_NO = 36;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [36, 'Parental controls: in More, set a parent’s PIN. It locks the Circle tab, sharing photos, comments and circle settings on this phone; you choose whether circle photos stay hidden or can be looked at. jw.org content stays open.', ''],
   [35, 'Invite links: 📤 Share on the Circle tab now sends a link. Someone new taps it, types their name, taps Join, and their request comes straight to you; just tap Accept.', ''],
   [34, 'Profile pictures now fit their circle: the whole picture shows, not a zoomed-in corner.', ''],
   [33, 'Profile pictures: tap your name at the top of the Circle tab to add yours. People in your circle see it next to your name, on your photos and on your comments.', ''],
@@ -488,6 +489,7 @@ let currentView = 'feed';
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => b.dataset.v === 'mine' ? addMine() : go(b.dataset.v));
 // beta 31 (Mike): ➕ Add in the bottom bar is for your own photos (and later videos); adding books moved into the Shelf
 function addMine(){
+  if (parentLocked()) return needPin(addMine, 'Sharing photos is locked by a parent.');   // beta 36
   if (circleReady()) return postSheet();
   go('circle'); toast('Set up your circle first, then ➕ Add shares your photos with it');
 }
@@ -1377,8 +1379,62 @@ async function delComment(url, id){
 
 // beta 22: comments now follow your personal circle (the v19 circle versions above are retired; these replace them).
 // A gem's comments live in gemc/{thread}/c, each one readable by the writer's circle at the time; a post's in posts/{id}/comments.
+/* ---- beta 36: parental controls ---- */
+let parentUntil = 0;
+const parentOn = () => !!(db.parent && db.parent.hash);
+const parentLocked = () => parentOn() && Date.now() > parentUntil;
+const kidSees = () => parentLocked() && db.parent.see === 'view';              // they may look at family photos, nothing else
+const circleHidden = () => parentLocked() && db.parent.see !== 'view';
+async function pinHash(pin, salt){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+function pinSheet(title, sub, onPin){
+  openSheet(`<h3>🔒 ${title}</h3><p style="color:var(--muted);margin-top:-6px;font-size:14px">${sub}</p>
+    <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="PIN" style="font-size:24px;letter-spacing:.4em;text-align:center"
+      onkeydown="if(event.key==='Enter')document.getElementById('pinGo').click()">
+    <button class="btn" id="pinGo">OK</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+  document.getElementById('pinGo').onclick = () => onPin((document.getElementById('pinIn').value || '').trim());
+  setTimeout(() => { const x = document.getElementById('pinIn'); if (x) x.focus(); }, 80);
+}
+function needPin(then, why){                                   // run `then` now if unlocked, otherwise ask for the PIN first
+  if (!parentLocked()) return then();
+  const wait = (db.parent.waitUntil || 0) - Date.now();
+  if (wait > 0) return toast(`Too many tries. Wait ${Math.ceil(wait / 1000)} seconds.`);
+  pinSheet('Parent’s PIN', why || 'Your circle is locked by a parent.', async pin => {
+    if (await pinHash(pin, db.parent.salt) === db.parent.hash){
+      db.parent.tries = 0; save(); parentUntil = Date.now() + 10 * 60e3; closeSheet(); tlog('parent unlocked'); refreshParent(); then();
+    } else {
+      db.parent.tries = (db.parent.tries || 0) + 1; if (db.parent.tries >= 5){ db.parent.waitUntil = Date.now() + 60e3; db.parent.tries = 0; }
+      save(); const x = document.getElementById('pinIn'); if (x){ x.value = ''; x.focus(); } toast('That’s not the PIN');
+    }
+  });
+}
+function parentLock(){ parentUntil = 0; toast('🔒 Circle locked'); refreshParent(); }
+function refreshParent(){ if (currentView === 'circle') renderCircle(); if (currentView === 'more') renderMore(); if (currentView === 'shelf') renderShelf(); if (currentView === 'feed') renderFeed(); }
+function parentSetup(){
+  pinSheet('Choose a parent’s PIN', '4 to 8 numbers. You’ll need it to open the circle, share photos and comment on this phone.', pin => {
+    if (!/^\d{4,8}$/.test(pin)) return toast('Use 4 to 8 numbers');
+    pinSheet('Type it again', 'Just to be sure.', async again => {
+      if (again !== pin){ closeSheet(); return toast('Those didn’t match. Try again.'); }
+      const salt = Math.random().toString(36).slice(2); db.parent = {salt, hash: await pinHash(pin, salt), see: (db.parent || {}).see || 'none'};
+      save(); parentUntil = Date.now() + 10 * 60e3; closeSheet(); toast('🔒 Parental controls are on. The circle locks when GemStash is closed, or after 10 minutes.'); refreshParent();
+    });
+  });
+}
+function parentOff(){ needPin(() => { if (!confirm('Turn off parental controls on this phone?')) return; delete db.parent; save(); toast('Parental controls are off'); refreshParent(); }, 'Type the PIN to turn parental controls off.'); }
+function parentChange(){ needPin(() => parentSetup(), 'Type the current PIN first.'); }
+function parentSee(v){ needPin(() => { db.parent.see = v; save(); renderMore(); }, 'Type the PIN to change this.'); }
+function parentHTML(){
+  if (!parentOn()) return `<button class="btn alt" onclick="parentSetup()">👪 Set a parent’s PIN</button>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">For a child using GemStash: the PIN locks everything to do with your circle (the Circle tab, sharing photos, comments). jw.org content in Today stays open.</p>`;
+  return `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">${parentLocked() ? '🔒 Locked.' : '🔓 Unlocked for a few minutes.'} The circle needs the parent’s PIN on this phone.</p>
+    <label class="l">While locked, circle photos in Today</label>
+    <div class="seg"><button class="${db.parent.see !== 'view' ? 'on' : ''}" onclick="parentSee('none')">Hidden</button><button class="${db.parent.see === 'view' ? 'on' : ''}" onclick="parentSee('view')">Can look, not reply</button></div>
+    ${parentLocked() ? '' : `<button class="btn alt" onclick="parentLock()">🔒 Lock now</button>`}
+    <button class="btn alt" onclick="parentChange()">Change the PIN</button>
+    <button class="btn alt" style="color:var(--danger)" onclick="parentOff()">Turn off parental controls</button>
+    <p style="color:var(--muted);font-size:12px;line-height:1.5">Forgot it? The PIN is only on this phone. Clearing GemStash’s data in the browser removes it, but also everything saved here, including your place in the circle.</p>`;
+}
 function commentBtn(url, title){
-  if (!circleReady() || !url) return '';
+  if (!circleReady() || !url || parentLocked()) return '';   // beta 36: no comments while locked
   return `<button title="Comments" class="cmt" data-url="${esc(url)}" data-title="${esc(title || '')}" onclick="openComments(this)">💬<span class="cc"></span></button>`;
 }
 async function cmtSrc(url){ return url.startsWith('post:') ? {col: `posts/${url.slice(5)}/comments`, aud: false} : {col: `gemc/${await threadId(url)}/c`, aud: true}; }
@@ -1514,7 +1570,7 @@ function shareMyCode(){ shareLink(`Join my circle on GemStash, a free app for da
 { const j = normCode(new URLSearchParams(location.search).get('join') || '');   // opened from an invite link
   if (j.length === 8){ window._joinFromLink = j; history.replaceState(null, '', location.pathname); } }
 async function joinPending(){                                  // send the invite's request once you're set up
-  const code = db.pendingJoin; if (!code || !circleReady() || window._joining) return;
+  const code = db.pendingJoin; if (!code || !circleReady() || window._joining || parentLocked()) return;   // beta 36: waits for the parent
   if (code === db.me.code){ delete db.pendingJoin; save(); return; }
   window._joining = true;
   try {
@@ -1570,6 +1626,7 @@ function circShelfSub(){
   return `Up to ${circPerDay()} a day · one after every ${circEvery() - 1 === 1 ? 'card' : (circEvery() - 1) + ' cards'} · ${n} from this week`;
 }
 function circleShelfSheet(){
+  if (parentLocked()) return needPin(circleShelfSheet, 'Circle settings are locked by a parent.');   // beta 36
   const mode = db.circleMode || 'all';
   openSheet(`<h3>👥 Your circle’s photos</h3>
     <p style="color:var(--muted);margin-top:-6px">Photos you and your circle share. They’re always on the Circle tab; this sets how they mix into Today.</p>
@@ -1624,7 +1681,7 @@ async function loadPosts(){
 }
 const showPost = p => db.me && (p.uid === db.me.uid ? db.circleMode !== 'jw' : db.circleMode === 'all' && people()[p.uid] && people()[p.uid].show !== false);
 function feedPosts(){                                        // circle posts for Today: last 7 days, not yet seen (or seen today)
-  if (!circleReady()) return [];
+  if (!circleReady() || circleHidden()) return [];   // beta 36
   const seen = db.circleSeen || {}, wk = Date.now() - 7 * 864e5;
   return (db.circlePosts || []).filter(p => showPost(p) && (p.at || 0) > wk && (!seen[p.id] || seen[p.id] === today())).slice(0, circPerDay()).reverse();   // beta 26: how many is set on the Shelf
 }
@@ -1642,7 +1699,7 @@ function circlePostHTML(p){
     ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
     : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
   return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours' : 'From ' + who} · your circle</div>
-    <div class="side"><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
+    <div class="side" ${parentLocked() ? 'style="display:none"' : ''}><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
       ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : 'Photo'))}
       <button title="More" onclick="cpMenu('${esc(p.id)}')">⋯</button></div>
     <div class="info"><b>${esc(p.caption || '')}</b><small>${who} · ${ago(new Date(p.at || Date.now()))}${p.kind === 'video' && p.dur ? ' · ' + fmtDur(p.dur) : ''}</small></div></div>`;
@@ -1824,6 +1881,11 @@ function avSheet(){
 }
 function renderCircle(){
   const el = document.getElementById('circle'); if (!el) return;
+  if (parentLocked()){                                           // beta 36
+    el.innerHTML = `<div style="text-align:center;padding:40px 10px"><div style="font-size:64px">🔒</div><h2>The circle is locked</h2>
+      <p style="color:var(--muted);line-height:1.5">A parent has locked sharing and comments on this phone.</p>
+      <button class="btn" onclick="needPin(renderCircle)">Parent: type the PIN</button></div>`; return;
+  }
   if (!circleReady()){
     el.innerHTML = `<div class="sec">Your circle</div>
       <p style="color:var(--muted);line-height:1.5;margin-top:0">Share your own photos and videos with family and friends, and talk about the gems together.
@@ -1833,6 +1895,8 @@ function renderCircle(){
         <small style="display:block;color:var(--muted);margin-top:4px">Type your name and tap Join. That’s all: your request goes to them straight away.</small></div>` : ''}
       <label class="l">Your name (what your circle sees)</label><input id="cName" maxlength="40" value="${esc(db.myName || '')}" placeholder="e.g. Mike">
       <button class="btn" onclick="setupMe()">${db.pendingJoin ? '✨ Join ' + (db.pendingJoinName ? esc(db.pendingJoinName) + '’s circle' : 'the circle') : '✨ Get my code'}</button>
+      ${parentOn() ? '<p style="color:var(--muted);font-size:13px">🔒 Parental controls are on (More → Parental controls).</p>' : `<button class="btn alt sm" onclick="parentSetup()">👪 Setting this up for a child? Add a parent’s PIN first</button>
+      <p style="color:var(--muted);font-size:12px;margin:2px 0 10px">Optional. It locks sharing and comments behind your PIN. You can also do it later in More.</p>`}
       ${googleHTML()}`;
     return;
   }
@@ -1860,6 +1924,7 @@ function renderCircle(){
     <div class="sec">From your circle</div><div id="circPosts"></div>
     ${googleHTML()}`;
   renderCircleReqs(); renderCirclePosts(); circleStart(); fillAvatars(el);
+  if (parentOn()) el.insertAdjacentHTML('afterbegin', `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="parentLock()">🔒 Lock the circle again</button>`);   // beta 36
 }
 function personMenu(u){
   const p = people()[u]; if (!p) return;
@@ -3166,6 +3231,7 @@ function renderMore(){
     ${betaNewsHTML()}
     <div class="sec">Friends</div>
     <button class="btn alt" onclick="go('circle')">👥 Your circle is on the Circle tab</button>
+    <div class="sec">Parental controls</div>${parentHTML()}
     <div class="sec">Backup</div>
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
     <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>

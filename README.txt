@@ -129,6 +129,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 34: profile pictures fit their circle (the inline colour had reset the picture size: zoomed corner).
   Beta 35: invite links (Circle tab 📤 Share): .../beta/?join=CODE opens GemStash on the Circle tab with
   "X invited you"; name + Join sends the request automatically (also for people who already have it).
+  Beta 36: optional parental controls: a parent's PIN (More, or offered when first setting up the circle)
+  locks the Circle tab, sharing, comments and circle settings; circle photos in Today hidden or look-only.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
