@@ -187,6 +187,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
 .lcard .lmeta b{display:block;font-size:19px;line-height:1.3}
 .lcard .lmeta small{color:#fffb}
+.lcard .lmeta .lsrc{color:#fffb;text-decoration:underline;text-underline-offset:2px}   /* beta 16 */
 .lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
 .lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
 .lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
@@ -332,7 +333,7 @@ const FAQ = [
   ['Does GemStash copy jw.org’s articles?',
    'No. An article card shows the article’s title and picture, and plays jw.org’s own narration of it. To read the article, tap 📖 and it opens on jw.org. GemStash doesn’t take the text off jw.org’s pages, and only articles jw.org has narrated are used.'],
   ['Where do the videos, narration and pictures come from?',
-   'Straight from jw.org’s own servers: the same video and audio files jw.org offers for download, found through jw.org’s public media service. They play from jw.org; GemStash never copies them to another server or website.'],
+   'Straight from jw.org’s own servers: the same video and audio files jw.org offers for download, found through jw.org’s public media service. An article card’s picture is the artwork jw.org packs inside that article’s MP3, and the “🎧 from jw.org’s MP3 download” line on each card links to that file. Everything plays and shows from jw.org; GemStash never copies it to another server or website.'],
   ['Where does the Daily Text come from?',
    'From jw.org’s own download of <i>Examining the Scriptures Daily</i> (the EPUB file). You download it from jw.org once a year and pick it in GemStash, and it stays on your phone. Each Daily Text card links to that download, so you can always see where the text came from.'],
   ['What do jw.org’s Terms of Use say, and how does GemStash fit them?',
@@ -528,7 +529,7 @@ function layeredHTML(i){
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
     <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
-      <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : 'narrated by jw.org'} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+      <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i></i></div></div></div>
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
@@ -770,7 +771,7 @@ function observeFeed(){
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
-    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
     if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
@@ -2352,7 +2353,7 @@ function renderMore(){
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v42 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v43 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

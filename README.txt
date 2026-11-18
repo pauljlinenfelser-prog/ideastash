@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v42)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v43)
 =======================================
 
 FOLDERS
@@ -228,4 +228,6 @@ VERSIONS
       phone, and the card links to jw.org's EPUB. Nothing is read from jw.org's pages for it any more.
   v42 "How does GemStash work?" (from Beta 15): More > About has a short FAQ on where everything comes
       from and how that fits jw.org's Terms of Use.
-  Next: Daily Text from the es26 EPUB (in the beta)
+  v43 Each listen card says "🎧 from jw.org's MP3 download" and links to that MP3, the file its sound,
+      title and picture come from (from Beta 16). The FAQ says so too. Everything from the beta is now in the app.
+  Next: ask Mike
