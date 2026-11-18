@@ -281,6 +281,28 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
+const TLOG_KEY = 'gemstash.tlog';
+let tlogBuf = []; try { tlogBuf = JSON.parse(localStorage.getItem(TLOG_KEY) || '[]'); } catch(e){}
+let tlogT = 0;
+function tlog(msg){                                      // (v39) time + what happened; the last 150 lines are kept
+  const d = new Date(), t = d.toTimeString().slice(0, 8);
+  tlogBuf.push(t + ' ' + msg); if (tlogBuf.length > 150) tlogBuf.splice(0, tlogBuf.length - 150);
+  clearTimeout(tlogT); tlogT = setTimeout(() => { try { localStorage.setItem(TLOG_KEY, JSON.stringify(tlogBuf)); } catch(e){} }, 300);
+}
+window.addEventListener('error', e => tlog('ERROR ' + (e.message || '') + ' @' + (e.lineno || '')));
+window.addEventListener('unhandledrejection', e => tlog('ERROR (promise) ' + ((e.reason && (e.reason.message || e.reason)) || '')));
+function feedIdx(s){ const f = document.getElementById('feed'); return s && f ? [...f.children].indexOf(s) : -1; }
+async function copyReport(){
+  const f = document.getElementById('feed');
+  const head = [`GemStash report ${new Date().toString().slice(0, 24)}`,
+    `version: ${(document.body.innerHTML.match(/GemStash v\d+/) || [''])[0]}  screen: ${innerWidth}x${innerHeight}  standalone: ${matchMedia('(display-mode: standalone)').matches}`,
+    `limit: ${db.limitMin} min, used today: ${Math.round(usedSecs() / 60)} min, time up: ${timeUp()}`,
+    `feed: ${f.children.length} slides, current: ${feedIdx(feedCurrent)}, scrollTop: ${Math.round(f.scrollTop)}, full screen: ${!!fsSlide}, auto: ${autoOn}`,
+    `spot: ${JSON.stringify(db.feedSpot || null)}`, '--- last events ---'].filter(Boolean);
+  const text = head.concat(tlogBuf.slice(-80)).join('\n');
+  try { await navigator.clipboard.writeText(text); toast('Report copied: paste it to Claude'); }
+  catch(e){ openSheet(`<h3>Problem report</h3><p style="color:var(--muted)">Press and hold the text, Select all, Copy.</p><textarea style="width:100%;height:50vh;font-size:12px">${esc(text)}</textarea><button class="btn alt" onclick="closeSheet()">Close</button>`); }
+}
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast('Storage full or blocked — export a backup'); } }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
@@ -512,9 +534,13 @@ function layerStopIfGone(lc){
 let resizeT = null;
 window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
   const f = document.getElementById('feed');
-  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')) f.scrollTop = feedCurrent.offsetTop;
+  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')){
+    tlog(`resize ${innerWidth}x${innerHeight}: back to ${feedIdx(feedCurrent)} (was at ${Math.round(f.scrollTop)}, card at ${feedCurrent.offsetTop})`);   // (v39)
+    f.scrollTop = feedCurrent.offsetTop;
+  }
 }, 150); });
 // coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
+document.addEventListener('visibilitychange', () => { tlog(document.hidden ? 'app hidden' : 'app back'); });   // (v39)
 document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
 function layerStop(){
   if (!layer) return;
@@ -579,7 +605,7 @@ let feedCore = -1, exploring = false, feedCurrent = null, feedGen = 0;   // (v12
 async function renderFeed(){
   const el0 = document.getElementById('feed');
   const W = db.watch;
-  const gen = ++feedGen;
+  const gen = ++feedGen; tlog('feed drawn');   // (v39)
   dedupeVideos();
   const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
   if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
@@ -653,6 +679,7 @@ function timeUpHTML(){
 }
 // time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
 function cutFeedAt(s){
+  tlog('time up: feed cut at ' + feedIdx(s));   // (v39)
   const el = document.getElementById('feed');
   while (s.nextElementSibling) s.nextElementSibling.remove();
   s.remove();
@@ -695,14 +722,14 @@ function restoreSpot(el){
   const all = [...el.querySelectorAll(':scope > .slide, :scope > .vslide')];
   let s = all.find(x => slideKey(x) === sp.key), off = sp.off || 0;
   if (!s){ s = all[all.length - 1]; off = 0; }   // it was one of the extra cards at the end: carry on from the end
-  if (s) el.scrollTop = s.offsetTop + Math.min(off, Math.max(0, s.offsetHeight - el.clientHeight));
+  if (s){ el.scrollTop = s.offsetTop + Math.min(off, Math.max(0, s.offsetHeight - el.clientHeight)); tlog('reopened at ' + feedIdx(s)); }
 }
 let feedObs;
 function observeFeed(){
   const el = document.getElementById('feed');
   if (feedObs) feedObs.disconnect();
   feedObs = new IntersectionObserver(ents => ents.forEach(en => {
-    if (fsSlide || performance.now() < viewHold) return;   // (v29) full screen / phone turning: the feed behind only looks like it moved
+    if (fsSlide || performance.now() < viewHold){ if (performance.now() - (window.tlogIgn || 0) > 3000){ window.tlogIgn = performance.now(); tlog(`moves ignored (${fsSlide ? 'full screen ' + feedIdx(fsSlide) : 'turning'})`); } return; }   // (v29) full screen / phone turning: the feed behind only looks like it moved
     const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
     // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
     const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
@@ -710,6 +737,7 @@ function observeFeed(){
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s; markSpot(s);                   // (v36)
+    tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
     if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
@@ -748,7 +776,7 @@ async function appendExplore(){
     const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
     if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
-    vids.forEach(vid => add.push({vid}));
+    vids.forEach(vid => add.push({vid})); tlog(`more: ${cards.length} cards, ${add.length - cards.length} videos`);   // (v39)
     add.forEach(x => {
       if (x.vid && el.querySelector(`[data-lank="${CSS.escape(x.vid.v.lank)}"]`)) return;   // (v12) never the same video twice
       if (x.card && el.querySelector(`.card[data-id="${x.card.id}"]`)) return;
@@ -2041,7 +2069,7 @@ function videoSlideHTML(v, n){
 // (v27) full screen: the video fills the screen turned sideways; ✕ (or Back) returns to the feed
 async function videoFull(btn){
   const s = btn.closest('.vslide'), vid = s && s.querySelector('video'); if (!s) return;
-  fsSlide = s; feedCurrent = s;                                          // (v29) this one keeps playing; nothing else may start
+  fsSlide = s; feedCurrent = s; tlog('full screen on ' + feedIdx(s));                                          // (v29) this one keeps playing; nothing else may start
   document.querySelectorAll('#feed video').forEach(v => { if (v !== vid) v.pause(); });
   try {
     await (s.requestFullscreen ? s.requestFullscreen({navigationUI: 'hide'}) : s.webkitRequestFullscreen());
@@ -2191,8 +2219,10 @@ function renderMore(){
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
+    <div class="sec">Something not working?</div>
+    <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v38 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v39 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

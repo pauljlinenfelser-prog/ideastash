@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v38)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v39)
 =======================================
 
 FOLDERS
@@ -217,4 +217,6 @@ VERSIONS
       It's jw.org's own picture of the same card that's in the PDF; the 🖨️ PDF link stays.
   v38 Was It Designed? uses only the title card from 0:04 of jw.org's video (Mike's pick); the nautilus
       website banner is gone. The one article with no picture (the Pomelo) shows the title card there too.
+  v39 Problem report: GemStash keeps a short note of what the feed does (kept only on the phone). When
+      something goes wrong, More > Something not working? > Copy a problem report, then paste it to Claude.
   Next: Daily Text from the es26 EPUB (in the beta)
