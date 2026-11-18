@@ -107,6 +107,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   (5 to 50), your own photos and videos (up to 1 minute) in Today and on a new Circle tab, a switch for what
   Today shows and one per person. Needs the new Firebase rules published, and Firebase Storage switched on
   (pay-as-you-go) for photos and videos.
+  Beta 23: sharing gives up after ~30 s with a clear message when Firebase Storage is off.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

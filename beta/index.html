@@ -315,9 +315,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 22;
+const BETA_NO = 23;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [23, 'Sharing a photo or video gives up after about half a minute with a clear message (instead of waiting 10 minutes) when Firebase Storage isn’t switched on.', ''],
   [22, 'New circles: everyone has their own code, you approve who joins, you choose your circle size (5 to 50), and you can share your own photos and videos (up to 1 minute). New Circle tab; switches for what Today shows and for each person.', ''],
   [21, 'The beta is now today’s app (v50) plus its own bits, so it has everything: full screen, Bible reading, the treasure chest, the stuck-feed fix. Your beta data stays.', ''],
   [20, 'Add no longer has “paste a jw.org link” (it read the article page).', 'v50'],
@@ -1344,7 +1345,8 @@ async function cb(){
     count: async (c, u) => (await F.getCountFromServer(u ? audQ(c, u) : col(c))).data().count,
     watch: (c, fn, u) => F.onSnapshot(u ? audQ(c, u) : col(c), s => fn(s.docs.map(norm)), e => friendErr(e)),
     batch: async ops => { const b = F.writeBatch(fs); for (const [op, p, d] of ops){ if (op === 'set') b.set(ref(p), d); else if (op === 'upd') b.update(ref(p), d); else b.delete(ref(p)); } await b.commit(); },
-    upload: async (p, blob, onProg) => { const s = await S(), r = s.ref(s.getStorage(), p), t = s.uploadBytesResumable(r, blob, {contentType: blob.type});
+    upload: async (p, blob, onProg) => { const s = await S(), st = s.getStorage(); st.maxUploadRetryTime = 30000; st.maxOperationRetryTime = 20000;   // give up after ~30 s, not 10 min
+      const r = s.ref(st, p), t = s.uploadBytesResumable(r, blob, {contentType: blob.type});
       await new Promise((res, rej) => t.on('state_changed', x => onProg && onProg(x.bytesTransferred / (x.totalBytes || 1)), rej, res)); return s.getDownloadURL(r); },
     unload: async p => { const s = await S(); await s.deleteObject(s.ref(s.getStorage(), p)); }
   };
