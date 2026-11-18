@@ -122,6 +122,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 30: cards opened from Stashes (e.g. All ideas) play again; closing the card stops the sound.
   Beta 31: the ➕ Add tab now shares your own photos with your circle (postSheet; sets up the circle
   first if needed). Adding a book or a jw.org video link moved to the bottom of the Shelf.
+  Beta 32: Stashes becomes Treasures (closed treasure-chest icon): Hearted, Gems, Recently finished and a
+  pouch per tag. 💎 saves in one tap with an optional tag strip (tap 💎 again to skip). Old stashes became tags.
+  Beta 33: profile pictures: tap your name on the Circle tab. Kept free in Firestore photos/av_<uid>, seen
+  only by your circle; shown on the Circle tab, on circle photos and on comments.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

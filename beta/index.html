@@ -260,7 +260,8 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .ccode{display:block;font-size:26px;letter-spacing:3px;color:var(--accent)}
 .cperson{display:flex;align-items:center;gap:10px;padding:9px 0}
 .cperson+.cperson{border-top:1px solid #2c2846}
-.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#14121f;flex:none}
+.av{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#14121f;flex:none;background-size:cover;background-position:center;vertical-align:middle}
+.ctag .av,.cm .who .av{margin-right:4px}
 .sw{width:44px;height:26px;border-radius:13px;background:var(--panel2);position:relative;flex:none;padding:0}
 .sw::after{content:'';position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#888;transition:left .2s}
 .sw.on{background:var(--ok)}.sw.on::after{left:22px;background:#fff}
@@ -369,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 32;
+const BETA_NO = 33;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [33, 'Profile pictures: tap your name at the top of the Circle tab to add yours. People in your circle see it next to your name, on your photos and on your comments.', ''],
   [32, 'Stashes is now Treasures, a treasure chest: ❤️ Hearted, 💎 Gems, 🕘 Recently finished, and a pouch for each tag. Tapping 💎 saves straight away; a tag is optional (tap 💎 again to skip). Your old stashes became tags.', ''],
   [31, '➕ Add in the bottom bar now shares your own photos with your circle. Adding a book or a jw.org video link moved to the bottom of the Shelf.', ''],
   [30, 'Things you open from Stashes play again: tapping ▶ on a story you’d opened was starting the hidden copy in Today instead. Closing it stops the sound.', ''],
@@ -1399,9 +1401,9 @@ async function openComments(btn){
       const list = all.filter(fromMyCircle).sort((a, b) => (a.at || 0) - (b.at || 0));
       countCache[url] = list.length; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = list.length || ''; });
       el.innerHTML = list.length ? list.map(x => `<div class="cm">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button>` : ''}
-          <div class="who">${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span></div><div class="txt">${esc(x.text)}</div></div>`).join('')
+          <div class="who">${avHTML(x.uid, x.name, 22)} ${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span></div><div class="txt">${esc(x.text)}</div></div>`).join('')
         : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
-      el.scrollTop = el.scrollHeight;
+      el.scrollTop = el.scrollHeight; fillAvatars(el);
     }, q.aud ? me : null);
   } catch(e){ friendErr(e); }
 }
@@ -1568,6 +1570,7 @@ async function removePerson(uid){
   try {
     const c = await cb(), me = c.uid();
     await c.batch([['del', `people/${me}/circle/${uid}`], ['del', `people/${uid}/circle/${me}`],
+      ...(db.me && db.me.pic ? [['upd', 'photos/av_' + me, {aud: c.remove([uid])}]] : []),
       ...(db.circlePosts || []).filter(x => x.uid === me).flatMap(x => [['upd', 'posts/' + x.id, {aud: c.remove([uid])}], ...(/^fs:/.test(x.url || '') ? [['upd', 'photos/' + x.id, {aud: c.remove([uid])}]] : [])])]);
     closeSheet(); toast('Removed');
   } catch(e){ friendErr(e); }
@@ -1575,6 +1578,10 @@ async function removePerson(uid){
 async function healAud(){                                    // my posts reach everyone now in my circle
   try {
     const c = await cb(), me = c.uid(), ids = peerIds();
+    if (db.me && db.me.pic){                                      // beta 33: your picture reaches everyone in your circle
+      const a = await c.get('photos/av_' + me).catch(() => null), miss = a ? ids.filter(u => !(a.aud || []).includes(u)) : [];
+      if (miss.length) await c.upd('photos/av_' + me, {aud: c.union(miss)});
+    }
     for (const x of (db.circlePosts || []).filter(x => x.uid === me)){
       const miss = ids.filter(u => !(x.aud || []).includes(u));
       if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); if (/^fs:/.test(x.url || '')) await c.upd('photos/' + x.id, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }
@@ -1611,7 +1618,7 @@ function circlePostHTML(p){
   const media = p.kind === 'video'
     ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
     : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
-  return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">👥 ${mine ? 'Yours' : 'From ' + who} · your circle</div>
+  return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours' : 'From ' + who} · your circle</div>
     <div class="side"><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
       ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : 'Photo'))}
       <button title="More" onclick="cpMenu('${esc(p.id)}')">⋯</button></div>
@@ -1649,6 +1656,7 @@ async function photoData(id){                               // a free-plan photo
   return photoMem[id] = x.data;
 }
 function fillPhotos(root){
+  fillAvatars(root);   // beta 33
   (root || document).querySelectorAll('img[data-fsimg]:not([src])').forEach(async im => { const d = await photoData(im.dataset.fsimg).catch(() => ''); if (d) im.src = d; });
 }
 async function photoDataURL(file){                          // shrink until it fits in one Firestore document
@@ -1741,6 +1749,56 @@ async function doPost(){
   }
 }
 // ---- the Circle tab ----
+const avMem = {};
+const avColor = u => `hsl(${[...String(u)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360},70%,72%)`;
+function avHTML(u, name, size){
+  const z = size ? `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px;` : '';
+  return `<span class="av" data-avu="${esc(u)}" style="${z}background:${avColor(u)}">${esc(((name || '?') + '')[0].toUpperCase())}</span>`;
+}
+async function avData(u){
+  if (avMem[u]) return avMem[u];
+  let d = ''; try { d = await idb.get('av:' + u) || ''; } catch(e){}
+  const mine = db.me && u === db.me.uid, seen = (db.avChecked ||= {})[u] || 0;
+  if (!mine && Date.now() - seen > (d ? 12 * 3600e3 : 5 * 60e3)){   // look for a new picture twice a day (every 5 minutes while they have none)
+    try { const c = await cb(), x = await c.get('photos/av_' + u); d = x && x.data || ''; try { await idb.set('av:' + u, d); } catch(e){} }
+    catch(e){ d = d || ''; }
+    db.avChecked[u] = Date.now(); save();
+  }
+  return avMem[u] = d;
+}
+function fillAvatars(root){
+  if (!circleReady()) return;
+  (root || document).querySelectorAll('.av[data-avu]:not(.has)').forEach(async el => {
+    const d = await avData(el.dataset.avu).catch(() => '');
+    if (d){ el.classList.add('has'); el.style.backgroundImage = `url(${d})`; el.textContent = ''; }
+  });
+}
+async function avPick(file){
+  if (!file) return;
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(bmp.width, bmp.height), cv = document.createElement('canvas');
+    cv.width = cv.height = 192;
+    { const g = cv.getContext('2d'); g.fillStyle = '#2a2640'; g.fillRect(0, 0, 192, 192); }   // see-through pictures get a plain background
+    cv.getContext('2d').drawImage(bmp, (bmp.width - k) / 2, (bmp.height - k) / 2, k, k, 0, 0, 192, 192);   // the middle square
+    const data = cv.toDataURL('image/jpeg', 0.82), c = await cb(), me = c.uid();
+    toast('Saving your picture…');
+    await c.del('photos/av_' + me).catch(() => {});                   // replace: the rules only allow a fresh one
+    await c.set('photos/av_' + me, {uid: me, aud: [me, ...peerIds()], data});
+    avMem[me] = data; try { await idb.set('av:' + me, data); } catch(e){}
+    db.me.pic = true; save(); toast('Your picture is set'); renderCircle();
+  } catch(e){ console.warn(e); toast('Couldn’t save that picture: ' + (e.message || e)); }
+}
+async function avRemove(){
+  try { const c = await cb(), me = c.uid(); await c.del('photos/av_' + me); avMem[me] = ''; try { await idb.set('av:' + me, ''); } catch(e){}
+    db.me.pic = false; save(); toast('Picture removed'); closeSheet(); renderCircle(); } catch(e){ toast('Couldn’t remove it'); }
+}
+function avSheet(){
+  openSheet(`<h3>Your picture</h3>
+    <p style="color:var(--muted);margin-top:-6px;font-size:14px">The people in your circle see it next to your name. Only they can see it.</p>
+    <label class="btn" style="display:block;text-align:center">📷 Choose a picture<input type="file" accept="image/*" hidden onchange="closeSheet();avPick(this.files[0])"></label>
+    ${db.me.pic ? `<button class="btn alt" style="color:var(--danger)" onclick="avRemove()">Remove my picture</button>` : ''}
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
 function renderCircle(){
   const el = document.getElementById('circle'); if (!el) return;
   if (!circleReady()){
@@ -1755,6 +1813,7 @@ function renderCircle(){
   }
   const me = db.me, ids = peerIds(), mode = db.circleMode || 'all';
   el.innerHTML = `
+    <div class="row" onclick="avSheet()" style="cursor:pointer">${avHTML(me.uid, me.name, 52)}<span class="t" style="flex:1"><b>${esc(me.name)}</b><small>${me.pic ? 'Tap to change your picture' : '📷 Tap to add your picture'}</small></span></div>
     <div class="row"><span class="t"><small>My code: give it to family and friends</small><b class="ccode">${prettyCode(me.code)}</b></span>
       <button class="btn sm" style="width:auto;margin:0" onclick="shareMyCode()">📤 Share</button></div>
     <div id="circReq"></div>
@@ -1767,7 +1826,7 @@ function renderCircle(){
     <div class="row" style="display:block"><b>In my Today, show</b>
       <div class="seg cseg" style="margin-top:8px">${[['jw', 'jw.org only'], ['mine', '+ mine'], ['all', '+ my circle’s']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" onclick="setMode('${k}')">${l}</button>`).join('')}</div></div>
     ${ids.length ? `<div class="sec">People · show their photos &amp; videos</div><div class="row" style="display:block;padding:4px 14px">${ids.map(u => { const p = people()[u];
-      return `<div class="cperson"><span class="av" style="background:hsl(${[...u].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360},70%,72%)">${esc((p.name || '?')[0].toUpperCase())}</span>
+      return `<div class="cperson">${avHTML(u, p.name)}
         <b style="flex:1">${esc(p.name)}</b>
         <button class="sw ${p.show ? 'on' : ''}" title="Show their photos and videos" onclick="toggleShow('${esc(u)}')"></button>
         <button class="cmore" onclick="personMenu('${esc(u)}')">⋯</button></div>`; }).join('')}</div>`
@@ -1775,7 +1834,7 @@ function renderCircle(){
     <button class="btn" onclick="postSheet()">＋ Share a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}</button>
     <div class="sec">From your circle</div><div id="circPosts"></div>
     ${googleHTML()}`;
-  renderCircleReqs(); renderCirclePosts(); circleStart();
+  renderCircleReqs(); renderCirclePosts(); circleStart(); fillAvatars(el);
 }
 function personMenu(u){
   const p = people()[u]; if (!p) return;
