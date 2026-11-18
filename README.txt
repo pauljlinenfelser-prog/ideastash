@@ -108,6 +108,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Today shows and one per person. Needs the new Firebase rules published, and Firebase Storage switched on
   (pay-as-you-go) for photos and videos.
   Beta 23: sharing gives up after ~30 s with a clear message when Firebase Storage is off.
+  Beta 24: free photo sharing: a photo is shrunk on the phone (about 0.5 MB) and kept in Firebase's free
+  database, so no paid storage is needed. Videos wait until Mike switches on Storage (CIRCLE_VIDEOS).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
