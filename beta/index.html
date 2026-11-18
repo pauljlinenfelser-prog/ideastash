@@ -747,7 +747,7 @@ async function appendExplore(){
       if (x.vid && el.querySelector(`[data-lank="${CSS.escape(x.vid.v.lank)}"]`)) return;   // (v12) never the same video twice
       if (x.card && el.querySelector(`.card[data-id="${x.card.id}"]`)) return;
       el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
-      if (s.matches('.vslide')) wireVideoSlide(s); feedObs.observe(s); });
+      feedObs.observe(s); if (s.matches('.vslide[data-n]')) wireVideoSlide(s); });   // beta 18 (app v40): listen and picture cards are .vslide too
   } finally { exploring = false; }
 }
 function refreshCard(id){
@@ -1379,9 +1379,10 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 17;
+const BETA_NO = 18;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [18, 'Fixed: Today could get stuck after many cards, when an extra card at the end was a listen or picture card.', 'v40'],
   [17, 'This list: what each beta added, newest first.', ''],
   [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', ''],
   [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', ''],

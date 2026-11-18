@@ -1,5 +1,5 @@
 // IdeaStash service worker — caches the app so it opens offline
-const CACHE = 'gemstash-beta-17';   // BETA: its own offline cache
+const CACHE = 'gemstash-beta-18';   // BETA: its own offline cache
 const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 // (v25) always ask GitHub for the newest copy ('no-cache' = check first, reuse only if unchanged). Before, the browser could
 // reuse GitHub's copy for up to 10 minutes, so a new version didn't show up right away.
