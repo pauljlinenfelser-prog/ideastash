@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v36)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v37)
 =======================================
 
 FOLDERS
@@ -212,4 +212,7 @@ VERSIONS
       to 2 or 3 a day, or Start over, on the Shelf tab.
   v36 Pick up where you left off: open GemStash again the same day and Today goes back to the card or
       video you were on (and how far down a long card you were), not to the top. A new day starts at the top.
+  v37 Bible Character Cards you can swipe: each card shows its front (picture and questions), then
+      swipe sideways for the back (profile, map, timeline and answers), like the Illustrated Bible Stories.
+      It's jw.org's own picture of the same card that's in the PDF; the 🖨️ PDF link stays.
   Next: Daily Text from the es26 EPUB (in the beta)

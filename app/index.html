@@ -151,6 +151,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .strip::-webkit-scrollbar{display:none}
 .pcard .pg{flex:0 0 100%;height:100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always}
 .pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard img.cfront{object-view-box:inset(0 50% 0 0)}.pcard img.cback{object-view-box:inset(0 0 0 50%)}   /* (v37) one card, two sides */
 .pcard .dots{position:absolute;left:0;right:0;bottom:78px;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
 .pcard .dots i{width:7px;height:7px;border-radius:50%;background:#fff5}
 .pcard .dots i.on{background:#fff}
@@ -372,12 +373,14 @@ function renderStreak(){ document.getElementById('streak').textContent = '🔥 '
 
 /* ================= card ================= */
 // (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
+const ccPics = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) return null;
+  const u = `https://cms-imgp.jw-cdn.org/img/p/${m[1]}/E/art/${m[1]}_E_cnt_1_xl.jpg`; return [u + '#front', u + '#back']; };   // (v37)
 function posterHTML(i){
-  const pics = i.pics || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
+  const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
   return `<div class="card pcard" data-id="${i.id}">
     <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
     <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
-      `<div class="pg"><img class="poster" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+      `<div class="pg"><img class="poster${/#front$/.test(u) ? ' cfront' : /#back$/.test(u) ? ' cback' : ''}" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
@@ -387,7 +390,7 @@ function posterHTML(i){
       <button title="Full size" onclick="openPic(this)">🔍</button>
       ${i.pdf ? `<a title="Print it (jw.org PDF)" href="${esc(i.pdf)}" target="_blank" rel="noopener">🖨️</a>` : ''}
     </div>
-    <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+    <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)}${many ? ' · swipe ⟷' : ''} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
 }
 function stripMoved(st){
   const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
@@ -396,7 +399,7 @@ function stripMoved(st){
 }
 function openPic(btn){
   const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
-  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
+  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg').replace(/#(front|back)$/, '');
   window.open(src, '_blank', 'noopener');
 }
 // (v11) "## " lines are headings / highlighted questions
@@ -2187,7 +2190,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v36 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v37 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
