@@ -315,9 +315,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 23;
+const BETA_NO = 24;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [24, 'Share photos with your circle for free: they’re shrunk on your phone and kept in Firebase’s free space. Videos come later, when the paid storage is switched on.', ''],
   [23, 'Sharing a photo or video gives up after about half a minute with a clear message (instead of waiting 10 minutes) when Firebase Storage isn’t switched on.', ''],
   [22, 'New circles: everyone has their own code, you approve who joins, you choose your circle size (5 to 50), and you can share your own photos and videos (up to 1 minute). New Circle tab; switches for what Today shows and for each person.', ''],
   [21, 'The beta is now today’s app (v50) plus its own bits, so it has everything: full screen, Bible reading, the treasure chest, the stuck-feed fix. Your beta data stays.', ''],
@@ -760,6 +761,7 @@ async function renderFeed(){
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
+  if (circleReady()) fillPhotos(el);              // beta 24
   el.scrollTop = 0; restoreSpot(el);              // (v36) same day: back where you were
   goBible(el);                                    // (v44)
   observeFeed();
@@ -1442,7 +1444,7 @@ async function removePerson(uid){
   try {
     const c = await cb(), me = c.uid();
     await c.batch([['del', `people/${me}/circle/${uid}`], ['del', `people/${uid}/circle/${me}`],
-      ...(db.circlePosts || []).filter(x => x.uid === me).map(x => ['upd', 'posts/' + x.id, {aud: c.remove([uid])}])]);
+      ...(db.circlePosts || []).filter(x => x.uid === me).flatMap(x => [['upd', 'posts/' + x.id, {aud: c.remove([uid])}], ...(/^fs:/.test(x.url || '') ? [['upd', 'photos/' + x.id, {aud: c.remove([uid])}]] : [])])]);
     closeSheet(); toast('Removed');
   } catch(e){ friendErr(e); }
 }
@@ -1451,7 +1453,7 @@ async function healAud(){                                    // my posts reach e
     const c = await cb(), me = c.uid(), ids = peerIds();
     for (const x of (db.circlePosts || []).filter(x => x.uid === me)){
       const miss = ids.filter(u => !(x.aud || []).includes(u));
-      if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }
+      if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); if (/^fs:/.test(x.url || '')) await c.upd('photos/' + x.id, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }
     }
   } catch(e){ console.warn(e); }
 }
@@ -1477,14 +1479,14 @@ function addCircleToFeed(){                                  // posts that came 
   const have = new Set([...el.querySelectorAll('[data-post]')].map(s => s.dataset.post));
   const fresh = feedPosts().filter(p => !have.has(p.id)); if (!fresh.length) return;
   let at = feedCurrent && el.contains(feedCurrent) ? feedCurrent : el.firstElementChild;
-  fresh.forEach(p => { at.insertAdjacentHTML('afterend', circleSlideHTML(p)); at = at.nextElementSibling; if (feedObs) feedObs.observe(at); });
+  fresh.forEach(p => { at.insertAdjacentHTML('afterend', circleSlideHTML(p)); at = at.nextElementSibling; if (feedObs) feedObs.observe(at); fillPhotos(at); });
 }
 function circleSlideHTML(p){ return `<div class="vslide pslide cslide" data-post="${esc(p.id)}">${circlePostHTML(p)}</div>`; }
 function circlePostHTML(p){
   const mine = db.me && p.uid === db.me.uid, who = mine ? 'You' : esc(p.name);
   const media = p.kind === 'video'
     ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
-    : `<img src="${esc(p.url)}" alt="" loading="lazy">`;
+    : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
   return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">👥 ${mine ? 'Yours' : 'From ' + who} · your circle</div>
     <div class="side"><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
       ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : 'Photo'))}
@@ -1507,21 +1509,42 @@ function cpMenu(id){
 }
 async function deletePost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
-  try { const c = await cb(); await c.del('posts/' + id); if (p.path) c.unload(p.path).catch(() => {});
+  try { const c = await cb(); await c.del('posts/' + id); if (/^fs:/.test(p.url || '')) await c.del('photos/' + id).catch(() => {}); if (p.path) c.unload(p.path).catch(() => {});
     db.circlePosts = db.circlePosts.filter(x => x.id !== id); save(); closeSheet();
     document.querySelectorAll(`[data-post="${id}"]`).forEach(s => s.remove()); if (currentView === 'circle') renderCirclePosts(); toast('Deleted');
   } catch(e){ friendErr(e); }
 }
 // ---- posting a photo or video ----
+const CIRCLE_VIDEOS = false;   // beta 24: videos need Firebase Storage (paid plan); switch on when Mike upgrades
+const photoMem = {};
+async function photoData(id){                               // a free-plan photo: from memory, the phone, or Firestore
+  if (photoMem[id]) return photoMem[id];
+  try { const d = await idb.get('cphoto:' + id); if (d) return photoMem[id] = d; } catch(e){}
+  const c = await cb(), x = await c.get('photos/' + id); if (!x || !x.data) return '';
+  try { await idb.set('cphoto:' + id, x.data); } catch(e){}
+  return photoMem[id] = x.data;
+}
+function fillPhotos(root){
+  (root || document).querySelectorAll('img[data-fsimg]:not([src])').forEach(async im => { const d = await photoData(im.dataset.fsimg).catch(() => ''); if (d) im.src = d; });
+}
+async function photoDataURL(file){                          // shrink until it fits in one Firestore document
+  const bmp = await createImageBitmap(file);
+  for (const [max, q] of [[1280, 0.82], [1080, 0.75], [900, 0.7], [720, 0.65]]){
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k); cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    const d = cv.toDataURL('image/jpeg', q); if (d.length < 900000) return d;
+  }
+  throw new Error('that photo is too big');
+}
 let pending = null;
 function postSheet(){
   pending = null;
   openSheet(`<h3>Share with my circle</h3>
-    <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick a photo or video
-      <input type="file" accept="image/*,video/*" hidden onchange="pickMedia(this.files[0])"></label></div>
+    <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}
+      <input type="file" accept="${CIRCLE_VIDEOS ? 'image/*,video/*' : 'image/*'}" hidden onchange="pickMedia(this.files[0])"></label></div>
     <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px"></textarea>
     <div class="cwarn">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
-    <p style="color:var(--muted);font-size:13px;margin:8px 2px">Seen by the ${peerIds().length} people in your circle who show your posts. Stays until you delete it. Videos can be up to 1 minute.</p>
+    <p style="color:var(--muted);font-size:13px;margin:8px 2px">Seen by the ${peerIds().length} people in your circle who show your posts. Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos can be up to 1 minute.' : 'Photos for now; videos are coming later.'}</p>
     <div id="cpProg" style="display:none" class="cpbar"><i></i></div>
     <button class="btn" id="cpGo" onclick="doPost()">Share with my circle</button>
     <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
@@ -1529,6 +1552,7 @@ function postSheet(){
 async function pickMedia(file){
   if (!file) return;
   const isV = /^video\//.test(file.type), url = URL.createObjectURL(file), box = document.getElementById('cpPrev');
+  if (isV && !CIRCLE_VIDEOS) return toast('Photos for now: sharing videos is coming later');   // beta 24
   if (isV){
     const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
     await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
@@ -1567,6 +1591,15 @@ async function doPost(){
   go.disabled = true;
   try {
     const c = await cb(), me = c.uid(), id = c.newId('posts');
+    if (pending.kind === 'photo' && !CIRCLE_VIDEOS){                     // beta 24: free plan, photo kept in Firestore
+      prog(0.2, 'Getting it ready…'); const data = await photoDataURL(pending.file); prog(0.6, 'Sending…');
+      const aud = [me, ...peerIds()], caption = (document.getElementById('cpCap').value || '').trim().slice(0, 200);
+      const post = {uid: me, name: db.me.name, caption, kind: 'photo', url: 'fs:' + id, path: '', dur: 0, at: c.now(), aud};
+      await c.batch([['set', 'photos/' + id, {uid: me, aud, data}], ['set', 'posts/' + id, post]]);
+      photoMem[id] = data; try { await idb.set('cphoto:' + id, data); } catch(e){}
+      db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
+      closeSheet(); toast('Shared with your circle'); if (currentView === 'circle') renderCirclePosts(); return;
+    }
     let blob = pending.file;
     if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
     else blob = await shrinkVideo(blob, p => prog(p * 0.5, 'Getting your video ready…'));
@@ -1615,7 +1648,7 @@ function renderCircle(){
         <button class="sw ${p.show ? 'on' : ''}" title="Show their photos and videos" onclick="toggleShow('${esc(u)}')"></button>
         <button class="cmore" onclick="personMenu('${esc(u)}')">⋯</button></div>`; }).join('')}</div>`
       : `<p style="color:var(--muted);font-size:14px">No one yet. Share your code, or enter someone else’s above.</p>`}
-    <button class="btn" onclick="postSheet()">＋ Share a photo or video</button>
+    <button class="btn" onclick="postSheet()">＋ Share a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}</button>
     <div class="sec">From your circle</div><div id="circPosts"></div>
     ${googleHTML()}`;
   renderCircleReqs(); renderCirclePosts(); circleStart();
@@ -1641,6 +1674,7 @@ function renderCirclePosts(){
   const list = (db.circlePosts || []).filter(p => p.uid === db.me.uid || (people()[p.uid] && people()[p.uid].show !== false));
   el.innerHTML = list.length ? list.map(p => `<div class="cpost">${circlePostHTML(p)}</div>`).join('')
     : `<p style="color:var(--muted);font-size:14px">Nothing shared yet.</p>`;
+  fillPhotos(el);   // beta 24
 }
 
 /* ================= share (v17) ================= */

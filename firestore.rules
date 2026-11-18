@@ -83,6 +83,16 @@ service cloud.firestore {
         allow delete: if signedIn() && resource.data.uid == me();
       }
     }
+    // beta 24: a shared photo kept in Firestore (free plan), readable by the same people as its post
+    match /photos/{pid} {
+      allow read: if signedIn() && me() in resource.data.aud;
+      allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
+                    && request.resource.data.aud.size() <= 51 && request.resource.data.keys().hasOnly(['uid', 'aud', 'data'])
+                    && request.resource.data.data is string && request.resource.data.data.size() < 1000000;
+      allow update: if signedIn() && resource.data.uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aud'])
+                    && request.resource.data.aud.size() <= 51;
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
     match /gemc/{tid}/c/{cid} {
       allow read: if signedIn() && me() in resource.data.aud;
       allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
