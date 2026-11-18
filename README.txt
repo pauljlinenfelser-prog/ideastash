@@ -103,6 +103,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 21: the beta is rebuilt from today's app (v50) plus its own bits: separate storage, the pink-B
   icon, its number and the What's new list. It now has everything the app has. The old beta is kept in
   versions/beta20. From now on, a new beta starts from the current app (scratchpad beta21.py shows how).
+  Beta 22: new circles (Mike's design): a personal code each, requests you accept, your own circle size
+  (5 to 50), your own photos and videos (up to 1 minute) in Today and on a new Circle tab, a switch for what
+  Today shows and one per person. Needs the new Firebase rules published, and Firebase Storage switched on
+  (pay-as-you-go) for photos and videos.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

@@ -1,4 +1,4 @@
-// GemStash Firestore security rules (v19). Published by Mike in the Firebase console
+// GemStash Firestore security rules (v19, plus beta 22 personal circles at the end). Published by Mike in the Firebase console
 // (project gemstash-10786 → Firestore Database → Rules → Publish). Keep this file in step with what's published.
 rules_version = '2';
 service cloud.firestore {
@@ -31,6 +31,64 @@ service cloud.firestore {
                     && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500;
         allow delete: if isMember(code) && (resource.data.uid == request.auth.uid || isOwner(code));
       }
+    }
+      // ---- beta 22 (2026-11-18): personal circles, own photos and videos ----
+    function me() { return request.auth.uid; }
+    function okName(n) { return n is string && n.size() > 0 && n.size() <= 40; }
+    function okText(t) { return t is string && t.size() > 0 && t.size() <= 500; }
+    match /codes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && code.matches('^[A-Z]{4}[0-9]{4}$') && request.resource.data.uid == me()
+                    && request.resource.data.keys().hasOnly(['uid', 'name']) && okName(request.resource.data.name);
+    }
+    match /people/{uid} {
+      allow get: if signedIn();
+      allow create: if signedIn() && uid == me() && request.resource.data.keys().hasOnly(['name', 'code', 'limit', 'created'])
+                    && okName(request.resource.data.name) && request.resource.data.limit == 20;
+      allow update: if signedIn() && uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'limit'])
+                    && request.resource.data.limit is int && request.resource.data.limit >= 5 && request.resource.data.limit <= 50;
+      match /circle/{peer} {
+        allow read: if signedIn() && uid == me();
+        // made when a request is accepted: the accepter writes both sides while the request still exists
+        allow create: if signedIn() && request.resource.data.keys().hasOnly(['name', 'since', 'show']) && okName(request.resource.data.name)
+                      && ((uid == me() && exists(/databases/$(database)/documents/people/$(me())/requests/$(peer)))
+                       || (peer == me() && exists(/databases/$(database)/documents/people/$(me())/requests/$(uid))));
+        allow update: if signedIn() && uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['show']);
+        allow delete: if signedIn() && (uid == me() || peer == me());
+      }
+      match /requests/{from} {
+        allow read, delete: if signedIn() && (uid == me() || from == me());
+        allow create: if signedIn() && from == me() && from != uid && request.resource.data.keys().hasOnly(['name', 'code', 'at'])
+                      && okName(request.resource.data.name);
+      }
+    }
+    match /posts/{pid} {
+      function canSee() { return signedIn() && me() in get(/databases/$(database)/documents/posts/$(pid)).data.aud; }
+      allow read: if signedIn() && me() in resource.data.aud;
+      allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
+                    && request.resource.data.aud.size() <= 51 && request.resource.data.kind in ['photo', 'video']
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'caption', 'kind', 'url', 'path', 'dur', 'at', 'aud']);
+      allow update: if signedIn() && resource.data.uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aud', 'caption'])
+                    && request.resource.data.aud.size() <= 51;
+      allow delete: if signedIn() && resource.data.uid == me();
+      match /hearts/{hid} {
+        allow read: if canSee();
+        allow create, update: if canSee() && hid == me() && request.resource.data.keys().hasOnly(['name', 'at']);
+        allow delete: if signedIn() && hid == me();
+      }
+      match /comments/{cid} {
+        allow read: if canSee();
+        allow create: if canSee() && request.resource.data.uid == me() && okText(request.resource.data.text)
+                      && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
+        allow delete: if signedIn() && resource.data.uid == me();
+      }
+    }
+    match /gemc/{tid}/c/{cid} {
+      allow read: if signedIn() && me() in resource.data.aud;
+      allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
+                    && request.resource.data.aud.size() <= 51 && okText(request.resource.data.text)
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
+      allow delete: if signedIn() && resource.data.uid == me();
     }
   }
 }

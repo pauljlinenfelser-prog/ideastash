@@ -1,0 +1,14 @@
+// GemStash Storage rules (beta 22): each person's own photos and videos, under posts/<their id>/.
+// Published by Mike in the Firebase console (Storage → Rules → Publish). Needs Firebase Storage switched on (pay-as-you-go plan).
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /posts/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && request.resource.size < 60 * 1024 * 1024
+                            && request.resource.contentType.matches('(image|video)/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

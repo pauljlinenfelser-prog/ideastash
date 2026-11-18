@@ -224,6 +224,26 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .bnews b{color:var(--text,#fff)}
 .bapp{font-size:12px;color:var(--accent);white-space:nowrap}
 .bolder summary{cursor:pointer;font-size:14px;padding:8px 0;color:var(--accent)}
+.ccard{background:#000}
+.ccard>img,.ccard>video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.ccard .ctag{position:absolute;left:12px;top:12px;background:#000a;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;z-index:2;pointer-events:none}
+.ccard .cpsnd{position:absolute;top:12px;right:12px;background:#000a;border-radius:999px;padding:6px 11px;font-size:13px;z-index:2;pointer-events:none}
+.ccard.loud .cpsnd{display:none}
+.cpost{position:relative;height:440px;margin-bottom:12px;border-radius:16px;overflow:hidden}
+.cpost .ccard{position:absolute;inset:0;border-radius:16px;margin:0}
+.ccode{display:block;font-size:26px;letter-spacing:3px;color:var(--accent)}
+.cperson{display:flex;align-items:center;gap:10px;padding:9px 0}
+.cperson+.cperson{border-top:1px solid #2c2846}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#14121f;flex:none}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--panel2);position:relative;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#888;transition:left .2s}
+.sw.on{background:var(--ok)}.sw.on::after{left:22px;background:#fff}
+.cseg button{font-size:13px;padding:10px 4px;white-space:nowrap}
+.cmore{font-size:20px;padding:4px 8px;color:var(--muted)}
+.cwarn{background:#2b2238;border-left:4px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;margin-top:10px}
+.cpbar{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:10px}.cpbar i{display:block;height:100%;width:0;background:var(--accent)}
+nav .ic{position:relative}
+nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;top:-4px;right:-10px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 5px}
 .faq{border-bottom:1px solid #ffffff1a;padding:10px 0}
 .faq summary{font-weight:700;cursor:pointer;line-height:1.4}
 .faq p{color:var(--muted);line-height:1.55;margin:8px 0 2px;font-size:15px}
@@ -253,6 +273,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   <main>
     <section class="view active" id="feed"></section>
     <section class="view" id="shelf"></section>
+    <section class="view" id="circle"></section>   <!-- beta 22 -->
     <section class="view" id="library"></section>
     <section class="view" id="add"></section>
     <section class="view" id="more"></section>
@@ -260,6 +281,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   <nav>
     <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
     <button data-v="shelf"><span class="ic">📚</span>Shelf</button>
+    <button data-v="circle"><span class="ic">👥</span>Circle</button>
     <button data-v="library"><span class="ic">💎</span>Stashes</button>
     <button data-v="add"><span class="ic">➕</span>Add</button>
     <button data-v="more"><span class="ic">⚙️</span>More</button>
@@ -293,9 +315,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 21;
+const BETA_NO = 22;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [22, 'New circles: everyone has their own code, you approve who joins, you choose your circle size (5 to 50), and you can share your own photos and videos (up to 1 minute). New Circle tab; switches for what Today shows and for each person.', ''],
   [21, 'The beta is now today’s app (v50) plus its own bits, so it has everything: full screen, Bible reading, the treasure chest, the stuck-feed fix. Your beta data stays.', ''],
   [20, 'Add no longer has “paste a jw.org link” (it read the article page).', 'v50'],
   [19, 'The Daily Text download, the FAQ and the MP3 links are now in the app too (v41–v43).', ''],
@@ -401,7 +424,7 @@ function go(v){
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
-  ({feed:renderFeed, shelf:renderShelf, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
+  ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
 }
 
 /* ================= daily + streak ================= */
@@ -731,6 +754,7 @@ async function renderFeed(){
   bqa.forEach(i => seq.push(C(i)));
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
+  { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * 3), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
   exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
@@ -762,6 +786,7 @@ function goBible(el, now){
 }
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
+  if (x.post) return circleSlideHTML(x.post);   // beta 22
   const core = k === feedCore ? ' data-core="1"' : '';
   if (x.card && x.card.layered) return `<div class="vslide lslide"${core}>${cardHTML(x.card)}</div>`;   // BETA
   if (x.card && (x.card.image || x.card.pics)) return `<div class="vslide pslide"${core}>${cardHTML(x.card)}</div>`;   // (v9) poster
@@ -852,11 +877,12 @@ function observeFeed(){
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
     feedCurrent = s; markSpot(s);                   // (v36)
+    if (s.dataset.post){ (db.circleSeen ||= {})[s.dataset.post] = today(); save(); }   // beta 22
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
     if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
-    if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
+    if (circleReady()) s.querySelectorAll('.cmt').forEach(loadCount);   // beta 22 (was v19 circles)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
     if (s.dataset.core) bumpStreak();
@@ -1102,7 +1128,7 @@ function googleHTML(){
   return db.google
     ? `<div class="row"><span class="t"><b>✔ Signed in with Google</b><small>${esc(db.google)} — your place in the circle is safe on any phone</small></span></div>`
     : `<button class="btn alt" onclick="googleSignIn()"><b>G</b>&nbsp; Sign in with Google <small style="color:var(--muted)">(recommended)</small></button>
-       <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Without it, your place in the circle lives only in this phone’s Chrome.</p>`;
+       <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Without it, your place in your circle lives only in this phone’s browser.</p>`;
 }
 async function googleSignIn(){
   try {
@@ -1239,6 +1265,380 @@ async function postComment(url, title){
 }
 async function delComment(url, id){
   try { const {F} = await fbInit(); await F.deleteDoc(F.doc(await commentsCol(url), id)); } catch(e){ friendErr(e); }
+}
+
+// beta 22: comments now follow your personal circle (the v19 circle versions above are retired; these replace them).
+// A gem's comments live in gemc/{thread}/c, each one readable by the writer's circle at the time; a post's in posts/{id}/comments.
+function commentBtn(url, title){
+  if (!circleReady() || !url) return '';
+  return `<button title="Comments" class="cmt" data-url="${esc(url)}" data-title="${esc(title || '')}" onclick="openComments(this)">💬<span class="cc"></span></button>`;
+}
+async function cmtSrc(url){ return url.startsWith('post:') ? {col: `posts/${url.slice(5)}/comments`, aud: false} : {col: `gemc/${await threadId(url)}/c`, aud: true}; }
+const fromMyCircle = x => db.me && (x.uid === db.me.uid || !!people()[x.uid]);
+async function loadCount(btn){
+  const url = btn.dataset.url, show = n => document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = n || ''; });
+  if (url in countCache) return show(countCache[url]);
+  try { const c = await cb(), q = await cmtSrc(url); countCache[url] = await c.count(q.col, q.aud ? c.uid() : null); show(countCache[url]); } catch(e){ console.warn(e); }
+}
+async function openComments(btn){
+  const url = btn.dataset.url, title = btn.dataset.title;
+  document.querySelectorAll('#feed video').forEach(v => v.pause());
+  openSheet(`<h3>💬 ${esc(title)}</h3>
+    <div class="cmts" id="cmList"><small style="color:var(--muted)">Loading…</small></div>
+    <textarea id="cmText" maxlength="500" placeholder="Share a thought with your circle…" style="min-height:80px"></textarea>
+    <button class="btn" id="cmPost">Post</button><button class="btn alt" onclick="closeSheet()">Close</button>`);
+  document.getElementById('cmPost').onclick = () => postComment(url, title);
+  try {
+    const c = await cb(), me = c.uid(), q = await cmtSrc(url);
+    window._unsubComments = c.watch(q.col, all => {
+      const el = document.getElementById('cmList'); if (!el) return;
+      const list = all.filter(fromMyCircle).sort((a, b) => (a.at || 0) - (b.at || 0));
+      countCache[url] = list.length; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = list.length || ''; });
+      el.innerHTML = list.length ? list.map(x => `<div class="cm">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button>` : ''}
+          <div class="who">${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span></div><div class="txt">${esc(x.text)}</div></div>`).join('')
+        : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
+      el.scrollTop = el.scrollHeight;
+    }, q.aud ? me : null);
+  } catch(e){ friendErr(e); }
+}
+async function postComment(url, title){
+  const t = document.getElementById('cmText'), text = t.value.trim().slice(0, 500);
+  if (!text) return;
+  try {
+    const c = await cb(), me = c.uid(), q = await cmtSrc(url);
+    await c.add(q.col, {uid: me, name: db.me.name, text, at: c.now(), title: (title || '').slice(0, 200), url, aud: [me, ...peerIds()]});
+    t.value = '';
+  } catch(e){ friendErr(e); }
+}
+async function delComment(url, id){ try { const c = await cb(), q = await cmtSrc(url); await c.del(q.col + '/' + id); } catch(e){ friendErr(e); } }
+
+/* ================= Circles (beta 22, Mike 2026-11-18) =================
+ Everyone has a personal code. Typing someone's code sends them a request; they Accept or Decline, and then you're in
+ each other's circle. Each person sets their own circle size (5 to 50). People can post their own photos and videos
+ (a video up to 1 minute); they show in Today between the jw.org cards and on the Circle tab, until the poster deletes
+ them. Switches: what Today shows (jw.org only / + mine / + my circle's) and, per person, whether their posts show.
+ Firestore: codes/{CODE} · people/{uid} (+ /circle/{peer}, /requests/{from}) · posts/{id} (aud = who may see it;
+ + /hearts/{uid}, /comments/{id}) · gemc/{thread}/c/{id} (comments on jw.org gems, aud). Files: Storage posts/{uid}/{id}.
+ Rules: firestore.rules + storage.rules in the repo, published by Mike in the Firebase console.
+ Every online call goes through cb(), so a pretend service can stand in for tests (localStorage 'gsFake' = its address). */
+let CBX = null;
+async function cb(){
+  if (CBX) return CBX;
+  let fake = null; try { fake = localStorage.getItem('gsFake'); } catch(e){}
+  if (fake) return CBX = fakeCB(fake);
+  const f = await fbInit(), {F, fs} = f;
+  const ref = p => F.doc(fs, ...p.split('/')), col = p => F.collection(fs, ...p.split('/'));
+  const norm = d => { const o = {id: d.id, ...d.data({serverTimestamps: 'estimate'})}; for (const k in o) if (o[k] && o[k].toDate) o[k] = o[k].toDate().getTime(); return o; };
+  const audQ = (c, u) => F.query(col(c), F.where('aud', 'array-contains', u));
+  const S = () => import(FB_BASE + 'firebase-storage.js');
+  return CBX = {
+    uid: () => f.uid, now: () => F.serverTimestamp(), union: v => F.arrayUnion(...v), remove: v => F.arrayRemove(...v),
+    get: async p => { const s = await F.getDoc(ref(p)); return s.exists() ? norm(s) : null; },
+    set: (p, d, merge) => F.setDoc(ref(p), d, merge ? {merge: true} : {}),
+    add: async (c, d) => (await F.addDoc(col(c), d)).id,
+    newId: c => F.doc(col(c)).id,
+    upd: (p, d) => F.updateDoc(ref(p), d),
+    del: p => F.deleteDoc(ref(p)),
+    list: async c => (await F.getDocs(col(c))).docs.map(norm),
+    aud: async (c, u) => (await F.getDocs(audQ(c, u))).docs.map(norm),
+    count: async (c, u) => (await F.getCountFromServer(u ? audQ(c, u) : col(c))).data().count,
+    watch: (c, fn, u) => F.onSnapshot(u ? audQ(c, u) : col(c), s => fn(s.docs.map(norm)), e => friendErr(e)),
+    batch: async ops => { const b = F.writeBatch(fs); for (const [op, p, d] of ops){ if (op === 'set') b.set(ref(p), d); else if (op === 'upd') b.update(ref(p), d); else b.delete(ref(p)); } await b.commit(); },
+    upload: async (p, blob, onProg) => { const s = await S(), r = s.ref(s.getStorage(), p), t = s.uploadBytesResumable(r, blob, {contentType: blob.type});
+      await new Promise((res, rej) => t.on('state_changed', x => onProg && onProg(x.bytesTransferred / (x.totalBytes || 1)), rej, res)); return s.getDownloadURL(r); },
+    unload: async p => { const s = await S(); await s.deleteObject(s.ref(s.getStorage(), p)); }
+  };
+}
+function fakeCB(base){                                       // tests only: a pretend online service (scratchpad fakecb-server.js)
+  const id = () => { let u = localStorage.getItem('gsFakeUid'); if (!u){ u = 'u' + Math.random().toString(36).slice(2, 10); localStorage.setItem('gsFakeUid', u); } return u; };
+  const call = async (op, ...a) => { const r = await fetch(base + '/op', {method: 'POST', body: JSON.stringify({op, a, uid: id()})}); const j = await r.json(); if (j.err) throw new Error(j.err); return j.v; };
+  return {uid: id, now: () => ({$now: 1}), union: v => ({$union: v}), remove: v => ({$remove: v}),
+    get: p => call('get', p), set: (p, d, m) => call('set', p, d, m), add: (c, d) => call('add', c, d), newId: () => 'p' + Math.random().toString(36).slice(2, 12),
+    upd: (p, d) => call('upd', p, d), del: p => call('del', p), list: c => call('list', c), aud: (c, u) => call('aud', c, u),
+    count: async (c, u) => (await (u ? call('aud', c, u) : call('list', c))).length,
+    watch: (c, fn, u) => { let stop = false, last = ''; const tick = async () => { if (stop) return; try { const v = await (u ? call('aud', c, u) : call('list', c)); const s = JSON.stringify(v); if (s !== last){ last = s; fn(v); } } catch(e){} setTimeout(tick, 1000); }; tick(); return () => { stop = true; }; },
+    batch: ops => call('batch', ops),
+    upload: async (p, blob, onProg) => { onProg && onProg(1); return call('file', p, await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); })); },
+    unload: async () => {}};
+}
+// ---- who I am, and my circle ----
+const circleReady = () => !!(db.me && db.me.code);
+const prettyCode = c => c ? c.slice(0, 4) + '·' + c.slice(4) : '';
+const normCode = s => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const people = () => db.people || (db.people = {});
+const peerIds = () => Object.keys(people());
+let circleOn = false, circleUnsub = [];
+async function circleStart(){                                // listen for requests and circle changes; load posts
+  if (!circleReady() || circleOn) return; circleOn = true;
+  try {
+    const c = await cb(), me = c.uid();
+    if (me !== db.me.uid){ db.me.uid = me; save(); }
+    circleUnsub.push(c.watch(`people/${me}/requests`, reqs => { window._circleReqs = reqs; if (currentView === 'circle') renderCircleReqs(); circleBadge(); }));
+    circleUnsub.push(c.watch(`people/${me}/circle`, list => {
+      const p = {}; list.forEach(x => p[x.id] = {name: x.name, show: x.show !== false, since: x.since});
+      db.people = p; save(); healAud(); if (currentView === 'circle') renderCircle();
+    }));
+    await loadPosts();
+  } catch(e){ circleOn = false; friendErr(e); }
+}
+function circleBadge(){
+  const b = document.querySelector('nav button[data-v=circle] .ic'), n = (window._circleReqs || []).length;
+  if (b) b.dataset.n = n || '';
+}
+async function setupMe(){
+  const name = (document.getElementById('cName').value || '').trim().slice(0, 40);
+  if (!name) return toast('Type your name first');
+  try {
+    const c = await cb(), me = c.uid();
+    const letters = (name.toUpperCase().replace(/[^A-Z]/g, '') + 'GEMS').slice(0, 4);
+    let code = '';
+    for (let n = 0; n < 6 && !code; n++){ const t = letters + String(1000 + Math.floor(Math.random() * 9000)); if (!(await c.get('codes/' + t))) code = t; }
+    if (!code) throw new Error('couldn’t make a code, try again');
+    await c.batch([['set', 'codes/' + code, {uid: me, name}], ['set', 'people/' + me, {name, code, limit: 20, created: c.now()}]]);
+    db.me = {uid: me, name, code, limit: 20}; db.myName = name; db.circleMode = db.circleMode || 'all'; save();
+    toast('Your code is ' + prettyCode(code)); renderCircle(); circleStart();
+  } catch(e){ friendErr(e); }
+}
+function shareMyCode(){ shareLink(`Add me in GemStash: open the Circle tab and enter my code ${prettyCode(db.me.code)}`, APP_URL + 'app/'); }
+async function sendRequest(){
+  const code = normCode(document.getElementById('cCode').value);
+  if (code.length !== 8) return toast('A code has 4 letters and 4 numbers');
+  if (code === db.me.code) return toast('That’s your own code');
+  try {
+    const c = await cb(), who = await c.get('codes/' + code);
+    if (!who) return toast('No one has that code');
+    if (people()[who.uid]) return toast(`${who.name} is already in your circle`);
+    await c.set(`people/${who.uid}/requests/${c.uid()}`, {name: db.me.name, code: db.me.code, at: c.now()});
+    document.getElementById('cCode').value = ''; toast(`Request sent to ${who.name}. You’ll be connected when they accept.`);
+  } catch(e){ friendErr(e); }
+}
+async function acceptReq(from){
+  const r = (window._circleReqs || []).find(x => x.id === from); if (!r) return;
+  if (peerIds().length >= db.me.limit) return toast(`Your circle is full (${db.me.limit}). Make it bigger, or remove someone.`);
+  try {
+    const c = await cb(), me = c.uid();
+    await c.batch([['set', `people/${me}/circle/${from}`, {name: r.name, since: c.now(), show: true}],
+                   ['set', `people/${from}/circle/${me}`, {name: db.me.name, since: c.now(), show: true}],
+                   ['del', `people/${me}/requests/${from}`]]);
+    toast(`${r.name} is in your circle`);
+  } catch(e){ friendErr(e); }
+}
+async function declineReq(from){ try { const c = await cb(); await c.del(`people/${c.uid()}/requests/${from}`); } catch(e){ friendErr(e); } }
+async function setLimit(d){
+  const n = Math.min(50, Math.max(5, db.me.limit + d));
+  if (n < peerIds().length) return toast(`You have ${peerIds().length} people in your circle; remove someone first`);
+  db.me.limit = n; save(); renderCircle();
+  try { const c = await cb(); await c.upd('people/' + c.uid(), {limit: n}); } catch(e){ friendErr(e); }
+}
+function setMode(m){ db.circleMode = m; save(); renderCircle(); }
+async function toggleShow(uid){
+  const p = people()[uid]; if (!p) return; p.show = !p.show; save(); renderCircle();
+  try { const c = await cb(); await c.set(`people/${c.uid()}/circle/${uid}`, {show: p.show}, true); } catch(e){ friendErr(e); }
+}
+async function removePerson(uid){
+  const p = people()[uid]; if (!p || !confirm(`Remove ${p.name} from your circle? You’ll stop seeing each other’s photos and videos.`)) return;
+  try {
+    const c = await cb(), me = c.uid();
+    await c.batch([['del', `people/${me}/circle/${uid}`], ['del', `people/${uid}/circle/${me}`],
+      ...(db.circlePosts || []).filter(x => x.uid === me).map(x => ['upd', 'posts/' + x.id, {aud: c.remove([uid])}])]);
+    closeSheet(); toast('Removed');
+  } catch(e){ friendErr(e); }
+}
+async function healAud(){                                    // my posts reach everyone now in my circle
+  try {
+    const c = await cb(), me = c.uid(), ids = peerIds();
+    for (const x of (db.circlePosts || []).filter(x => x.uid === me)){
+      const miss = ids.filter(u => !(x.aud || []).includes(u));
+      if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }
+    }
+  } catch(e){ console.warn(e); }
+}
+// ---- posts ----
+async function loadPosts(){
+  try {
+    const c = await cb(), me = c.uid();
+    const list = (await c.aud('posts', me)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 200);
+    db.circlePosts = list.map(({id, uid, name, caption, kind, url, path, dur, at, aud}) => ({id, uid, name, caption, kind, url, path, dur, at, aud}));
+    save(); healAud();
+    if (currentView === 'circle') renderCirclePosts();
+    if (currentView === 'feed') addCircleToFeed();
+  } catch(e){ console.warn(e); }
+}
+const showPost = p => db.me && (p.uid === db.me.uid ? db.circleMode !== 'jw' : db.circleMode === 'all' && people()[p.uid] && people()[p.uid].show !== false);
+function feedPosts(){                                        // circle posts for Today: last 7 days, not yet seen (or seen today)
+  if (!circleReady()) return [];
+  const seen = db.circleSeen || {}, wk = Date.now() - 7 * 864e5;
+  return (db.circlePosts || []).filter(p => showPost(p) && (p.at || 0) > wk && (!seen[p.id] || seen[p.id] === today())).slice(0, 6).reverse();
+}
+function addCircleToFeed(){                                  // posts that came in after Today was drawn: put them next
+  const el = document.getElementById('feed'); if (!el || timeUp()) return;
+  const have = new Set([...el.querySelectorAll('[data-post]')].map(s => s.dataset.post));
+  const fresh = feedPosts().filter(p => !have.has(p.id)); if (!fresh.length) return;
+  let at = feedCurrent && el.contains(feedCurrent) ? feedCurrent : el.firstElementChild;
+  fresh.forEach(p => { at.insertAdjacentHTML('afterend', circleSlideHTML(p)); at = at.nextElementSibling; if (feedObs) feedObs.observe(at); });
+}
+function circleSlideHTML(p){ return `<div class="vslide pslide cslide" data-post="${esc(p.id)}">${circlePostHTML(p)}</div>`; }
+function circlePostHTML(p){
+  const mine = db.me && p.uid === db.me.uid, who = mine ? 'You' : esc(p.name);
+  const media = p.kind === 'video'
+    ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
+    : `<img src="${esc(p.url)}" alt="" loading="lazy">`;
+  return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">👥 ${mine ? 'Yours' : 'From ' + who} · your circle</div>
+    <div class="side"><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
+      ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : 'Photo'))}
+      <button title="More" onclick="cpMenu('${esc(p.id)}')">⋯</button></div>
+    <div class="info"><b>${esc(p.caption || '')}</b><small>${who} · ${ago(new Date(p.at || Date.now()))}${p.kind === 'video' && p.dur ? ' · ' + fmtDur(p.dur) : ''}</small></div></div>`;
+}
+async function cpHeart(id, btn){
+  db.cpHearts ||= {}; const on = !db.cpHearts[id]; if (on) db.cpHearts[id] = 1; else delete db.cpHearts[id]; save();
+  document.querySelectorAll(`.ccard[data-id="cp_${id}"] .side button:first-child`).forEach(b => b.textContent = on ? '❤️' : '🤍');
+  try { const c = await cb(), me = c.uid(); if (on) await c.set(`posts/${id}/hearts/${me}`, {name: db.me.name, at: c.now()}); else await c.del(`posts/${id}/hearts/${me}`); } catch(e){ console.warn(e); }
+}
+function cpMenu(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
+  const mine = p.uid === db.me.uid;
+  openSheet(`<h3>${mine ? 'Your post' : esc(p.name) + '’s post'}</h3>
+    ${mine ? `<button class="btn alt" style="color:var(--danger)" onclick="deletePost('${esc(id)}')">🗑️ Delete it for everyone</button>`
+           : `<button class="btn alt" onclick="toggleShow('${esc(p.uid)}');closeSheet()">🙈 Hide ${esc(p.name)}’s photos and videos</button>
+              <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(p.uid)}')">Remove ${esc(p.name)} from my circle</button>`}
+    <button class="btn" onclick="closeSheet()">Close</button>`);
+}
+async function deletePost(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
+  try { const c = await cb(); await c.del('posts/' + id); if (p.path) c.unload(p.path).catch(() => {});
+    db.circlePosts = db.circlePosts.filter(x => x.id !== id); save(); closeSheet();
+    document.querySelectorAll(`[data-post="${id}"]`).forEach(s => s.remove()); if (currentView === 'circle') renderCirclePosts(); toast('Deleted');
+  } catch(e){ friendErr(e); }
+}
+// ---- posting a photo or video ----
+let pending = null;
+function postSheet(){
+  pending = null;
+  openSheet(`<h3>Share with my circle</h3>
+    <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick a photo or video
+      <input type="file" accept="image/*,video/*" hidden onchange="pickMedia(this.files[0])"></label></div>
+    <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px"></textarea>
+    <div class="cwarn">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
+    <p style="color:var(--muted);font-size:13px;margin:8px 2px">Seen by the ${peerIds().length} people in your circle who show your posts. Stays until you delete it. Videos can be up to 1 minute.</p>
+    <div id="cpProg" style="display:none" class="cpbar"><i></i></div>
+    <button class="btn" id="cpGo" onclick="doPost()">Share with my circle</button>
+    <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+}
+async function pickMedia(file){
+  if (!file) return;
+  const isV = /^video\//.test(file.type), url = URL.createObjectURL(file), box = document.getElementById('cpPrev');
+  if (isV){
+    const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
+    await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
+    if (!(v.duration > 0)) return toast('That video can’t be read here');
+    if (v.duration > 61) return toast(`That video is ${fmtDur(v.duration)}. Videos can be up to 1 minute: trim it on your phone first.`);
+    pending = {file, kind: 'video', dur: Math.round(v.duration)};
+    box.innerHTML = `<video src="${url}" playsinline muted controls style="width:100%;max-height:260px;border-radius:12px;background:#000"></video>`;
+  } else if (/^image\//.test(file.type)){
+    pending = {file, kind: 'photo'};
+    box.innerHTML = `<img src="${url}" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#000">`;
+  } else toast('Pick a photo or a video');
+}
+async function shrinkPhoto(file){
+  const bmp = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+  cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+  return new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
+}
+async function shrinkVideo(file, onProg){                    // big phone videos are re-recorded smaller (takes as long as the video)
+  if (file.size <= 25e6) return file;
+  const v = document.createElement('video'); v.src = URL.createObjectURL(file); v.playsInline = true; v.muted = true;
+  await new Promise((r, j) => { v.onloadedmetadata = r; v.onerror = () => j(new Error('can’t read that video')); });
+  const st = (v.captureStream || v.mozCaptureStream).call(v);
+  const type = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
+  const rec = new MediaRecorder(st, {mimeType: type, videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000}), parts = [];
+  rec.ondataavailable = e => e.data.size && parts.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  rec.start(1000); await v.play();
+  await new Promise(r => { v.ontimeupdate = () => onProg && onProg(v.currentTime / v.duration); v.onended = r; });
+  rec.stop(); await done; URL.revokeObjectURL(v.src);
+  return new Blob(parts, {type: type.split(';')[0]});
+}
+async function doPost(){
+  if (!pending) return toast('Pick a photo or video first');
+  const go = document.getElementById('cpGo'), bar = document.getElementById('cpProg'), prog = (p, label) => { bar.style.display = 'block'; bar.firstElementChild.style.width = Math.round(p * 100) + '%'; go.textContent = label; };
+  go.disabled = true;
+  try {
+    const c = await cb(), me = c.uid(), id = c.newId('posts');
+    let blob = pending.file;
+    if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
+    else blob = await shrinkVideo(blob, p => prog(p * 0.5, 'Getting your video ready…'));
+    const ext = pending.kind === 'photo' ? 'jpg' : /webm/.test(blob.type) ? 'webm' : 'mp4', path = `posts/${me}/${id}.${ext}`;
+    const url = await c.upload(path, blob, p => prog(pending.kind === 'video' ? 0.5 + p * 0.5 : p, 'Sending…'));
+    const post = {uid: me, name: db.me.name, caption: (document.getElementById('cpCap').value || '').trim().slice(0, 200), kind: pending.kind,
+      url, path, dur: pending.dur || 0, at: c.now(), aud: [me, ...peerIds()]};
+    await c.set('posts/' + id, post);
+    db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
+    closeSheet(); toast('Shared with your circle'); if (currentView === 'circle') renderCirclePosts();
+  } catch(e){
+    go.disabled = false; go.textContent = 'Share with my circle';
+    if (/storage|bucket|unauthorized|403|404/i.test(e.code || e.message || '')) toast('Photos and videos aren’t switched on yet: Mike needs to turn on Firebase Storage');
+    else friendErr(e);
+  }
+}
+// ---- the Circle tab ----
+function renderCircle(){
+  const el = document.getElementById('circle'); if (!el) return;
+  if (!circleReady()){
+    el.innerHTML = `<div class="sec">Your circle</div>
+      <p style="color:var(--muted);line-height:1.5;margin-top:0">Share your own photos and videos with family and friends, and talk about the gems together.
+        You get a personal code; people you give it to send you a request, and you choose who joins.</p>
+      ${db.circle ? `<p class="cwarn" style="margin-bottom:10px">Circles work differently now: instead of one code for a whole circle (yours was ${esc(db.circle.code)}), everyone has their own code. Share your new code with your friends.</p>` : ''}
+      <label class="l">Your name (what your circle sees)</label><input id="cName" maxlength="40" value="${esc(db.myName || '')}" placeholder="e.g. Mike">
+      <button class="btn" onclick="setupMe()">✨ Get my code</button>
+      ${googleHTML()}`;
+    return;
+  }
+  const me = db.me, ids = peerIds(), mode = db.circleMode || 'all';
+  el.innerHTML = `
+    <div class="row"><span class="t"><small>My code: give it to family and friends</small><b class="ccode">${prettyCode(me.code)}</b></span>
+      <button class="btn sm" style="width:auto;margin:0" onclick="shareMyCode()">📤 Share</button></div>
+    <div id="circReq"></div>
+    <div class="sec">Add someone</div>
+    <div class="search" style="margin-top:0"><input id="cCode" maxlength="12" placeholder="Their code, e.g. ANNA·1234" autocapitalize="characters" style="text-transform:uppercase">
+      <button class="btn sm" onclick="sendRequest()">Send</button></div>
+    <div class="sec">My circle · ${ids.length} of ${me.limit}</div>
+    <div class="row"><span class="t"><b>Circle size</b><small>From 5 to 50 people</small></span>
+      <div class="step"><button onclick="setLimit(-5)">−</button><b>${me.limit}</b><button onclick="setLimit(5)">+</button></div></div>
+    <div class="row" style="display:block"><b>In my Today, show</b>
+      <div class="seg cseg" style="margin-top:8px">${[['jw', 'jw.org only'], ['mine', '+ mine'], ['all', '+ my circle’s']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" onclick="setMode('${k}')">${l}</button>`).join('')}</div></div>
+    ${ids.length ? `<div class="sec">People · show their photos &amp; videos</div><div class="row" style="display:block;padding:4px 14px">${ids.map(u => { const p = people()[u];
+      return `<div class="cperson"><span class="av" style="background:hsl(${[...u].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360},70%,72%)">${esc((p.name || '?')[0].toUpperCase())}</span>
+        <b style="flex:1">${esc(p.name)}</b>
+        <button class="sw ${p.show ? 'on' : ''}" title="Show their photos and videos" onclick="toggleShow('${esc(u)}')"></button>
+        <button class="cmore" onclick="personMenu('${esc(u)}')">⋯</button></div>`; }).join('')}</div>`
+      : `<p style="color:var(--muted);font-size:14px">No one yet. Share your code, or enter someone else’s above.</p>`}
+    <button class="btn" onclick="postSheet()">＋ Share a photo or video</button>
+    <div class="sec">From your circle</div><div id="circPosts"></div>
+    ${googleHTML()}`;
+  renderCircleReqs(); renderCirclePosts(); circleStart();
+}
+function personMenu(u){
+  const p = people()[u]; if (!p) return;
+  openSheet(`<h3>${esc(p.name)}</h3>
+    <button class="btn alt" onclick="toggleShow('${esc(u)}');closeSheet()">${p.show ? '🙈 Hide' : '👁️ Show'} ${esc(p.name)}’s photos and videos</button>
+    <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(u)}')">Remove from my circle</button>
+    <button class="btn" onclick="closeSheet()">Close</button>`);
+}
+function renderCircleReqs(){
+  const el = document.getElementById('circReq'); if (!el) return;
+  const r = window._circleReqs || [], full = peerIds().length >= ((db.me || {}).limit || 0);
+  el.innerHTML = r.length ? `<div class="sec">Requests</div>` + r.map(x => `<div class="row cperson" style="padding:12px 14px"><span class="av" style="background:#7fd1ae">${esc((x.name || '?')[0].toUpperCase())}</span>
+      <span class="t" style="flex:1"><b>${esc(x.name)}</b><small>wants to join your circle</small></span>
+      <button class="btn sm" style="width:auto;margin:0" onclick="acceptReq('${esc(x.id)}')" ${full ? 'title="Your circle is full"' : ''}>Accept</button>
+      <button class="btn sm alt" style="width:auto;margin:0" onclick="declineReq('${esc(x.id)}')">Decline</button></div>`).join('')
+    + (full ? `<p style="color:var(--muted);font-size:13px">Your circle is full: make it bigger, or remove someone.</p>` : '') : '';
+}
+function renderCirclePosts(){
+  const el = document.getElementById('circPosts'); if (!el) return;
+  const list = (db.circlePosts || []).filter(p => p.uid === db.me.uid || (people()[p.uid] && people()[p.uid].show !== false));
+  el.innerHTML = list.length ? list.map(p => `<div class="cpost">${circlePostHTML(p)}</div>`).join('')
+    : `<p style="color:var(--muted);font-size:14px">Nothing shared yet.</p>`;
 }
 
 /* ================= share (v17) ================= */
@@ -2423,14 +2823,14 @@ async function addVideoLink(){
 /* ================= more / backup ================= */
 function renderMore(){
   const el = document.getElementById('more');
-  setTimeout(loadMembers, 0);   // (v19)
   el.innerHTML = `
     <div class="sec">Your library</div>
     <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
     <div class="sec">🧪 Beta experiments · Beta ${BETA_NO}</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">This is the test copy of GemStash, with its own separate data. Your real app isn't affected.</p>
     ${betaNewsHTML()}
-    ${friendsHTML()}
+    <div class="sec">Friends</div>
+    <button class="btn alt" onclick="go('circle')">👥 Your circle is on the Circle tab</button>
     <div class="sec">Backup</div>
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
     <label class="btn alt" style="display:block;text-align:center">⬆️ Import backup<input type="file" accept=".json,application/json" hidden onchange="importData(this.files[0])"></label>
@@ -2470,6 +2870,7 @@ ensureDailyShelf();
 autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed();
+if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(()=>{});
 </script>
 </body>
