@@ -132,6 +132,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 36: optional parental controls: a parent's PIN (More, or offered when first setting up the circle)
   locks the Circle tab, sharing, comments and circle settings; circle photos in Today hidden or look-only.
   Beta 37: parental controls also lock the daily scrolling-time setting.
+  Beta 38: beta icon = the app's treasure chest with a pink B (icon-chest-b-*.png; the old gems icon
+  files icon-192/512.png are kept, no longer used).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
