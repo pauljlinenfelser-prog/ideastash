@@ -315,9 +315,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 25;
+const BETA_NO = 26;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [26, 'Your circle is on the Shelf: choose whose photos mix into Today (none, only yours, or yours and your circle’s), how many a day, and how spread out they are.', ''],
   [25, 'Things you finish take a rest: a card you read, or a story or video you watch to the end, stays out of Today for a month (change it in More). Hearted or stashed ones never rest.', ''],
   [24, 'Share photos with your circle for free: they’re shrunk on your phone and kept in Firebase’s free space. Videos come later, when the paid storage is switched on.', ''],
   [23, 'Sharing a photo or video gives up after about half a minute with a clear message (instead of waiting 10 minutes) when Firebase Storage isn’t switched on.', ''],
@@ -767,7 +768,7 @@ async function renderFeed(){
   bqa.forEach(i => seq.push(C(i)));
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
-  { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * 3), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
+  { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * circEvery()), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
   exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i)));   // beta 25
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
@@ -1451,6 +1452,29 @@ async function setLimit(d){
   try { const c = await cb(); await c.upd('people/' + c.uid(), {limit: n}); } catch(e){ friendErr(e); }
 }
 function setMode(m){ db.circleMode = m; save(); renderCircle(); }
+const circPerDay = () => db.circlePerDay || 6, circEvery = () => db.circleEvery || 3;   // beta 26
+const CIRC_MODES = [['jw', 'None'], ['mine', 'Only mine'], ['all', 'Mine + circle’s']];
+function circShelfSub(){
+  const mode = db.circleMode || 'all';
+  if (mode === 'jw') return 'Not in Today (jw.org only) · still on the Circle tab';
+  const wk = Date.now() - 7 * 864e5, n = (db.circlePosts || []).filter(p => showPost(p) && (p.at || 0) > wk).length;
+  return `Up to ${circPerDay()} a day · one after every ${circEvery() - 1 === 1 ? 'card' : (circEvery() - 1) + ' cards'} · ${n} from this week`;
+}
+function circleShelfSheet(){
+  const mode = db.circleMode || 'all';
+  openSheet(`<h3>👥 Your circle’s photos</h3>
+    <p style="color:var(--muted);margin-top:-6px">Photos you and your circle share. They’re always on the Circle tab; this sets how they mix into Today.</p>
+    <label class="l">Show in Today</label>
+    <div class="seg">${CIRC_MODES.map(([k, t]) => `<button class="${mode === k ? 'on' : ''}" onclick="db.circleMode='${k}';save();circleShelfSheet();renderShelf()">${t}</button>`).join('')}</div>
+    ${mode === 'jw' ? '' : `<label class="l">How many a day</label>
+    <div class="step"><button onclick="circSet('circlePerDay',-1)">−</button><b>${circPerDay()}</b><button onclick="circSet('circlePerDay',1)">+</button></div>
+    <label class="l">How spread out</label>
+    <div class="seg">${[2, 3, 5, 8].map(k => `<button class="${circEvery() === k ? 'on' : ''}" onclick="db.circleEvery=${k};save();circleShelfSheet();renderShelf()">Every ${k === 2 ? 'other' : k + (k === 3 ? 'rd' : 'th')}</button>`).join('')}</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">A photo comes in Today for a week after it’s shared, until you’ve seen it. To hide one person, tap their name on the Circle tab.</p>`}
+    <button class="btn alt" onclick="closeSheet();go('circle')">👥 Open the Circle tab</button>
+    <button class="btn" onclick="closeSheet()">Done</button>`);
+}
+function circSet(k, d){ db[k] = Math.min(10, Math.max(1, (k === 'circlePerDay' ? circPerDay() : 0) + d)); save(); circleShelfSheet(); renderShelf(); }
 async function toggleShow(uid){
   const p = people()[uid]; if (!p) return; p.show = !p.show; save(); renderCircle();
   try { const c = await cb(); await c.set(`people/${c.uid()}/circle/${uid}`, {show: p.show}, true); } catch(e){ friendErr(e); }
@@ -1488,7 +1512,7 @@ const showPost = p => db.me && (p.uid === db.me.uid ? db.circleMode !== 'jw' : d
 function feedPosts(){                                        // circle posts for Today: last 7 days, not yet seen (or seen today)
   if (!circleReady()) return [];
   const seen = db.circleSeen || {}, wk = Date.now() - 7 * 864e5;
-  return (db.circlePosts || []).filter(p => showPost(p) && (p.at || 0) > wk && (!seen[p.id] || seen[p.id] === today())).slice(0, 6).reverse();
+  return (db.circlePosts || []).filter(p => showPost(p) && (p.at || 0) > wk && (!seen[p.id] || seen[p.id] === today())).slice(0, circPerDay()).reverse();   // beta 26: how many is set on the Shelf
 }
 function addCircleToFeed(){                                  // posts that came in after Today was drawn: put them next
   const el = document.getElementById('feed'); if (!el || timeUp()) return;
@@ -2547,6 +2571,12 @@ function renderShelf(){
     <button class="shelfitem" onclick="channelsSheet()"><span class="e">📺</span>
       <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
       <span>›</span></button>
+    <div class="sec">Your circle</div>
+    ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e">👥</span>
+      <span class="t" style="flex:1;min-width:0"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">${esc(circShelfSub())}</small></span>
+      <span>›</span></button>` : `<button class="shelfitem" onclick="go('circle')"><span class="e">👥</span>
+      <span class="t" style="flex:1"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">Set up your circle on the Circle tab first</small></span>
+      <span>›</span></button>`}
     <div class="sec">Add to shelf</div>
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>

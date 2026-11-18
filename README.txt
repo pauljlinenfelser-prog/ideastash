@@ -110,6 +110,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 23: sharing gives up after ~30 s with a clear message when Firebase Storage is off.
   Beta 24: free photo sharing: a photo is shrunk on the phone (about 0.5 MB) and kept in Firebase's free
   database, so no paid storage is needed. Videos wait until Mike switches on Storage (CIRCLE_VIDEOS).
+  Beta 25: things you finish rest before coming back in Today (a card read and swiped past after 6 s, a
+  narration or series video played to the end); 1 month by default, set in More. Hearted/stashed never rest.
+  Beta 26: "Photos from your circle" on the Shelf: whose photos mix into Today, how many a day (1-10), and
+  how spread out (every other / 3rd / 5th / 8th slide). Always all on the Circle tab.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
