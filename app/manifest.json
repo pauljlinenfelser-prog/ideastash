@@ -28,8 +28,13 @@
       "url": "./?go=bible",
       "icons": [
         {
-          "src": "icon-bible-192.png",
+          "src": "icon-book-192.png",
           "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "icon-book-512.png",
+          "sizes": "512x512",
           "type": "image/png"
         }
       ]

@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v44)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v45)
 =======================================
 
 FOLDERS
@@ -234,4 +234,6 @@ VERSIONS
   v44 Straight to the Bible reading: press and hold the GemStash icon on the home screen and tap
       "Bible reading" (or drag it out as its own icon). GemStash opens on today's Listen to the Bible
       chapter, even when the day's time is used up; tap ▶ to listen.
+  v45 The Bible reading shortcut uses the 📖 open-book picture Mike liked (Google's free Noto emoji, the
+      same one Android shows).
   Next: ask Mike
