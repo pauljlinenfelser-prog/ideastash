@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v39)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v40)
 =======================================
 
 FOLDERS
@@ -219,4 +219,7 @@ VERSIONS
       website banner is gone. The one article with no picture (the Pomelo) shows the title card there too.
   v39 Problem report: GemStash keeps a short note of what the feed does (kept only on the phone). When
       something goes wrong, More > Something not working? > Copy a problem report, then paste it to Claude.
+  v40 Fixed: Today got stuck after many cards. When an extra card at the end was a listen card or a
+      picture card, it was set up as a video, which failed, so the feed couldn't move past it. Now every
+      extra card works, and when there's truly nothing left a "You've seen everything for now" card says so.
   Next: Daily Text from the es26 EPUB (in the beta)
