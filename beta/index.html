@@ -315,9 +315,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 24;
+const BETA_NO = 25;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [25, 'Things you finish take a rest: a card you read, or a story or video you watch to the end, stays out of Today for a month (change it in More). Hearted or stashed ones never rest.', ''],
   [24, 'Share photos with your circle for free: they’re shrunk on your phone and kept in Firebase’s free space. Videos come later, when the paid storage is switched on.', ''],
   [23, 'Sharing a photo or video gives up after about half a minute with a clear message (instead of waiting 10 minutes) when Firebase Storage isn’t switched on.', ''],
   [22, 'New circles: everyone has their own code, you approve who joins, you choose your circle size (5 to 50), and you can share your own photos and videos (up to 1 minute). New Circle tab; switches for what Today shows and for each person.', ''],
@@ -469,12 +470,22 @@ function ensureDaily(){
   const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
   let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id));
-    const pick = shuffle(pool.length >= 4-ids.length ? pool : db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id))).slice(0, 4-ids.length);
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id) && !resting(i));
+    const all = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id));
+    const awake = all.filter(i => !resting(i));                                   // beta 25
+    const pick = (pool.length >= 4-ids.length ? shuffle(pool) : awake.length >= 4-ids.length ? shuffle(awake) : byRest(all)).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
   }
   db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
 }
+const REST_CHOICES = [7, 14, 30, 90];
+const restDays = () => db.restDays || 30;
+function finished(id, why){                                  // beta 25
+  const i = findIdea(id); if (!i || (i.stashes || []).length) return;
+  (db.rest ||= {})[id] = Date.now(); save(); tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
+}
+const resting = i => { const t = (db.rest || {})[i.id]; return !!t && !(i.stashes || []).length && Date.now() - t < restDays() * 864e5; };
+const byRest = list => list.slice().sort((a, b) => ((db.rest || {})[a.id] || 0) - ((db.rest || {})[b.id] || 0));   // longest-rested first
 function bumpStreak(){
   const t = today(); if (db.streak.last === t) return;
   const y = new Date(); y.setDate(y.getDate()-1);
@@ -675,7 +686,7 @@ async function layerToggle(id){
     if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
     a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
       if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)
-    a.onended = () => { i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c);   // (v49)
+    a.onended = () => { i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard');   // (v49); beta 25
       c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
       const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
     a.onpause = () => {                                      // paused by the phone (not by you)? carry on
@@ -757,7 +768,7 @@ async function renderFeed(){
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
   { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * 3), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
-  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i)));   // beta 25
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -879,6 +890,10 @@ function observeFeed(){
     if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStopIfGone(lc); return; }
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
+    { const prev = feedCurrent, pc = prev && prev.querySelector('.card[data-id]');   // beta 25
+      if (pc && !prev.querySelector('video:not(.clip):not(.art)') && !pc.classList.contains('lcard') && performance.now() - (window.onSince || 0) > 6000
+          && (prev.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)) finished(pc.dataset.id, 'read'); }
+    window.onSince = performance.now();
     feedCurrent = s; markSpot(s);                   // (v36)
     if (s.dataset.post){ (db.circleSeen ||= {})[s.dataset.post] = today(); save(); }   // beta 22
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
@@ -921,7 +936,8 @@ async function appendExplore(){
     while (cards.length < 4){
       if (!exploreQueue.length){
         if (refilled) break;
-        refilled = true; exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !inFeed(i.id)));
+        refilled = true; { const left = db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !inFeed(i.id)), awake = left.filter(i => !resting(i));
+          exploreQueue = awake.length ? shuffle(awake) : byRest(left); }   // beta 25: rested ones only when nothing else is left
         continue;
       }
       const c = exploreQueue.shift(); if (!inFeed(c.id) && !cards.includes(c)) cards.push(c);
@@ -2769,7 +2785,9 @@ function wireVideoSlide(s){
       vid.paused ? vid.play() : vid.pause();
     }, 280);
   });
-  vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit(); });   // (v27)
+  vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit();   // (v27)
+    const c = s.querySelector('.card[data-id]'), v = db.watch.daily.items[s.dataset.n];      // beta 25: a series video card watched to the end
+    const it = c ? findIdea(c.dataset.id) : v && db.ideas.find(i => i.video && i.video.lank === v.lank); if (it) finished(it.id, 'watched'); });
   // load the next one ahead of time
   vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
 }
@@ -2877,6 +2895,10 @@ function renderMore(){
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
+    <div class="sec">Things you’ve finished</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Hearted or stashed ones never rest. Scrolling back up still shows today’s again.</p>
+    <div class="seg">${REST_CHOICES.map(d => `<button class="${restDays() === d ? 'on' : ''}" onclick="db.restDays=${d};save();renderMore()">${d < 30 ? d / 7 + (d === 7 ? ' week' : ' weeks') : d === 30 ? '1 month' : '3 months'}</button>`).join('')}</div>
+    <button class="btn alt" onclick="db.rest={};save();renderMore();toast('Everything is back in the mix')">↩️ Bring them all back now (${Object.keys(db.rest || {}).filter(id => { const i = findIdea(id); return i && resting(i); }).length} resting)</button>
     <div class="sec">Something not working?</div>
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
