@@ -109,6 +109,25 @@ nav button.on{color:var(--accent)}
 #sheet .in{background:var(--panel);width:100%;max-height:88%;overflow-y:auto;border-radius:24px 24px 0 0;
   padding:18px 16px calc(var(--safe-b) + 18px)}
 #sheet h3{margin:4px 0 12px}
+/* beta 32: Treasures */
+.chestbig{position:relative;height:118px;margin:0 0 4px}
+.chestbig svg{width:200px;height:120px;position:absolute;left:50%;transform:translateX(-50%)}
+.comps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.comp{background:var(--panel);border-radius:16px;padding:12px;position:relative;overflow:hidden;min-height:110px;text-align:left;color:inherit;font:inherit;border:0}
+.comp b{display:block;font-size:16px;margin-top:2px}.comp small{color:var(--muted);font-size:12px}
+.comp .e{font-size:24px}.comp .pk{position:absolute;right:-6px;bottom:-6px;display:flex}
+.comp .pk img{width:44px;height:58px;object-fit:cover;border-radius:6px;border:2px solid var(--panel);margin-left:-16px;transform:rotate(8deg)}
+.comp.wide{grid-column:span 2;min-height:0;display:flex;align-items:center;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.chip{background:#2a2640;border-radius:999px;padding:8px 14px;font-size:14px;color:inherit;border:0;font:inherit}
+.chip.on{background:var(--accent);color:#14121f}.chip small{color:var(--muted);margin-left:4px}.chip.on small{color:#14121f}
+.chip.new{border:1px dashed var(--muted);background:none}
+#gemStrip{position:fixed;left:0;right:0;bottom:calc(var(--safe-b) + 66px);z-index:30;background:var(--panel);border-radius:20px 20px 0 0;
+  padding:14px 14px 12px;box-shadow:0 -8px 24px #0008;transform:translateY(120%);visibility:hidden;transition:transform .22s,visibility .22s}
+#gemStrip.on{transform:none;visibility:visible}
+#gemStrip.on ~ #toast{bottom:calc(var(--safe-b) + 290px)}
+nav button .ic svg{display:block;height:21px;width:26px}#gemStrip .h{font-weight:700;font-size:15px;margin-bottom:2px}#gemStrip .m{color:var(--muted);font-size:12px;margin-bottom:10px}
+#gemStrip .chips{margin:0}#gemStrip input{flex:1;min-width:0}
 #toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 84px);transform:translateX(-50%);background:#000c;
   padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30}
 #toast.on{opacity:1}
@@ -289,12 +308,34 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
     <button data-v="shelf"><span class="ic">📚</span>Shelf</button>
     <button data-v="circle"><span class="ic">👥</span>Circle</button>
-    <button data-v="library"><span class="ic">💎</span>Stashes</button>
+    <button data-v="library"><span class="ic"><svg viewBox="0 0 140 112" width="27" height="22"><use href="#chest"/></svg></span>Treasures</button>
     <button data-v="mine"><span class="ic">➕</span>Add</button>
     <button data-v="more"><span class="ic">⚙️</span>More</button>
   </nav>
 </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="chW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8692a"/><stop offset=".55" stop-color="#8a4316"/><stop offset="1" stop-color="#5e2a0b"/></linearGradient>
+<linearGradient id="chL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d0803a"/><stop offset="1" stop-color="#8f4718"/></linearGradient>
+<linearGradient id="chG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".45" stop-color="#ffc24a"/><stop offset="1" stop-color="#b9770f"/></linearGradient>
+<linearGradient id="chV" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b9770f"/><stop offset=".5" stop-color="#ffe17a"/><stop offset="1" stop-color="#b9770f"/></linearGradient>
+<radialGradient id="chGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc24a" stop-opacity=".55"/><stop offset="1" stop-color="#ffc24a" stop-opacity="0"/></radialGradient>
+<symbol id="chest" viewBox="0 0 140 112"><!-- beta 32: the Treasures chest. To use Mike's own icon later, replace this symbol (or the .chestImg spots) -->
+ <ellipse cx="70" cy="104" rx="56" ry="6" fill="#000" opacity=".35"/>
+ <path d="M14 50 H126 V94 a8 8 0 0 1 -8 8 H22 a8 8 0 0 1 -8 -8 Z" fill="url(#chW)" stroke="#3b1906" stroke-width="2.5"/>
+ <g stroke="#4a2209" stroke-width="1.2" opacity=".55"><path d="M16 66 H124"/><path d="M16 82 H124"/></g>
+ <path d="M10 52 Q10 12 70 10 Q130 12 130 52 Z" fill="url(#chL)" stroke="#3b1906" stroke-width="2.5"/>
+ <path d="M22 44 Q24 20 70 18 Q116 20 118 44" fill="none" stroke="#f0a560" stroke-width="2" opacity=".5"/>
+ <rect x="8" y="47" width="124" height="10" rx="3" fill="url(#chG)" stroke="#6b4305" stroke-width="1.5"/>
+ <path d="M28 14 Q30 12 38 11 V102 H28 Z" fill="url(#chV)" stroke="#6b4305" stroke-width="1.5"/>
+ <path d="M112 14 Q110 12 102 11 V102 H112 Z" fill="url(#chV)" stroke="#6b4305" stroke-width="1.5"/>
+ <rect x="14" y="94" width="112" height="8" rx="2" fill="url(#chG)" stroke="#6b4305" stroke-width="1.5"/>
+ <g fill="#fff3c4" stroke="#6b4305" stroke-width=".8"><circle cx="33" cy="22" r="1.8"/><circle cx="33" cy="74" r="1.8"/><circle cx="107" cy="22" r="1.8"/><circle cx="107" cy="74" r="1.8"/><circle cx="20" cy="52" r="1.8"/><circle cx="120" cy="52" r="1.8"/></g>
+ <path d="M58 46 H82 V70 Q70 80 58 70 Z" fill="url(#chG)" stroke="#6b4305" stroke-width="1.8"/>
+ <circle cx="70" cy="58" r="4" fill="#3b1906"/><path d="M68 60 H72 L73 68 H67 Z" fill="#3b1906"/>
+ <path d="M50 28 Q60 18 80 17" stroke="#fff" stroke-width="2.5" fill="none" opacity=".18" stroke-linecap="round"/>
+</symbol></defs></svg>
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
+<div id="gemStrip"></div>
 <div id="toast"></div>
 
 <script src="sources.js?v=b21"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
@@ -318,13 +359,20 @@ function blank(){
     watch: {cats: [], seen: {}, daily: {date:'', items:[], done:{}}, sound: false},
     limitMin: 20, usage: {} };   // (v8) daily scrolling time in minutes (0 = no limit)
 }
+function migrateTreasures(){                                   // beta 32
+  if (db.treasures32) return;
+  if (db.stashes.some(x => x.id !== 'fav')) ensureGem();
+  db.ideas.forEach(i => { if ((i.stashes || []).some(x => x !== 'fav' && x !== 'gem') && !i.stashes.includes('gem')) i.stashes.push('gem'); });
+  db.treasures32 = true; save();
+}
 function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 31;
+const BETA_NO = 32;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [32, 'Stashes is now Treasures, a treasure chest: ❤️ Hearted, 💎 Gems, 🕘 Recently finished, and a pouch for each tag. Tapping 💎 saves straight away; a tag is optional (tap 💎 again to skip). Your old stashes became tags.', ''],
   [31, '➕ Add in the bottom bar now shares your own photos with your circle. Adding a book or a jw.org video link moved to the bottom of the Shelf.', ''],
   [30, 'Things you open from Stashes play again: tapping ▶ on a story you’d opened was starting the hidden copy in Today instead. Closing it stops the sound.', ''],
   [29, 'Reading aloud with the phone’s voice no longer misses the first few words: it waits a moment for the speaker to wake up before it starts.', ''],
@@ -446,6 +494,8 @@ function go(v){
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === (v === 'add' ? 'shelf' : v)));   // beta 31: adding books is part of the Shelf
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
+  if (v === 'library'){ migrateTreasures(); libFilter = 'home'; }   // beta 32: the chest opens at the top
+  gemClose();
   ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
 }
 
@@ -509,7 +559,7 @@ const restDays = () => restMonths() * 30;
 function restStep(d){ const m = db.restMonths === undefined || db.restMonths === 'auto' ? restAuto().months : db.restMonths; db.restMonths = Math.min(12, Math.max(1, m + d)); save(); renderMore(); }
 function finished(id, why){                                  // beta 25
   const i = findIdea(id); if (!i) return;
-  (db.rest ||= {})[id] = Date.now(); save(); tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
+  (db.rest ||= {})[id] = Date.now(); if (why !== 'saved') (db.done ||= {})[id] = Date.now(); save();   // beta 32: done = Recently finished tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
 }
 const kept = i => !!i && (i.stashes || []).length > 0 && !(i.stashes || []).some(sid => (db.stashes.find(x => x.id === sid) || {}).replay);   // beta 27: saved = out of Today for good, unless its stash replays
 const resting = i => { if (kept(i)) return true; const t = (db.rest || {})[i.id]; return !!t && Date.now() - t < restDays() * 864e5; };
@@ -528,7 +578,7 @@ function renderStreak(){ document.getElementById('streak').textContent = '🔥 '
 const ccPics = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) return null;
   const u = `https://cms-imgp.jw-cdn.org/img/p/${m[1]}/E/art/${m[1]}_E_cnt_1_xl.jpg`; return [u + '#front', u + '#back']; };   // (v37)
 function posterHTML(i){
-  const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
+  const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = isGem(i), many = pics.length > 1;
   return `<div class="card pcard" data-id="${i.id}">
     <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
     <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
@@ -536,7 +586,7 @@ function posterHTML(i){
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       ${commentBtn(i.url, i.title)}
       <button title="Full size" onclick="openPic(this)">🔍</button>
@@ -618,7 +668,7 @@ const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ
 // jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
 const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
 function layeredHTML(i){
-  const saved = i.stashes && i.stashes.length;
+  const saved = isGem(i);
   const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
   const S = LISTEN_SERIES[i.lkind];                        // (v26): a listen card from another series
   const audioOnly = !!S || i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
@@ -634,7 +684,7 @@ function layeredHTML(i){
         <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div>${i.lkind === 'nwt' && i.heard ? `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>` : ''}</div></div>
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       ${commentBtn(i.url, i.title)}
       <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
@@ -733,7 +783,7 @@ function cardHTML(i){
   if (i.layered) return layeredHTML(i);
   if (i.image || i.pics) return posterHTML(i);
   const [c1,c2] = topicColors(i.topic);
-  const saved = i.stashes && i.stashes.length;
+  const saved = isGem(i);
   const src = i.srcUrl || i.url ? `<a href="${esc(i.srcUrl || i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');   // beta 14: srcUrl = the EPUB
   return `<div class="card" data-id="${i.id}">
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
@@ -744,7 +794,7 @@ function cardHTML(i){
     <div class="acts">
       ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       ${commentBtn(i.video ? finderUrl(i.video.lank) : i.url, i.title)}
       <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
@@ -1810,9 +1860,52 @@ function stashSheet(id){
     <button class="btn alt" onclick="closeSheet()">Done</button>`);
 }
 function toggleStash(id, sid, on){
-  const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on) i.stashes.push(sid);
+  const i = findIdea(id); i.stashes = (i.stashes||[]).filter(x=>x!==sid); if (on){ i.stashes.push(sid); i.savedAt = Date.now(); }
   save(); refreshCard(id); if (on) finished(id, 'saved');   // beta 27: saved = out of the rotation, kept in Stashes
 }
+/* ---- beta 32: gems and tags ---- */
+// a gem = saved with 💎 (the 'gem' stash); tags = every other stash except Favorites (hearts) and 'gem'
+const isGem = i => !!i && (i.stashes || []).some(x => x !== 'fav');
+const tagList = () => db.stashes.filter(x => x.id !== 'fav' && x.id !== 'gem');
+function ensureGem(){ if (!db.stashes.some(x => x.id === 'gem')) db.stashes.push({id:'gem', name:'Gems', emoji:'💎'}); }
+let gemFor = null, gemT = 0;
+function gemTap(id){
+  const i = findIdea(id); if (!i) return;
+  if (gemFor === id && document.getElementById('gemStrip').classList.contains('on')) return gemClose();   // second tap = skip the tag
+  window._gemNew = !isGem(i); if (window._gemNew){ ensureGem(); toggleStash(id, 'gem', true); }
+  gemFor = id; window._gemOpen = performance.now(); gemDraw();
+}
+function gemDraw(){
+  const i = findIdea(gemFor), el = document.getElementById('gemStrip'); if (!i) return gemClose();
+  el.innerHTML = `<div class="h">💎 Saved to your Gems${window._gemNew ? '' : ' already'}. Add a tag? <span style="color:var(--muted);font-weight:400">(optional)</span></div>
+    <div class="m">Tap a tag, or tap 💎 again (or just keep swiping) to skip</div>
+    <div class="chips">${tagList().map(t => `<button class="chip ${i.stashes.includes(t.id) ? 'on' : ''}" onclick="gemTag('${t.id}')">${esc(t.name)}</button>`).join('')}
+      <button class="chip new" onclick="gemNewTag()">＋ New tag</button>
+      <button class="chip" style="color:var(--muted)" onclick="gemRemove()">Remove from Gems</button></div>`;
+  el.classList.add('on'); clearTimeout(gemT); gemT = setTimeout(gemClose, 6000);
+}
+function gemClose(){ clearTimeout(gemT); document.getElementById('gemStrip').classList.remove('on'); gemFor = null; }
+function gemTag(tid){
+  const i = findIdea(gemFor); if (!i) return; const on = !i.stashes.includes(tid), t = db.stashes.find(x => x.id === tid);
+  toggleStash(gemFor, tid, on); gemDraw(); clearTimeout(gemT); gemT = setTimeout(gemClose, 1500);
+}
+function gemNewTag(){
+  clearTimeout(gemT);
+  document.getElementById('gemStrip').innerHTML = `<div class="h">New tag</div><div style="display:flex;gap:8px;margin-top:8px">
+    <input id="gemNew" placeholder="e.g. Family worship" maxlength="30" onkeydown="if(event.key==='Enter')gemNewSave()"><button class="btn sm" style="width:auto;margin:0" onclick="gemNewSave()">Add</button></div>`;
+  setTimeout(() => { const x = document.getElementById('gemNew'); if (x) x.focus(); }, 50);
+}
+function gemNewSave(){
+  const n = (document.getElementById('gemNew').value || '').trim(); if (!n) return gemDraw();
+  let t = tagList().find(x => x.name.toLowerCase() === n.toLowerCase());
+  if (!t){ t = {id: uid(), name: n, emoji: '🏷️'}; db.stashes.push(t); save(); }
+  gemTag(t.id);
+}
+function gemRemove(){
+  const i = findIdea(gemFor); if (!i) return;
+  i.stashes = i.stashes.filter(x => x === 'fav'); save(); refreshCard(i.id); toast('Removed from Gems'); gemClose();
+}
+document.getElementById('feed').addEventListener('scroll', () => { if (gemFor && performance.now() - (window._gemOpen || 0) > 600) gemClose(); }, {passive: true});
 /* ---- hearts (v6) ---- */
 const isHearted = i => !!i && (i.stashes || []).includes('fav');
 function ensureFav(){ if (!db.stashes.some(s => s.id === 'fav')) db.stashes.unshift({id:'fav', name:'Favorites', emoji:'⭐'}); }
@@ -1828,7 +1921,7 @@ function heartIdea(id){
   if (on){
     const c = document.querySelector(`.card[data-id="${id}"]`), host = c && c.parentElement;
     if (host){ const r = c.getBoundingClientRect(), h = host.getBoundingClientRect(); heartBurst(host, r.left - h.left + r.width/2, r.top - h.top + r.height/2); }
-    toast('❤️ Saved to Favorites');
+    toast('❤️ Kept in your Treasures (Hearted)');
   }
   popHeart(`.card[data-id="${id}"] .heart`);
 }
@@ -1853,33 +1946,59 @@ function newStash(id){
   id ? stashSheet(id) : (closeSheet(), renderLibrary());
 }
 
-/* ================= library ================= */
-let libFilter = 'all';
+/* ================= library: Treasures (beta 32) ================= */
+let libFilter = 'home', libTag = 'all';
+const peek = list => list.slice(0, 2).map(i => { const m = thumbOf(i).match(/src="([^"]+)"/); return m ? `<img src="${m[1]}" alt="">` : ''; }).join('');
+function recentDone(){
+  if (!db.done){ db.done = {}; for (const [id, t] of Object.entries(db.rest || {})){ const i = findIdea(id); if (i && !(i.stashes || []).length) db.done[id] = t; } save(); }
+  return Object.entries(db.done).sort((x, y) => y[1] - x[1]).map(([id]) => findIdea(id)).filter(Boolean).slice(0, 150);
+}
 function renderLibrary(){
   const el = document.getElementById('library');
-  const counts = id => db.ideas.filter(i => (i.stashes||[]).includes(id)).length;
-  let list = libFilter==='all' ? db.ideas : db.ideas.filter(i => (i.stashes||[]).includes(libFilter));
-  const q = (el.querySelector('#libQ')||{}).value || '';
-  if (q) list = list.filter(i => (i.title+' '+i.body+' '+i.source).toLowerCase().includes(q.toLowerCase()));
-  list = [...list].sort((a,b)=>b.created-a.created);
-  el.innerHTML = `
-    <div class="sec">Stashes</div>
-    <div class="grid">
-      <button class="tile" onclick="libFilter='all';renderLibrary()" style="${libFilter==='all'?'outline:2px solid var(--accent)':''}">
-        <span class="e">🗂️</span><b>All ideas</b><small>${db.ideas.length} ideas</small></button>
-      ${db.stashes.map(s=>`<button class="tile" onclick="libFilter='${s.id}';renderLibrary()" style="${libFilter===s.id?'outline:2px solid var(--accent)':''}">
-        <span class="e">${esc(s.emoji)}</span><b>${esc(s.name)}</b><small>${counts(s.id)} ideas</small></button>`).join('')}
-      <button class="tile" onclick="newStashSheet()">
-        <span class="e">➕</span><b>New stash</b><small>Group ideas</small></button>
-    </div>
-    <div class="search"><input id="libQ" placeholder="Search ideas…" value="${esc(q)}" oninput="clearTimeout(window._q);window._q=setTimeout(()=>{renderLibrary();const x=document.getElementById('libQ');x.focus();x.setSelectionRange(x.value.length,x.value.length)},250)"></div>
-    ${libFilter!=='all' ? (st => `<button class="btn ${st.replay ? '' : 'alt'} sm" onclick="stashReplay('${libFilter}')">🔁 Replay in Today: ${st.replay ? 'On' : 'Off'}</button>
-      <p style="color:var(--muted);font-size:13px;margin:4px 0 8px">${st.replay ? 'These come back in Today now and then.' : 'Saved here, they stay out of Today. Turn on to see them again now and then.'}</p>`)(db.stashes.find(x => x.id === libFilter) || {}) : ''}
-    ${libFilter!=='all' && libFilter!=='fav' ? `<button class="btn alt sm" onclick="delStash('${libFilter}')">Delete this stash</button>`:''}
-    <div class="sec">${list.length} ideas</div>
-    <div class="thumbs">${list.slice(0,300).map(thumbHTML).join('')}</div>
-    ${list.length>300?'<div class="status">Showing newest 300 — use search to narrow.</div>':''}`;
+  const q = ((el.querySelector('#libQ') || {}).value || '').trim();
+  const newest = l => [...l].sort((x, y) => ((y.savedAt || y.created || 0) - (x.savedAt || x.created || 0)));
+  const hearts = newest(db.ideas.filter(isHearted)), gems = newest(db.ideas.filter(isGem)), tags = tagList();
+  const search = `<div class="search"><input id="libQ" placeholder="Search your treasures…" value="${esc(q)}" oninput="clearTimeout(window._q);window._q=setTimeout(()=>{renderLibrary();const x=document.getElementById('libQ');x.focus();x.setSelectionRange(x.value.length,x.value.length)},250)"></div>`;
+  if (q){
+    const l = db.ideas.filter(i => (i.title + ' ' + (i.body || '') + ' ' + (i.source || '')).toLowerCase().includes(q.toLowerCase()));
+    el.innerHTML = `<div class="sec">Treasures</div>${search}<div class="sec">${l.length} found</div><div class="thumbs">${l.slice(0, 300).map(thumbHTML).join('')}</div>`; return;
+  }
+  if (libFilter === 'home'){
+    el.innerHTML = `<div class="chestbig"><svg viewBox="0 0 200 120"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#chGlow)"/><use href="#chest" x="40" y="6" width="120" height="110"/>
+        <g fill="#fff4c2"><path d="M34 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><path d="M160 84 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" opacity=".7"/></g></svg></div>
+      <div class="sec">Your treasures</div>
+      <div class="comps">
+        <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
+        <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
+        <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
+      </div>
+      ${tags.length ? `<div class="sec" style="margin-top:16px">Tags</div><div class="chips">${tags.map(t => `<button class="chip" onclick="libOpen('gem','${t.id}')">🏷️ ${esc(t.name)}<small>${db.ideas.filter(i => (i.stashes || []).includes(t.id)).length}</small></button>`).join('')}</div>` : ''}
+      ${search}
+      <button class="btn alt sm" onclick="libOpen('all')">🗂️ Everything GemStash has given you (${db.ideas.length})</button>`;
+    return;
+  }
+  const back = `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="libOpen('home')">‹ Treasures</button>`;
+  let list, title, sid = null;
+  if (libFilter === 'fav'){ list = hearts; title = '❤️ Hearted'; sid = 'fav'; }
+  else if (libFilter === 'gem'){
+    sid = libTag === 'all' || libTag === 'none' ? 'gem' : libTag;
+    list = libTag === 'all' ? gems : libTag === 'none' ? gems.filter(i => !i.stashes.some(x => x !== 'fav' && x !== 'gem')) : gems.filter(i => i.stashes.includes(libTag));
+    title = '💎 Gems';
+  }
+  else if (libFilter === 'done') list = recentDone(), title = '🕘 Recently finished';
+  else list = newest(db.ideas), title = '🗂️ Everything';
+  const st = sid && (db.stashes.find(x => x.id === sid) || (sid === 'gem' ? (ensureGem(), db.stashes.find(x => x.id === 'gem')) : {}));
+  const tagName = libFilter === 'gem' && libTag !== 'all' && libTag !== 'none' ? (tags.find(t => t.id === libTag) || {}).name : '';
+  el.innerHTML = `${back}<div class="sec">${title} · ${list.length}</div>
+    ${libFilter === 'gem' && tags.length ? `<div class="chips"><button class="chip ${libTag === 'all' ? 'on' : ''}" onclick="libTag='all';renderLibrary()">All</button>
+      ${tags.map(t => `<button class="chip ${libTag === t.id ? 'on' : ''}" onclick="libTag='${t.id}';renderLibrary()">${esc(t.name)}</button>`).join('')}
+      <button class="chip ${libTag === 'none' ? 'on' : ''}" onclick="libTag='none';renderLibrary()">Untagged</button></div>` : ''}
+    ${list.length ? `<div class="thumbs">${list.slice(0, 300).map(thumbHTML).join('')}</div>` : `<p style="color:var(--muted)">${libFilter === 'fav' ? 'Tap 🤍 on anything in Today to keep it here.' : libFilter === 'gem' ? 'Tap 💎 on anything in Today to keep it here.' : 'Nothing yet.'}</p>`}
+    ${st && st.id ? `<button class="btn ${st.replay ? '' : 'alt'} sm" onclick="stashReplay('${st.id}')">🔁 Replay in Today: ${st.replay ? 'On' : 'Off'}</button>
+      <p style="color:var(--muted);font-size:13px;margin:4px 0 8px">${st.replay ? 'These come back in Today now and then.' : 'Kept here, they stay out of Today. Turn on to see them again now and then.'}</p>` : ''}
+    ${tagName ? `<button class="btn alt sm" onclick="delStash('${libTag}')">Delete the tag “${esc(tagName)}” (the gems stay)</button>` : ''}`;
 }
+function libOpen(f, tag){ libFilter = f; libTag = tag || 'all'; const q = document.getElementById('libQ'); if (q) q.value = ''; renderLibrary(); document.getElementById('library').scrollTop = 0; scrollTo(0, 0); }
 function thumbOf(i){                                       // beta 27: the picture for a saved item
   const cc = i.kids === 'Bible Character Card' && ccPics(i);
   const u = (i.video && i.video.img) || (cc && cc[0]) || (i.pics && i.pics[0]) || i.image || i.pic || (i.lkind && LISTEN_SERIES[i.lkind] ? LISTEN_SERIES[i.lkind].art : '');
@@ -1894,7 +2013,7 @@ function newStashSheet(){ openSheet(`<h3>New stash</h3><input id="newStash" plac
 function delStash(sid){
   db.stashes = db.stashes.filter(s=>s.id!==sid);
   db.ideas.forEach(i => i.stashes = (i.stashes||[]).filter(x=>x!==sid));
-  libFilter='all'; save(); renderLibrary(); toast('Stash deleted (ideas kept)');
+  libFilter='gem'; libTag='all'; save(); renderLibrary(); toast('Tag deleted (the gems stay)');
 }
 function viewIdea(id){
   openSheet(`<div style="height:70vh;display:flex;position:relative">${cardHTML(findIdea(id))}</div>
@@ -2798,7 +2917,7 @@ async function moreVideos(k){
   save(); return out;
 }
 function videoSlideHTML(v, n){
-  const saved = db.ideas.some(i => i.video && i.video.lank === v.lank && i.stashes && i.stashes.length);
+  const saved = isGem(videoIdeaOf(v));
   return `<div class="vslide ${CROP.has(v.cat) ? 'crop' : ''}" data-n="${n}" data-lank="${esc(v.lank)}">
     <div class="bg" style="background-image:url('${esc(v.img)}')"></div>
     <video playsinline muted preload="${n < 2 ? 'metadata' : 'none'}" poster="${esc(v.img)}" src="${esc(v.src)}"></video>
@@ -2865,7 +2984,7 @@ function wireVideoSlide(s){
   });
   vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit();   // (v27)
     const c = s.querySelector('.card[data-id]'), v = db.watch.daily.items[s.dataset.n];      // beta 25: a series video card watched to the end
-    const it = c ? findIdea(c.dataset.id) : v && db.ideas.find(i => i.video && i.video.lank === v.lank); if (it) finished(it.id, 'watched'); });
+    const it = c ? findIdea(c.dataset.id) : v && videoToIdea(v); if (it) finished(it.id, 'watched'); });   // beta 32: every video, for Recently finished
   // load the next one ahead of time
   vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
 }
@@ -2898,12 +3017,12 @@ function heartVideo(n, quiet){
   const s = document.querySelector(`#feed .vslide[data-n="${n}"]`), b = s && s.querySelector('.heart');
   if (b){ b.textContent = on ? '❤️' : '🤍'; popHeart(`#feed .vslide[data-n="${n}"] .heart`); }
   if (on && !quiet && s){ const r = s.getBoundingClientRect(); heartBurst(s, r.width/2, r.height/2); }
-  if (on) toast('❤️ Saved to Favorites');
+  if (on) toast('❤️ Kept in your Treasures (Hearted)');
 }
 function saveVideo(n){
   const v = db.watch.daily.items[n]; if (!v) return;
   const vid = document.querySelector(`#feed .vslide[data-n="${n}"] video`); vid && vid.pause();
-  stashSheet(videoToIdea(v).id);
+  gemTap(videoToIdea(v).id);
 }
 function channelsSheet(){
   const W = db.watch, on = k => W.cats.find(c => c.key === k);
@@ -2974,7 +3093,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">Things you’ve finished</div>
-    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Anything you heart or save stays out of Today and waits for you in Stashes (each stash has a Replay switch). Scrolling back up still shows today’s again.</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Anything you heart or save stays out of Today and waits for you in Treasures (each part has a Replay switch). Scrolling back up still shows today’s again.</p>
     ${(a => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div class="step"><button onclick="restStep(-1)">−</button><b>${restMonths()} month${restMonths() > 1 ? 's' : ''}</b><button onclick="restStep(1)">+</button></div>
       <button class="btn sm ${db.restMonths === undefined || db.restMonths === 'auto' ? '' : 'alt'}" style="width:auto;margin:0" onclick="db.restMonths='auto';save();renderMore()">Auto</button></div>
