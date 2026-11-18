@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v41)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v42)
 =======================================
 
 FOLDERS
@@ -226,4 +226,6 @@ VERSIONS
   v41 Daily Text from jw.org's download (from Beta 12 and 14): once a year, download jw.org's Examining
       the Scriptures Daily (EPUB) and pick it in GemStash; each day's text then comes from that file on the
       phone, and the card links to jw.org's EPUB. Nothing is read from jw.org's pages for it any more.
+  v42 "How does GemStash work?" (from Beta 15): More > About has a short FAQ on where everything comes
+      from and how that fits jw.org's Terms of Use.
   Next: Daily Text from the es26 EPUB (in the beta)

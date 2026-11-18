@@ -217,6 +217,10 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .vslide:fullscreen .fsx{display:flex;align-items:center;justify-content:center}
 .vslide:fullscreen .side,.vslide:fullscreen .info,.vslide:fullscreen .note{display:none}
 .vslide:fullscreen video{object-fit:contain}
+.faq{border-bottom:1px solid #ffffff1a;padding:10px 0}
+.faq summary{font-weight:700;cursor:pointer;line-height:1.4}
+.faq p{color:var(--muted);line-height:1.55;margin:8px 0 2px;font-size:15px}
+.faq a{color:var(--accent)}
 .vslide .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);z-index:2}
 .vslide .note{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:#000a;border-radius:999px;
   padding:8px 14px;font-size:14px;pointer-events:none;white-space:nowrap}
@@ -321,6 +325,29 @@ function welcomeIdeas(){
 /* ================= helpers ================= */
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
 function openSheet(html){ document.getElementById('sheetIn').innerHTML = html; document.getElementById('sheet').classList.add('on'); }
+// beta 15 (Mike): plain answers about how GemStash uses jw.org, and how that fits jw.org's Terms of Use
+const FAQ = [
+  ['What is GemStash?',
+   'A free, private reading and listening feed for your own personal study. It brings a few things from jw.org together each day: the Daily Text, short articles you can listen to, videos, and picture stories. It isn’t made by jw.org and isn’t endorsed by them. It has no ads, no sign-up and nothing to buy.'],
+  ['Does GemStash copy jw.org’s articles?',
+   'No. An article card shows the article’s title and picture, and plays jw.org’s own narration of it. To read the article, tap 📖 and it opens on jw.org. GemStash doesn’t take the text off jw.org’s pages, and only articles jw.org has narrated are used.'],
+  ['Where do the videos, narration and pictures come from?',
+   'Straight from jw.org’s own servers: the same video and audio files jw.org offers for download, found through jw.org’s public media service. They play from jw.org; GemStash never copies them to another server or website.'],
+  ['Where does the Daily Text come from?',
+   'From jw.org’s own download of <i>Examining the Scriptures Daily</i> (the EPUB file). You download it from jw.org once a year and pick it in GemStash, and it stays on your phone. Each Daily Text card links to that download, so you can always see where the text came from.'],
+  ['What do jw.org’s Terms of Use say, and how does GemStash fit them?',
+   'jw.org lets you download its publications, videos and audio for your own personal, non-commercial use. It also lets you share links to them, and allows free, non-commercial apps that download its EPUB, PDF, MP3 and MP4 files. It doesn’t allow tools that scrape the site’s text or pictures, re-posting its material on other websites or apps, or any commercial use. GemStash is built to stay inside those lines. It is free and personal. It uses jw.org’s own media files and the Daily Text file you download yourself, and it doesn’t scrape article pages. Nothing from jw.org is stored on any server of ours, and sharing sends jw.org’s own links. You can read the Terms here: <a href="https://www.jw.org/en/terms-of-use/" target="_blank" rel="noopener">jw.org Terms of Use ↗</a>'],
+  ['What happens when I share something?',
+   'Your friend gets jw.org’s own link, so they read or watch it on jw.org itself.'],
+  ['What is kept, and where?',
+   'Your hearts, gems, shelf, books and Daily Text stay on your phone. If you join a friends circle, only your name, your comments and jw.org links are kept online, in a private circle. No jw.org text or media is stored there.'],
+  ['What about books?',
+   'Free books from Project Gutenberg are public domain. Books you add yourself (PDF or EPUB) are read and kept only on your phone.']];
+function openFaq(){
+  openSheet(`<h3>❓ How does GemStash work?</h3>
+    ${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
 function closeSheet(){ document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -2324,7 +2351,8 @@ function renderMore(){
     <div class="sec">Something not working?</div>
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v41 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v42 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
