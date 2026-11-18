@@ -290,7 +290,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <button data-v="shelf"><span class="ic">📚</span>Shelf</button>
     <button data-v="circle"><span class="ic">👥</span>Circle</button>
     <button data-v="library"><span class="ic">💎</span>Stashes</button>
-    <button data-v="add"><span class="ic">➕</span>Add</button>
+    <button data-v="mine"><span class="ic">➕</span>Add</button>
     <button data-v="more"><span class="ic">⚙️</span>More</button>
   </nav>
 </div>
@@ -322,9 +322,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 30;
+const BETA_NO = 31;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [31, '➕ Add in the bottom bar now shares your own photos with your circle. Adding a book or a jw.org video link moved to the bottom of the Shelf.', ''],
   [30, 'Things you open from Stashes play again: tapping ▶ on a story you’d opened was starting the hidden copy in Today instead. Closing it stops the sound.', ''],
   [29, 'Reading aloud with the phone’s voice no longer misses the first few words: it waits a moment for the speaker to wake up before it starts.', ''],
   [28, 'How long finished things rest is now set in months (1 to 12) in More, or Auto, which works it out from how much jw.org has on your shelf and how much you get through a day.', ''],
@@ -432,12 +433,17 @@ const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*(jw\.org|gu
 
 /* ================= navigation ================= */
 let currentView = 'feed';
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => b.dataset.v === 'mine' ? addMine() : go(b.dataset.v));
+// beta 31 (Mike): ➕ Add in the bottom bar is for your own photos (and later videos); adding books moved into the Shelf
+function addMine(){
+  if (circleReady()) return postSheet();
+  go('circle'); toast('Set up your circle first, then ➕ Add shares your photos with it');
+}
 function go(v){
   currentView = v;
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
   document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === (v === 'add' ? 'shelf' : v)));   // beta 31: adding books is part of the Shelf
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
   ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
@@ -1973,7 +1979,7 @@ let addTab = 'books', preview = [];   // (v50) pasting a jw.org link is retired 
 // was: let addTab = 'web'   // (v21) jw.org only: Books / Paste / Write one retired
 function renderAdd(){
   const el = document.getElementById('add');
-  el.innerHTML = `<div class="tabs">
+  el.innerHTML = `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="go('shelf')">‹ Shelf</button><div class="tabs">
       ${[['books','📖 Books'],['video','🎬 Video link']].map(([k,l])=>
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
@@ -2621,8 +2627,11 @@ function renderShelf(){
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
       <span style="font-size:22px">＋</span></button>`).join('')}
     <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
-      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Search 60,000+ free books on Project Gutenberg</small></span>
-      <span style="font-size:22px">＋</span></button>`;   // (v23) back
+      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Your own PDF or EPUB, or 60,000+ free books on Project Gutenberg</small></span>
+      <span style="font-size:22px">＋</span></button>
+    <button class="shelfitem" onclick="addTab='video';go('add')"><span class="e">🎬</span>
+      <span class="t" style="flex:1"><b>A jw.org video link</b><small style="display:block;color:var(--muted)">Paste a video’s share link to watch it in Today</small></span>
+      <span style="font-size:22px">＋</span></button>`;   // beta 31: these used to be the Add tab   // (v23) back
 }
 async function pullNow(){
   db.shelf.forEach(it => { if (it.error) it.lastPull = ''; });

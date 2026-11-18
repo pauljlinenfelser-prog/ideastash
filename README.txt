@@ -120,6 +120,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 29: the phone's read-aloud voice waits 0.35 s and says a quiet pause first, so it no longer misses
   the opening words.
   Beta 30: cards opened from Stashes (e.g. All ideas) play again; closing the card stops the sound.
+  Beta 31: the ➕ Add tab now shares your own photos with your circle (postSheet; sets up the circle
+  first if needed). Adding a book or a jw.org video link moved to the bottom of the Shelf.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
