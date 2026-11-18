@@ -28,6 +28,7 @@ textarea{min-height:160px;resize:vertical}
 header{padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);z-index:5}
 header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
+header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:middle;margin:-6px 0}   /* (v48) */
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
 .pill.auto{font-weight:600}
 /* (v19) comments */
@@ -151,6 +152,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .strip::-webkit-scrollbar{display:none}
 .pcard .pg{flex:0 0 100%;height:100%;position:relative;scroll-snap-align:center;scroll-snap-stop:always}
 .pcard img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px 8px 64px}
+.pcard img.cfront{object-view-box:inset(0 50% 0 0)}.pcard img.cback{object-view-box:inset(0 0 0 50%)}   /* (v37) one card, two sides */
 .pcard .dots{position:absolute;left:0;right:0;bottom:78px;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
 .pcard .dots i{width:7px;height:7px;border-radius:50%;background:#fff5}
 .pcard .dots i.on{background:#fff}
@@ -179,7 +181,8 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .lplay.lread small{font-size:13px;font-weight:700}
 .lcard.noimg .hero{background-size:cover !important}
 .lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
-.lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero img,.lcard .hero video.art{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero video.art{object-fit:contain;background:#000;padding-bottom:90px;box-sizing:border-box}   /* (v38) the whole title card, above the title */
 .lcard .hero .ht{display:none}
 .lcard.noimg .hero img{display:none}   /* the nautilus art (hero background) shows instead */
 .lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
@@ -188,6 +191,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .lmeta .lsrc{color:#fffb;text-decoration:underline;text-underline-offset:2px}   /* beta 16 */
 .lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
 .lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
+.lcard .lnext{margin-top:12px;background:var(--accent);color:#14121f;border:0;border-radius:999px;padding:9px 16px;font-weight:700;font-size:15px;pointer-events:auto;cursor:pointer}   /* (v49) */
 .lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
 .lcard .side button,.lcard .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
 .lcard .side .saved{background:var(--accent)}
@@ -212,6 +216,10 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .vslide .side button,.vslide .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
   align-items:center;justify-content:center;text-decoration:none;color:#fff}
 .vslide .side .saved{background:var(--accent)}
+.vslide .fsx{display:none;position:absolute;top:14px;right:14px;z-index:3;width:46px;height:46px;border-radius:50%;background:#0008;color:#fff;font-size:22px}
+.vslide:fullscreen .fsx{display:flex;align-items:center;justify-content:center}
+.vslide:fullscreen .side,.vslide:fullscreen .info,.vslide:fullscreen .note{display:none}
+.vslide:fullscreen video{object-fit:contain}
 .bnews{font-size:14px;line-height:1.5;color:var(--muted);padding:6px 0;border-bottom:1px solid #ffffff12}
 .bnews b{color:var(--text,#fff)}
 .bapp{font-size:12px;color:var(--accent);white-space:nowrap}
@@ -237,7 +245,8 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <body>
 <div id="app">
   <header>
-    <h1>Gem<span>Stash</span> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;vertical-align:middle">BETA</small></h1>
+    <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash Beta"> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">BETA</small></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
+    <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖 Bible</button>   <!-- (v47) -->
     <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
     <span class="pill" id="streak">🔥 0</span>
   </header>
@@ -250,7 +259,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   </main>
   <nav>
     <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
-    <button data-v="shelf"><span class="ic">📖</span>Shelf</button>
+    <button data-v="shelf"><span class="ic">📚</span>Shelf</button>
     <button data-v="library"><span class="ic">💎</span>Stashes</button>
     <button data-v="add"><span class="ic">➕</span>Add</button>
     <button data-v="more"><span class="ic">⚙️</span>More</button>
@@ -259,7 +268,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="sheet"><div class="in" id="sheetIn"></div></div>
 <div id="toast"></div>
 
-<script src="sources.js?v=b12"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script src="sources.js?v=b21"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'gemstash.beta.v1';   // BETA: its own storage, never touches the real app's data
@@ -283,6 +292,57 @@ function blank(){
 function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
+}
+const BETA_NO = 21;
+// beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
+const BETA_NEWS = [
+  [21, 'The beta is now today’s app (v50) plus its own bits, so it has everything: full screen, Bible reading, the treasure chest, the stuck-feed fix. Your beta data stays.', ''],
+  [20, 'Add no longer has “paste a jw.org link” (it read the article page).', 'v50'],
+  [19, 'The Daily Text download, the FAQ and the MP3 links are now in the app too (v41–v43).', ''],
+  [18, 'Fixed: Today could get stuck after many cards, when an extra card at the end was a listen or picture card.', 'v40'],
+  [17, 'This list: what each beta added, newest first.', ''],
+  [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', 'v43'],
+  [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', 'v42'],
+  [14, 'The Daily Text card links to the jw.org EPUB it was taken from.', 'v41'],
+  [13, 'The beta’s number shows here in More and in About.', ''],
+  [12, 'The Daily Text comes from jw.org’s own download of Examining the Scriptures Daily (an EPUB, once a year): download it, then pick the file. Nothing is read from jw.org’s pages.', 'v41'],
+  [11, 'The beta has its own icon: the gems with a pink B.', ''],
+  [10, 'Narrated articles only: articles jw.org hasn’t narrated are left out.', 'v26'],
+  [9, 'No article text taken from jw.org: Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the Family and From Our Archives became listen cards (picture, title and jw.org’s narration).', 'v26'],
+  [7, 'Was It Designed? narration-only cards: title card on top, the article’s picture below.', 'v24'],
+  [6, 'Fixed narration-only cards switching to an empty middle band.', 'v24'],
+  [5, 'Was It Designed? sorted by what jw.org offers: full videos, narration cards, or narration with a short clip.', 'v24'],
+  [4, 'The narration no longer stops when the screen changes size for a moment.', 'v24'],
+  [3, 'The Was It Designed? title card on top, from jw.org’s own video.', 'v24'],
+  [2, 'New layout: art on top, the short video in the middle, the picture and title below.', 'v24'],
+  [1, 'The first layered card for Was It Designed?: picture, jw.org narration and a short video.', 'v24']];
+function betaNewsHTML(){
+  const row = ([n, t, app]) => `<div class="bnews"><b>Beta ${n}</b> ${t}${app ? ` <span class="bapp">now in the app (${app})</span>` : ''}</div>`;
+  const [latest, ...older] = BETA_NEWS;
+  return `<p style="font-size:14px;margin:4px 0 2px"><b>What’s new</b></p>${row(latest)}
+    <details class="bolder"><summary>Earlier betas (${older.length})</summary>${older.map(row).join('')}</details>`;
+}   // beta 13: shown in More (Beta experiments + About); bump with each beta
+const TLOG_KEY = 'gemstash-beta.tlog';
+let tlogBuf = []; try { tlogBuf = JSON.parse(localStorage.getItem(TLOG_KEY) || '[]'); } catch(e){}
+let tlogT = 0;
+function tlog(msg){                                      // (v39) time + what happened; the last 150 lines are kept
+  const d = new Date(), t = d.toTimeString().slice(0, 8);
+  tlogBuf.push(t + ' ' + msg); if (tlogBuf.length > 150) tlogBuf.splice(0, tlogBuf.length - 150);
+  clearTimeout(tlogT); tlogT = setTimeout(() => { try { localStorage.setItem(TLOG_KEY, JSON.stringify(tlogBuf)); } catch(e){} }, 300);
+}
+window.addEventListener('error', e => tlog('ERROR ' + (e.message || '') + ' @' + (e.lineno || '')));
+window.addEventListener('unhandledrejection', e => tlog('ERROR (promise) ' + ((e.reason && (e.reason.message || e.reason)) || '')));
+function feedIdx(s){ const f = document.getElementById('feed'); return s && f ? [...f.children].indexOf(s) : -1; }
+async function copyReport(){
+  const f = document.getElementById('feed');
+  const head = [`GemStash report ${new Date().toString().slice(0, 24)}`,
+    `version: ${(document.body.innerHTML.match(/GemStash v\d+/) || [''])[0]}  screen: ${innerWidth}x${innerHeight}  standalone: ${matchMedia('(display-mode: standalone)').matches}`,
+    `limit: ${db.limitMin} min, used today: ${Math.round(usedSecs() / 60)} min, time up: ${timeUp()}`,
+    `feed: ${f.children.length} slides, current: ${feedIdx(feedCurrent)}, scrollTop: ${Math.round(f.scrollTop)}, full screen: ${!!fsSlide}, auto: ${autoOn}`,
+    `spot: ${JSON.stringify(db.feedSpot || null)}`, '--- last events ---'].filter(Boolean);
+  const text = head.concat(tlogBuf.slice(-80)).join('\n');
+  try { await navigator.clipboard.writeText(text); toast('Report copied: paste it to Claude'); }
+  catch(e){ openSheet(`<h3>Problem report</h3><p style="color:var(--muted)">Press and hold the text, Select all, Copy.</p><textarea style="width:100%;height:50vh;font-size:12px">${esc(text)}</textarea><button class="btn alt" onclick="closeSheet()">Close</button>`); }
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast('Storage full or blocked — export a backup'); } }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -337,6 +397,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.data
 function go(v){
   currentView = v;
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
+  document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
@@ -360,11 +421,12 @@ function ensureDailyShelf(){
     if (db.shelf.some(x => x.kind === kind)) return;
     const s = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0,
       total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
-    setOrder(s, 'random'); db.shelf.push(s);
+    setOrder(s, kind === 'nwt' ? 'seq' : 'random'); db.shelf.push(s);   // (v35) the Bible goes in order
   });
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
   [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
-   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15]].forEach(([key, maxMin]) => {   // (v9) + experiences and our history
+   ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15], ['CONV_SHORT', 10], ['VODOriginalSongs', 10]].forEach(   // (v30) + A Day in the Life of…; (v31) + short convention videos; (v34) + a music video
+  ([key, maxMin]) => {   // (v9) + experiences and our history
     const tag = 'w:' + key;
     if (db.seeded.includes(tag)) return;
     db.seeded.push(tag);
@@ -399,12 +461,14 @@ function renderStreak(){ document.getElementById('streak').textContent = '🔥 '
 
 /* ================= card ================= */
 // (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
+const ccPics = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) return null;
+  const u = `https://cms-imgp.jw-cdn.org/img/p/${m[1]}/E/art/${m[1]}_E_cnt_1_xl.jpg`; return [u + '#front', u + '#back']; };   // (v37)
 function posterHTML(i){
-  const pics = i.pics || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
+  const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = i.stashes && i.stashes.length, many = pics.length > 1;
   return `<div class="card pcard" data-id="${i.id}">
     <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
     <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
-      `<div class="pg"><img class="poster" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+      `<div class="pg"><img class="poster${/#front$/.test(u) ? ' cfront' : /#back$/.test(u) ? ' cback' : ''}" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
@@ -412,8 +476,9 @@ function posterHTML(i){
       <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
       ${commentBtn(i.url, i.title)}
       <button title="Full size" onclick="openPic(this)">🔍</button>
+      ${i.pdf ? `<a title="Print it (jw.org PDF)" href="${esc(i.pdf)}" target="_blank" rel="noopener">🖨️</a>` : ''}
     </div>
-    <div class="info"><b>${esc(i.title)}</b><small>${many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+    <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)}${many ? ' · swipe ⟷' : ''} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
 }
 function stripMoved(st){
   const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
@@ -422,12 +487,12 @@ function stripMoved(st){
 }
 function openPic(btn){
   const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
-  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg');
+  const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg').replace(/#(front|back)$/, '');
   window.open(src, '_blank', 'noopener');
 }
 // (v11) "## " lines are headings / highlighted questions
 const bodyHTML = b => esc(b).replace(/^## (.+)(\n\n)?/gm, '<b class="bh">$1</b>');
-/* ================= BETA experiment: layered card ================= */
+/* ================= (v24) Was It Designed? cards (tested in the beta, promoted) ================= */
 // Everything comes from jw.org's own media service by document number (GETPUBMEDIALINKS): the narration MP3 and the
 // article's short MP4, plus the article picture on jw.org's image server. No article page is read or copied.
 // BETA 5: Was It Designed? articles that jw.org made into a full video play as a normal full-screen video
@@ -445,7 +510,7 @@ function layeredCard(e){
     url:e.u, doc:e.doc, layered:true, clip: e.m !== 'audio', image:`https://cms-imgp.jw-cdn.org/img/p/${e.doc}/univ/art/${e.doc}_univ_sqr_xl.jpg`,
     created:Date.now(), stashes:[], full:true};
 }
-// BETA 9: no article text is taken from jw.org any more. Questions From Readers, Bible Questions Answered, Bible Verses
+// (v26): no article text is taken from jw.org any more. Questions From Readers, Bible Questions Answered, Bible Verses
 // Explained, Help for the Family and From Our Archives become "listen cards" like the Was It Designed? ones: the series
 // picture on top, the article's picture below with its title (jw.org's own title from its audio service), and jw.org's
 // own narration. Articles jw.org hasn't narrated show the picture and title with a "Read on jw.org" button.
@@ -455,18 +520,19 @@ const LISTEN_SERIES = {
   bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},
   bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'},
   fam:  {name:'Help for the Family',      topic:'Family',    art:JWIMG + '1011205/univ/art/1011205_univ_lsr_xl.jpg'},
-  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'}};
+  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'},
+  nwt:  {name:'Listen to the Bible',      topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'}};   // (v35)
 function listenCard(e, kind){
   const S = LISTEN_SERIES[kind];
   return {id:uid(), title:e.t || e.q, body:'', topic:S.topic, url:e.u, doc:e.doc || '', layered:true, clip:false, lkind:kind,
     source: kind === 'qfr' ? 'Questions From Readers — ' + e.ref : S.name + ' — jw.org',
     image:e.img || '', link:!e.doc, created:Date.now(), stashes:[], full:true};
 }
-// cards made before beta 9 still hold the article text: turn them into listen cards (keeping hearts and stashes)
+// cards made before v26 still hold the article text: turn them into listen cards (keeping hearts and stashes)
 function toListenCards(){
   if (db.listenB9) return;
   const byUrl = {};
-  for (const k of Object.keys(LISTEN_SERIES)) for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
+  for (const k of Object.keys(LISTEN_SERIES)) if (k !== 'nwt') for (const e of KIND_LIST[k]()) byUrl[e.u] ||= [e, k];
   for (const i of db.ideas){
     if (i.layered || i.video || i.image || i.pics || !byUrl[i.url]) continue;
     const [e, k] = byUrl[i.url], n = listenCard(e, k);
@@ -483,25 +549,25 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
   return i;
 }
-const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art (fallback)
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // RETIRED (v38): website banner, no longer shown
 // Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
 // jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
 const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
 function layeredHTML(i){
   const saved = i.stashes && i.stashes.length;
   const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
-  const S = LISTEN_SERIES[i.lkind];                        // BETA 9: a listen card from another series
+  const S = LISTEN_SERIES[i.lkind];                        // (v26): a listen card from another series
   const audioOnly = !!S || i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
-  const art = S ? S.art : WID_ART, cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
+  const art = S ? S.art : '', cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
   return `<div class="card lcard${cls}" data-id="${i.id}">
     ${S ? `<div class="series" style="background-image:url('${art}')"><span>${S.name}</span></div>`
-        : `<div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>`}
+        : `<div class="series" style="background:#000"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}"></video></div>`}
     ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
-    <div class="hero" style="background:url('${art}') center/cover">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
+    <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
       <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
-        <div class="lbar"><i></i></div></div></div>
+        <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div>${i.lkind === 'nwt' && i.heard ? `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>` : ''}</div></div>
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
       <button title="Save to a stash" class="${saved?'saved':''}" onclick="stashSheet('${i.id}')"><span class="gem">💎</span></button>
@@ -514,7 +580,8 @@ function layeredHTML(i){
 function heroFallback(img){
   const tries = ['_univ_sqr_xl.jpg', '_univ_lss_lg.jpg', '_univ_pnr_lg.jpg'], cur = tries.findIndex(t => img.src.endsWith(t));
   if (cur > -1 && cur < tries.length - 1) img.src = img.src.slice(0, -tries[cur].length) + tries[cur + 1];
-  else img.closest('.lcard').classList.add('noimg');
+  else if (img.closest('.lcard').querySelector('.series span')) img.closest('.lcard').classList.add('noimg');
+  else img.outerHTML = `<video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}"></video>`;   // (v38)
 }
 let layer = null;                                           // the card that's playing: {id, a, v, stopping}
 // Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
@@ -532,15 +599,40 @@ function layerStopIfGone(lc){
 let resizeT = null;
 window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
   const f = document.getElementById('feed');
-  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')) f.scrollTop = feedCurrent.offsetTop;
+  if (currentView === 'feed' && feedCurrent && f.contains(feedCurrent) && !feedCurrent.classList.contains('tall')){
+    tlog(`resize ${innerWidth}x${innerHeight}: back to ${feedIdx(feedCurrent)} (was at ${Math.round(f.scrollTop)}, card at ${feedCurrent.offsetTop})`);   // (v39)
+    f.scrollTop = feedCurrent.offsetTop;
+  }
 }, 150); });
 // coming back to the app: Chrome pauses silent videos while you're away, so restart the clip if the narration is still on
+document.addEventListener('visibilitychange', () => { tlog(document.hidden ? 'app hidden' : 'app back'); });   // (v39)
 document.addEventListener('visibilitychange', () => { if (!document.hidden && layer && layer.v && !layer.a.paused) layer.v.play().catch(() => {}); });
 function layerStop(){
   if (!layer) return;
   layer.stopping = true; layer.a.pause(); if (layer.v) layer.v.pause();
+  { const i = findIdea(layer.id); if (i && !layer.a.ended && layer.a.currentTime > 1){ i.lpos = Math.floor(layer.a.currentTime); save(); } }   // (v49)
   const b = document.querySelector(`.lcard[data-id="${layer.id}"] .lplay`); if (b) b.textContent = '▶';
   layer = null;
+}
+// (v49) at the end of a Bible chapter: go straight on to the next one
+function addNextBtn(c){
+  if (c.querySelector('.lnext')) return;
+  c.querySelector('.lmeta').insertAdjacentHTML('beforeend', `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>`);
+}
+async function nextChapter(btn){
+  const it = db.shelf.find(x => x.kind === 'nwt');
+  if (!it || it.pos >= it.total) return toast('That was the last chapter of the Bible!');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  try {
+    let c = await bibleCard(NWT_LIST[entryIndex(it)]);
+    const ex = db.ideas.find(i => i.url === c.url && i.lkind === 'nwt');
+    if (ex) c = ex; else { c.shelfId = it.id; db.ideas.push(c); }
+    c.pulledOn = today(); c.heard = false; it.pos++; save();
+    const s = btn.closest('.vslide'), f = document.getElementById('feed');
+    s.insertAdjacentHTML('afterend', slideHTML({card: c}, -1)); const n = s.nextElementSibling;
+    feedObs.observe(n); f.scrollTop = n.offsetTop; btn.remove();
+    tlog('next chapter: ' + c.title); layerToggle(c.id);
+  } catch(e){ btn.disabled = false; btn.textContent = 'Next chapter ▶'; toast('Couldn’t load the next chapter'); }
 }
 async function layerToggle(id){
   const c = document.querySelector(`.lcard[data-id="${id}"]`); if (!c) return;
@@ -552,10 +644,14 @@ async function layerToggle(id){
     await layerMedia(i);
     if (!i.audio) throw new Error('no narration');
     const a = new Audio(i.audio), v = c.querySelector('video.clip');   // null on an audio-only card
+    const from = i.lpos > 5 && (!i.adur || i.lpos < i.adur - 5) ? Math.max(0, i.lpos - 3) : 0;   // (v49) carry on where you stopped
+    if (from){ a.currentTime = from; a.addEventListener('loadedmetadata', () => { if (a.currentTime < from - 1) a.currentTime = from; }, {once: true}); }
     const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0};   // no clip element on an audio card
     if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
-    a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%'; };
-    a.onended = () => { c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
+    a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
+      if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)
+    a.onended = () => { i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c);   // (v49)
+      c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
       const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
     a.onpause = () => {                                      // paused by the phone (not by you)? carry on
       if (me.stopping || a.ended || layer !== me || me.resumes > 5) return;
@@ -594,11 +690,12 @@ let exploreQueue = [];
 function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
 // (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
 // then more cards and videos mixed, until the daily scrolling time runs out.
+let fsSlide = null, viewHold = 0;   // (v29) the video that's full screen; ignore feed moves until this time
 let feedCore = -1, exploring = false, feedCurrent = null, feedGen = 0;   // (v12) feedGen: which feed is on screen
 async function renderFeed(){
   const el0 = document.getElementById('feed');
   const W = db.watch;
-  const gen = ++feedGen;
+  const gen = ++feedGen; tlog('feed drawn');   // (v39)
   dedupeVideos();
   const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
   if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
@@ -609,7 +706,16 @@ async function renderFeed(){
     if (currentView !== 'feed' || gen !== feedGen) return;
   }
   dedupeVideos();
-  toListenCards();                                       // BETA 9
+  // (v24) Was It Designed? cards delivered as text before v24: switch them to the new video / audio / composite style, once
+  if (!db.widV24){
+    for (const i of db.ideas.filter(x => !x.video && !x.layered && /^Was It Designed\?/.test(x.source || ''))){
+      const e = WID_LIST.find(x => x.u === i.url); if (!e || e.m === 'none') continue;
+      try { const n = e.v ? await widVideoCard(e) : e.doc ? layeredCard(e) : null;
+        if (n) Object.assign(i, n, {id: i.id, stashes: i.stashes, pulledOn: i.pulledOn, shelfId: i.shelfId, created: i.created}); } catch(err){}
+    }
+    db.widV24 = true; save();
+  }
+  toListenCards();                                       // (v26)
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
@@ -623,15 +729,36 @@ async function renderFeed(){
   qfr.forEach(i => seq.push(C(i)));
   vq.splice(0, 1).forEach(x => seq.push(V(x)));
   bqa.forEach(i => seq.push(C(i)));
-  if (db.betaRemora){ const e = WID_LIST.find(x => /remora/.test(x.u)); let r = db.ideas.find(x => x.layered && x.doc === e.doc); if (!r){ r = layeredCard(e); db.ideas.push(r); save(); } if (!seq.some(x => x.card === r)) seq.splice(1, 0, C(r)); }   // BETA example
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
   exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id)));
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
-  el.scrollTop = 0;
+  el.scrollTop = 0; restoreSpot(el);              // (v36) same day: back where you were
+  goBible(el);                                    // (v44)
   observeFeed();
+}
+// (v47) Mike: the home-screen menu doesn't show on his phone, so a 📖 button at the top of Today does the same
+function openBible(){ goBible(document.getElementById('feed'), true); }
+function goBible(el, now){
+  if (!now){
+    const q = new URLSearchParams(location.search); if (q.get('go') !== 'bible') return;
+    history.replaceState(null, '', location.pathname);         // only once: a reload doesn't jump again
+  }
+  const isBible = c => c && (findIdea(c.dataset.id) || {}).lkind === 'nwt';
+  const bib = [...el.children].filter(x => isBible(x.querySelector('.lcard')));
+  let s = bib.find(x => !findIdea(x.querySelector('.lcard').dataset.id).heard) || bib[bib.length - 1];   // (v49) the one you're on
+  if (!s){                                                      // not in Today (time's up, or it came in earlier): put it second
+    const it = db.shelf.find(x => x.kind === 'nwt');
+    const mine = it ? db.ideas.filter(i => i.shelfId === it.id) : [];
+    const c = mine.filter(i => !i.heard).sort((a, b) => (a.created || 0) - (b.created || 0))[0] || mine.sort((a, b) => (b.created || 0) - (a.created || 0))[0];   // (v49)
+    if (!c){ toast('Turn on “Listen to the Bible” on the Shelf first'); return; }
+    el.children[0].insertAdjacentHTML('afterend', slideHTML({card: c}, -1)); s = el.children[1];
+    if (now && feedObs) feedObs.observe(s);                     // (v47) the feed is already running
+  }
+  el.scrollTop = s.offsetTop; tlog(now ? '📖 button' : 'opened from the Bible reading shortcut');
+  toast('📖 Today’s Bible reading: tap ▶ to listen');
 }
 function slideHTML(x, k){
   if (x.retry) return dailyRetryHTML();
@@ -664,6 +791,7 @@ function timeUpHTML(){
 }
 // time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
 function cutFeedAt(s){
+  tlog('time up: feed cut at ' + feedIdx(s));   // (v39)
   const el = document.getElementById('feed');
   while (s.nextElementSibling) s.nextElementSibling.remove();
   s.remove();
@@ -692,21 +820,42 @@ async function retryDaily(){
   if (btn){ btn.disabled = false; btn.textContent = '🔄 Retry'; }
   toast('Still couldn\'t load. Try again in a minute.');
 }
+// (v36) Mike: opening GemStash again the same day goes back to where you were, not to the top
+const slideKey = s => s.dataset.lank ? 'v:' + s.dataset.lank : (s.querySelector('.card[data-id]') || {dataset:{}}).dataset.id ? 'c:' + s.querySelector('.card[data-id]').dataset.id : '';
+function markSpot(s){ const k = slideKey(s); if (k){ db.feedSpot = {date: today(), key: k, off: 0}; save(); } }
+let spotTimer = 0;
+document.getElementById('feed').addEventListener('scroll', () => {
+  clearTimeout(spotTimer);
+  spotTimer = setTimeout(() => {
+    const f = document.getElementById('feed'), sp = db.feedSpot;
+    if (currentView !== 'feed' || fsSlide || !feedCurrent || !f.contains(feedCurrent) || !sp || sp.key !== slideKey(feedCurrent)) return;
+    sp.off = Math.max(0, Math.round(f.scrollTop - feedCurrent.offsetTop)); save();
+  }, 400);
+}, {passive: true});
+function restoreSpot(el){
+  const sp = db.feedSpot; if (!sp || sp.date !== today() || timeUp()) return;
+  const all = [...el.querySelectorAll(':scope > .slide, :scope > .vslide')];
+  let s = all.find(x => slideKey(x) === sp.key), off = sp.off || 0;
+  if (!s){ s = all[all.length - 1]; off = 0; }   // it was one of the extra cards at the end: carry on from the end
+  if (s){ el.scrollTop = s.offsetTop + Math.min(off, Math.max(0, s.offsetHeight - el.clientHeight)); tlog('reopened at ' + feedIdx(s)); }
+}
 let feedObs;
 function observeFeed(){
   const el = document.getElementById('feed');
   if (feedObs) feedObs.disconnect();
   feedObs = new IntersectionObserver(ents => ents.forEach(en => {
+    if (fsSlide || performance.now() < viewHold){ if (performance.now() - (window.tlogIgn || 0) > 3000){ window.tlogIgn = performance.now(); tlog(`moves ignored (${fsSlide ? 'full screen ' + feedIdx(fsSlide) : 'turning'})`); } return; }   // (v29) full screen / phone turning: the feed behind only looks like it moved
     const s = en.target, vid = s.querySelector('video:not(.clip):not(.art)');   // BETA: the layered card's clip isn't a feed video
     // (v13) "on screen" = it fills most of the screen (a long card can never be 60% visible at once)
     const on = en.isIntersecting && en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.6;
     if (!on){ if (vid) vid.pause(); const lc = s.querySelector('.lcard'); if (lc && layer && layer.id === lc.dataset.id) layerStopIfGone(lc); return; }
     if (s === feedCurrent) return;                  // already counted; keep reading
     if (timeUp() && feedCurrent && !s.classList.contains('timeup') && el.contains(feedCurrent)) return cutFeedAt(s);
-    feedCurrent = s;
+    feedCurrent = s; markSpot(s);                   // (v36)
+    tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
-    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* beta 16 */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
     if (db.circle) s.querySelectorAll('.cmt').forEach(loadCount);   // (v19)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
@@ -717,7 +866,7 @@ function observeFeed(){
 }
 // (v11) cards from jw.org sources made before v11 kept only part of the article: fetch the whole thing once
 function upgradeCard(id){
-  return;                                                 // BETA 9: article text is no longer taken from jw.org
+  return;                                                 // (v26): article text is no longer taken from jw.org
   const i = findIdea(id);
   if (i && i.full === true && PLAYER_JUNK.test(i.body || '')) i.full = false;   // (v15) re-read cards that caught video-player text
   if (!i || i.full || i.video || i.image || i.pics || !i.url || !/jw\.org/.test(i.url)) return;
@@ -738,17 +887,38 @@ async function appendExplore(){
   const el = document.getElementById('feed');
   const gen = feedGen;
   try {
-    if (!exploreQueue.length) exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link));
-    const cards = exploreQueue.splice(0, 4), vids = await moreVideos(2), add = [];
+    const inFeed = id => el.querySelector(`.card[data-id="${id}"]`), cards = [];   // (v40) only cards not already in the feed
+    let refilled = false;
+    while (cards.length < 4){
+      if (!exploreQueue.length){
+        if (refilled) break;
+        refilled = true; exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !inFeed(i.id)));
+        continue;
+      }
+      const c = exploreQueue.shift(); if (!inFeed(c.id) && !cards.includes(c)) cards.push(c);
+    }
+    let vids = []; try { vids = await moreVideos(2); } catch(e){ tlog('more videos failed: ' + e.message); }
+    const add = [];
     if (gen !== feedGen) return;          // (v12) Today was redrawn while we fetched: those videos are already in the new feed
     cards.forEach((card, n) => { add.push({card}); if (n % 2 === 1 && vids.length) add.push({vid: vids.shift()}); });
-    vids.forEach(vid => add.push({vid}));
+    vids.forEach(vid => add.push({vid})); tlog(`more: ${cards.length} cards, ${add.length - cards.length} videos`);   // (v39)
+    let added = 0;
     add.forEach(x => {
       if (x.vid && el.querySelector(`[data-lank="${CSS.escape(x.vid.v.lank)}"]`)) return;   // (v12) never the same video twice
       if (x.card && el.querySelector(`.card[data-id="${x.card.id}"]`)) return;
       el.insertAdjacentHTML('beforeend', slideHTML(x, -1)); const s = el.lastElementChild;
-      feedObs.observe(s); if (s.matches('.vslide[data-n]')) wireVideoSlide(s); });   // beta 18 (app v40): listen and picture cards are .vslide too
+      feedObs.observe(s); added++; if (s.matches('.vslide[data-n]')) wireVideoSlide(s); });   // (v40) only real videos: listen and picture cards are .vslide too
+    if (!added && !document.getElementById('feedEnd')){                   // (v40) truly nothing left: say so
+      el.insertAdjacentHTML('beforeend', feedEndHTML()); feedObs.observe(el.lastElementChild); tlog('end of feed');
+    }
   } finally { exploring = false; }
+}
+function feedEndHTML(){
+  return `<div class="slide endslide" id="feedEnd"><div class="card"><div class="big">🎉</div>
+    <h2>You’ve seen everything for now</h2>
+    <p style="color:var(--muted)">Every card and video GemStash has for you today is above. More come tomorrow.</p>
+    <button class="btn sm" onclick="go('shelf')">📚 Turn on more on the Shelf</button>
+    <button class="btn sm alt" onclick="go('library')">💎 Open your stashes</button></div></div>`;
 }
 function refreshCard(id){
   const i = findIdea(id);
@@ -871,7 +1041,7 @@ function autoTick(now){
   requestAnimationFrame(autoTick);
   const dt = Math.min(200, now - autoLast); autoLast = now;
   const f = document.getElementById('feed'), s = feedCurrent;
-  if (currentView !== 'feed' || document.hidden || now < autoHold || !s || !f.contains(s) ||
+  if (currentView !== 'feed' || document.hidden || now < autoHold || fsSlide || !s || !f.contains(s) ||
       document.getElementById('sheet').classList.contains('on')) return;
   if (!autoState || autoState.s !== s) autoState = {s, t: 0, page: 0};
   const st = autoState; st.t += dt;
@@ -882,7 +1052,7 @@ function autoTick(now){
     return;
   }
   const lc = s.querySelector('.lcard');                                    // BETA layered card
-  if (lc && lc.classList.contains('link')){ if (st.t > 6000) autoNext(s); return; }   // BETA 9: nothing to play
+  if (lc && lc.classList.contains('link')){ if (st.t > 6000) autoNext(s); return; }   // (v26): nothing to play
   if (lc){ if (lc.dataset.ended) return autoNext(s); if (!lc.dataset.started && st.t > 1500){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); } return; }
   const strip = s.querySelector('.pcard .strip');
   if (strip && strip.children.length > 1){                                  // picture story: turn the pages
@@ -1284,7 +1454,7 @@ function htmlToText(html){
 }
 
 /* ================= add view ================= */
-let addTab = 'books', preview = [];   // beta 20 (app v50): pasting a jw.org link is retired (it read the page)
+let addTab = 'books', preview = [];   // (v50) pasting a jw.org link is retired (it read the page)
 // was: let addTab = 'web'   // (v21) jw.org only: Books / Paste / Write one retired
 function renderAdd(){
   const el = document.getElementById('add');
@@ -1293,7 +1463,7 @@ function renderAdd(){
         `<button class="${addTab===k?'on':''}" onclick="addTab='${k}';renderAdd()">${l}</button>`).join('')}</div>
     <div id="addBody"></div><div class="status" id="st"></div><div id="prev"></div>`;
   const b = document.getElementById('addBody');
-  if (!['books','video'].includes(addTab)) addTab = 'books';   // beta 20 (app v50):   // (v23) Books are back (Mike); Paste / Write one stay retired
+  if (!['books','video'].includes(addTab)) addTab = 'books';   // (v50)   // (v23) Books are back (Mike); Paste / Write one stay retired
   if (addTab==='books') b.innerHTML = `
       <label class="btn" style="display:block;text-align:center">📄 Add a book from my files (PDF or EPUB)
         <input type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onchange="addFileBook(this.files[0]); this.value=''"></label>
@@ -1301,7 +1471,7 @@ function renderAdd(){
       <p style="color:var(--muted);font-size:14px;margin:4px 0">Or search free public-domain books on Project Gutenberg:</p>
       <div class="search"><input id="bq" placeholder="Title or author (e.g. Marcus Aurelius)" onkeydown="if(event.key==='Enter')bookSearch()">
       <button class="btn sm" onclick="bookSearch()">Search</button></div><div id="bres"></div>`;
-  if (addTab==='web_retired') b.innerHTML = `   // beta 20 (app v50): RETIRED: paste a jw.org link (read the article page)
+  if (addTab==='web_retired') b.innerHTML = `   // (v50) RETIRED: paste a jw.org link (read the article page)
       <button class="btn alt" onclick="dailyText()">📅 Today's Daily Text</button>
       <label class="l">Or paste a jw.org or wol.jw.org link</label>
       <input id="wu" placeholder="https://www.jw.org/en/…" inputmode="url">
@@ -1359,7 +1529,7 @@ function bookChoice(ix){
   openSheet(`<h3>${esc(bk.title)}</h3>
     <p style="color:var(--muted);margin-top:-6px">${esc((bk.authors||[]).map(a=>a.name).join(', ')||'')}</p>
     ${onShelf ? '<p class="status">Already on your shelf.</p>' :
-      `<button class="btn" onclick="closeSheet();addBookToShelf(${ix})">📖 Add to My Shelf</button>
+      `<button class="btn" onclick="closeSheet();addBookToShelf(${ix})">📚 Add to My Shelf</button>
        <p style="color:var(--muted);font-size:13px;margin:6px 2px 4px">New ideas from this book arrive in Today each day.</p>`}
     <button class="btn alt" onclick="closeSheet();bookImport(${ix})">✋ Pick passages now</button>
     <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
@@ -1380,34 +1550,6 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 20;
-// beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
-const BETA_NEWS = [
-  [20, 'Add no longer has “paste a jw.org link” (it read the article page).', 'v50'],
-  [19, 'The Daily Text download, the FAQ and the MP3 links are now in the app too (v41–v43).', ''],
-  [18, 'Fixed: Today could get stuck after many cards, when an extra card at the end was a listen or picture card.', 'v40'],
-  [17, 'This list: what each beta added, newest first.', ''],
-  [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', 'v43'],
-  [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', 'v42'],
-  [14, 'The Daily Text card links to the jw.org EPUB it was taken from.', 'v41'],
-  [13, 'The beta’s number shows here in More and in About.', ''],
-  [12, 'The Daily Text comes from jw.org’s own download of Examining the Scriptures Daily (an EPUB, once a year): download it, then pick the file. Nothing is read from jw.org’s pages.', 'v41'],
-  [11, 'The beta has its own icon: the gems with a pink B.', ''],
-  [10, 'Narrated articles only: articles jw.org hasn’t narrated are left out.', 'v26'],
-  [9, 'No article text taken from jw.org: Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the Family and From Our Archives became listen cards (picture, title and jw.org’s narration).', 'v26'],
-  [7, 'Was It Designed? narration-only cards: title card on top, the article’s picture below.', 'v24'],
-  [6, 'Fixed narration-only cards switching to an empty middle band.', 'v24'],
-  [5, 'Was It Designed? sorted by what jw.org offers: full videos, narration cards, or narration with a short clip.', 'v24'],
-  [4, 'The narration no longer stops when the screen changes size for a moment.', 'v24'],
-  [3, 'The Was It Designed? title card on top, from jw.org’s own video.', 'v24'],
-  [2, 'New layout: art on top, the short video in the middle, the picture and title below.', 'v24'],
-  [1, 'The first layered card for Was It Designed?: picture, jw.org narration and a short video.', 'v24']];
-function betaNewsHTML(){
-  const row = ([n, t, app]) => `<div class="bnews"><b>Beta ${n}</b> ${t}${app ? ` <span class="bapp">now in the app (${app})</span>` : ''}</div>`;
-  const [latest, ...older] = BETA_NEWS;
-  return `<p style="font-size:14px;margin:4px 0 2px"><b>What’s new</b></p>${row(latest)}
-    <details class="bolder"><summary>Earlier betas (${older.length})</summary>${older.map(row).join('')}</details>`;
-}   // beta 13: shown in More (Beta experiments + About); bump with each beta
 const DT_NEED = 'add this year’s Daily Text';
 const dtStore = y => 'dailytext:' + y;
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1582,10 +1724,25 @@ const SHELF_KINDS = {
   arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
   bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
   ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
+  nwt:   {emoji:'🎧', title:'Listen to the Bible', sub:'jw.org audio · a chapter a day, Genesis to Revelation', unit:'chapters'},   // (v35)
+  kids:  {emoji:'✂️', title:'Children’s Activities', sub:'jw.org · Bible character cards and picture activities to print', unit:'activities'},   // (v33)
   book:  {emoji:'📖'}
 };
 // (v9) every list-based source, in the order they start on the shelf
-const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST};
+// (v35) Listen to the Bible: jw.org's own audio recording of the New World Translation, one chapter a day, in order
+const NWT_BOOKS = [['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],['Deuteronomy',34],['Joshua',24],['Judges',21],['Ruth',4],['1 Samuel',31],['2 Samuel',24],['1 Kings',22],['2 Kings',25],['1 Chronicles',29],['2 Chronicles',36],['Ezra',10],['Nehemiah',13],['Esther',10],['Job',42],['Psalms',150],['Proverbs',31],['Ecclesiastes',12],['Song of Solomon',8],['Isaiah',66],['Jeremiah',52],['Lamentations',5],['Ezekiel',48],['Daniel',12],['Hosea',14],['Joel',3],['Amos',9],['Obadiah',1],['Jonah',4],['Micah',7],['Nahum',3],['Habakkuk',3],['Zephaniah',3],['Haggai',2],['Zechariah',14],['Malachi',4],['Matthew',28],['Mark',16],['Luke',24],['John',21],['Acts',28],['Romans',16],['1 Corinthians',16],['2 Corinthians',13],['Galatians',6],['Ephesians',6],['Philippians',4],['Colossians',4],['1 Thessalonians',5],['2 Thessalonians',3],['1 Timothy',6],['2 Timothy',4],['Titus',3],['Philemon',1],['Hebrews',13],['James',5],['1 Peter',5],['2 Peter',3],['1 John',5],['2 John',1],['3 John',1],['Jude',1],['Revelation',22]];
+const NWT_LIST = NWT_BOOKS.flatMap(([name, n], k) => Array.from({length: n}, (_, c) => ({q: `${name} ${c + 1}`, b: k + 1, c: c + 1,
+  u: `https://www.jw.org/en/library/bible/study-bible/books/${name.toLowerCase().replace(/ /g, '-')}/${c + 1}/`})));
+async function bibleCard(e){
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?pub=nwt&booknum=${e.b}&output=json&fileformat=MP3&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const f = (((j.files || {}).E || {}).MP3 || []).find(x => x.track === e.c);
+  if (!f) throw new Error('no recording');
+  const book = (j.pubName || '').replace(/\s*\(.*\)$/, '') || e.q.replace(/ \d+$/, '');
+  return {id:uid(), title:`${book} ${e.c}`, body:'', topic:'Spiritual', url:e.u, layered:true, clip:false, lkind:'nwt',
+    source:'The Bible (New World Translation) — jw.org audio', image:'', audio:f.file.url, adur:Math.round(f.duration || 0),
+    created:Date.now(), stashes:[], full:true};
+}
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST, kids:() => KIDS_LIST, nwt:() => NWT_LIST};
 const KIND_INFO = {
   wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
   bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
@@ -1854,6 +2011,11 @@ function posterCard(e){
   return {id:uid(), title:e.q, body:e.d || 'Become Jehovah’s Friend poster', topic:'Spiritual',
     source:'Become Jehovah’s Friend — Poster', url:e.u, image:e.img, created:Date.now(), stashes:[]};
 }
+// (v33) a printable children's activity from jw.org: its picture, and a link to jw.org's PDF to print
+function kidsCard(e){
+  return {id:uid(), title:e.q, body:`${e.g}: ${e.q} — print it from jw.org’s PDF`, topic:'Spiritual', source:'Children’s Activities — jw.org',
+    url:e.u, image:e.img, pdf:e.pdf, kids:e.g, created:Date.now(), stashes:[]};
+}
 // (v10) Illustrated Bible Story: cover + comic pages, swiped sideways
 function storyCard(e){
   const img = (k) => `https://cms-imgp.jw-cdn.org/img/p/${e.id}/E/art/${e.id}_E_${k}.jpg`;
@@ -1867,7 +2029,7 @@ let pulling = null;
 function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
 async function doPull(){
   const t = today(); let added = 0;
-  const key = c => c.layered || c.video ? c.url : c.body;   // BETA 9: listen / video cards have no text, so tell them apart by their jw.org link
+  const key = c => c.layered || c.video || c.image ? c.url : c.body;   // (v33) picture cards too   // (v26): listen / video cards have no text, so tell them apart by their jw.org link
   const have = new Set(db.ideas.map(key));
   const keep = card => { if (have.has(key(card))) return; have.add(key(card)); card.pulledOn = t; db.ideas.push(card); added++; };
   for (const it of db.shelf){
@@ -1877,6 +2039,10 @@ async function doPull(){
         const c = await getDailyCard();
         const ex = db.ideas.find(i => i.body === c.body);   // (v3) already kept from Add → still counts as today's text
         if (ex){ ex.shelfId = it.id; ex.pulledOn = t; if (c.srcUrl){ ex.srcUrl = c.srcUrl; ex.source = c.source; } } else { c.shelfId = it.id; keep(c); }
+      } else if (it.kind === 'nwt' && (() => {                         // (v49) unfinished chapter? that's today's again
+          const open = db.ideas.filter(i => i.shelfId === it.id && i.lkind === 'nwt' && !i.heard).sort((a, b) => (a.created || 0) - (b.created || 0))[0];
+          if (open){ open.pulledOn = t; return true; } return false; })()){
+        // nothing new today
       } else if (it.kind === 'book'){
         const paras = await loadBookParas(it);
         it.total = paras.length;
@@ -1891,11 +2057,11 @@ async function doPull(){
         it.total = list.length;
         let got = 0, tries = 0;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
-          if (LISTEN_SERIES[it.kind] && !list[entryIndex(it)].doc){ it.pos++; continue; }   // beta 10 (Mike): narrated articles only
+          if (LISTEN_SERIES[it.kind] && it.kind !== 'nwt' && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
-            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'kids' ? kidsCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : it.kind === 'nwt' ? await bibleCard(we) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
@@ -1983,17 +2149,22 @@ function shelfRemove(id){
 // jw.org's public video catalog allows direct app access (open CORS); MP4s play straight from jw-cdn.
 const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
 const WATCH_GROUPS = [
-  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings']]],
+  ['Programs and Events', [['VODPgmEvtMorningWorship','Morning Worship'],['VODPgmEvtSpecial','Special Programs'],['VODPgmEvtGilead','Gilead Graduations'],['VODPgmEvtAnnMtg','Annual Meetings'],['CONV_SHORT','Convention Videos (short)']]],
   ['JW Broadcasting', [['StudioNewsReports','News and Announcements'],['StudioTalks','Talks'],['StudioMonthlyPrograms','Monthly Programs'],['StudioFeatured','Featured Videos']]],
-  ['Interviews and Experiences', [['VODIntExpTransformations','Truth Transforms Lives'],['VODIntExpBlessings','Blessings of Sacred Service'],['VODIntExpEndurance','Enduring Trials'],['VODIntExpYouth','Young People'],['OriginsLife','Science'],['VODIntExpArchives','From Our Archives']]],
+  ['Interviews and Experiences', [['VODIntExpTransformations','Truth Transforms Lives'],['VODIntExpBlessings','Blessings of Sacred Service'],['VODIntExpEndurance','Enduring Trials'],['VODIntExpYouth','Young People'],['OriginsLife','Science'],['VODIntExpArchives','From Our Archives'],['SeriesBibleChangesLives','The Bible Changes Lives'],['SeriesOriginsLife','Viewpoints on the Origin of Life']]],
+  ['Series', [['SeriesReasonsFaith','Reasons for Faith'],['SeriesWCGVideos','Walk Courageously With God'],['SeriesWTLessons','Lessons From The Watchtower'],['SeriesLearnFromThem','Learn From Them'],['SeriesImitateFaith','Imitate Their Faith'],['VODLovePeople','Love People—Make Disciples'],['SeriesLFFVideos','Enjoy Life Forever!—Videos'],['SeriesDigForTreasures','Dig for Treasures'],['SeriesOurHistory','Our History in Motion'],['SeriesOrgAccomplishments','Organizational Accomplishments'],['SeriesHappyMarriage','For a Happy Marriage']]],   // (v32)
+  ['Teenagers', [['TeenSpiritualGrowth','Spiritual Growth'],['TeenSocialLife','Social Life'],['TeenGoals','Goals'],['TeenWhatPeersSay','Interviews and Experiences'],['SeriesMyTeenLife','My Teen Life'],['SeriesWhatPeersSay','What Your Peers Say']]],   // (v32)
+  ['Family', [['FamilyChallenges','Family Challenges'],['FamilyDatingMarriage','Dating and Marriage'],['FamilyWorship','Family Worship']]],   // (v32)
+  ['Our Activities', [['VODActivitiesConstruction','Construction'],['VODActivitiesReliefWork','Relief Work'],['VODActivitiesSpecialEvents','Special Events'],['VODActivitiesTranslation','Translation'],['VODActivitiesAVProduction','Audio and Video Production'],['VODActivitiesTheoSchools','Theocratic Schools']]],   // (v32)
+  ['Dramas', [['VODMoviesBibleTimes','Bible Times'],['VODMoviesModernDay','Modern Day'],['DramasGoodNews','The Good News According to Jesus'],['VODMoviesExtras','Extra Features']]],   // (v32) long: they count as the day's one long video
   ['The Bible', [['VODBiblePrinciples','Apply Bible Principles'],['VODBibleTeachings','Bible Teachings'],['BibleBooks','Books of the Bible'],['VODBibleReadingStudy','Bible Reading and Study'],['VODBibleMedia','People, Places, and Things'],['VODBibleCreation','Creation'],['VODBibleAccounts','Bible Accounts'],['VODBibleTranslations','Bible Translations']]],
-  ['Our Organization', [['Reports','Reports From Around the World'],['VODOrgBethel','Bethel'],['VODOrgHistory','History'],['VODOrgLegal','Legal Developments'],['AccomplishMinistry','Organized to Accomplish Our Ministry'],['VODOrgBloodlessMedicine','Bloodless Medicine']]],
+  ['Our Organization', [['Reports','Reports From Around the World'],['VODOrgBethel','Bethel'],['SeriesADayInTheLifeOf','A Day in the Life of…'],['VODOrgHistory','History'],['VODOrgLegal','Legal Developments'],['AccomplishMinistry','Organized to Accomplish Our Ministry'],['VODOrgBloodlessMedicine','Bloodless Medicine']]],
   ['Music', [['VODOriginalSongs','Original Songs'],['VODSJJMeetings','“Sing Out Joyfully”—Meetings'],['VODConvMusic','Convention Music'],['VODSingToJah','Sing to Jehovah']]],
-  ['Children', [['BJF','Video Lessons'],['ChildrenSongs','Songs'],['ChildrenMovies','Dramas']]],
+  ['Children', [['BJF','Video Lessons'],['ChildrenSongs','Songs'],['SeriesJehovahsFriends','Learn From Jehovah’s Friends'],['ChildrenMovies','Dramas']]],
 ];
 const CAT_NAME = Object.fromEntries(WATCH_GROUPS.flatMap(g => g[1]));
 Object.assign(CAT_NAME, {SERIES_wid:'Was It Designed?', SERIES_fam:'Help for the Family', SERIES_bve:'Bible Verses Explained', SERIES_arch:'From Our Archives'});   // (v9)
-const CROP = new Set(['VODPgmEvtMorningWorship']);   // speaker head-shots: fill the screen instead of blurred bars
+const CROP = new Set([]);   // (v28) Mike: don't zoom Morning Worship any more, show the whole picture (was: ['VODPgmEvtMorningWorship'])
 const LONG_SECS = 5 * 60;                            // "long" video = over 5 minutes
 const isLongV = v => !CROP.has(v.cat) && !v.pasted && v.dur > LONG_SECS;
 // (v12) jw.org publishes some talks more than once ("John Ekrann: “We All Stumble Many Times” (Jas. 3:2)" in Morning Worship,
@@ -2020,8 +2191,17 @@ function slimVideo(m, cat){
     img: img.lg || img.xl || img.sm || '', src: pick.progressiveDownloadURL, cat: cat || m.primaryCategory};
 }
 const catCache = {};
+// (v31) a channel made of several jw.org categories: the short videos from every year's convention
+const MULTI_CATS = {CONV_SHORT: ['2026Convention', '2025Convention', '2024Convention', '2023Convention', '2022Convention', '2021Convention', '2020Convention', '2019Convention']};
+const MULTI_SKIP = {CONV_SHORT: /^You Are Invited|Trailer|Preview|^\d{4} Convention of Jehovah/i};   // invitations and trailers aren't worth a slot
 async function catVideos(key){
   if (catCache[key]) return catCache[key];
+  if (MULTI_CATS[key]){
+    const all = [];
+    for (const k of MULTI_CATS[key]){ try { all.push(...(await catVideos(k)).filter(v => !MULTI_SKIP[key].test(v.title)).map(v => ({...v, cat:key}))); } catch(e){} }
+    if (!all.length) throw new Error('jw.org video list unavailable');
+    return catCache[key] = all;
+  }
   const r = await timed(`${JW_API}categories/E/${key}?detailed=1&clientType=www`, 30000);
   if (!r.ok) throw new Error('jw.org video list returned ' + r.status);
   const out = [];
@@ -2099,10 +2279,42 @@ function videoSlideHTML(v, n){
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareVideo(${n})">📤</button>
       ${commentBtn(finderUrl(v.lank), v.title)}
+      <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
     </div>
+    <button class="fsx" title="Back to the feed" onclick="videoFullExit()">✕</button>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="bar"></div></div>`;
 }
+// (v27) full screen: the video fills the screen turned sideways; ✕ (or Back) returns to the feed
+async function videoFull(btn){
+  const s = btn.closest('.vslide'), vid = s && s.querySelector('video'); if (!s) return;
+  fsSlide = s; feedCurrent = s; tlog('full screen on ' + feedIdx(s));                                          // (v29) this one keeps playing; nothing else may start
+  document.querySelectorAll('#feed video').forEach(v => { if (v !== vid) v.pause(); });
+  try {
+    await (s.requestFullscreen ? s.requestFullscreen({navigationUI: 'hide'}) : s.webkitRequestFullscreen());
+    try { await screen.orientation.lock('landscape'); } catch(e){}      // phones only; ignored elsewhere
+    if (vid && vid.paused) vid.play().catch(() => {});
+  } catch(e){ fsSlide = null; toast('Full screen isn’t available here'); }
+}
+function videoFullExit(){ if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement){
+    try { screen.orientation.unlock(); } catch(e){}
+    const s = fsSlide; viewHold = performance.now() + 1200;               // (v29) back on the same video, not the next one
+    if (s){ feedCurrent = s; const f = document.getElementById('feed'); f.scrollTop = s.offsetTop; setTimeout(() => { if (s.isConnected) f.scrollTop = s.offsetTop; fsSlide = null; }, 400); }
+  }
+});
+// (v27) turning the phone sideways while a video is on screen goes full screen too (if the phone allows it)
+if (screen.orientation) screen.orientation.addEventListener('change', () => {
+  viewHold = performance.now() + 1200;                                  // (v29) turning reshapes the feed for a moment
+  const s = feedCurrent;
+  if (!/landscape/.test(screen.orientation.type) || document.fullscreenElement || currentView !== 'feed'){
+    if (s && s.isConnected) setTimeout(() => { document.getElementById('feed').scrollTop = s.offsetTop; }, 300);   // stay on it
+    return;
+  }
+  if (!s || !s.matches('.vslide[data-n]')) return;
+  const b = s.querySelector('.fsb'); if (b) videoFull(b).catch(() => {});
+});
 function wireVideoSlide(s){
   const vid = s.querySelector('video'), bar = s.querySelector('.bar');
   vid.addEventListener('timeupdate', () => { if (vid.duration) bar.style.width = (100 * vid.currentTime / vid.duration) + '%'; });
@@ -2121,6 +2333,7 @@ function wireVideoSlide(s){
       vid.paused ? vid.play() : vid.pause();
     }, 280);
   });
+  vid.addEventListener('ended', () => { if (document.fullscreenElement === s) videoFullExit(); });   // (v27)
   // load the next one ahead of time
   vid.addEventListener('playing', () => { const nx = s.nextElementSibling?.querySelector('video'); if (nx && nx.preload === 'none') nx.preload = 'metadata'; });
 }
@@ -2217,8 +2430,6 @@ function renderMore(){
     <div class="sec">🧪 Beta experiments · Beta ${BETA_NO}</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">This is the test copy of GemStash, with its own separate data. Your real app isn't affected.</p>
     ${betaNewsHTML()}
-    <label class="row chk"><input type="checkbox" ${db.betaRemora ? 'checked' : ''} onchange="db.betaRemora=this.checked;save();toast(this.checked?'The Remora card is now right after the Daily Text':'Remora example off')">
-      <span class="t"><b>Show the Remora example card</b><small>A layered card right after the Daily Text: picture, jw.org narration, short video</small></span></label>
     ${friendsHTML()}
     <div class="sec">Backup</div>
     <button class="btn" onclick="exportData()">⬇️ Export backup (.json)</button>
@@ -2230,10 +2441,12 @@ function renderMore(){
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
+    <div class="sec">Something not working?</div>
+    <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy; the real app is on its own version) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
-    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article; only articles jw.org has narrated are used (beta 10). Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy of GemStash v50) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});

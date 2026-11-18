@@ -100,6 +100,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 18: the stuck-feed fix from app v40 (extra listen/picture cards no longer stop Today).
   Beta 19: What's new marks Betas 12, 14, 15 and 16 as now in the app (v41-v43).
   Beta 20: Add no longer has paste a jw.org link (same as app v50).
+  Beta 21: the beta is rebuilt from today's app (v50) plus its own bits: separate storage, the pink-B
+  icon, its number and the What's new list. It now has everything the app has. The old beta is kept in
+  versions/beta20. From now on, a new beta starts from the current app (scratchpad beta21.py shows how).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
