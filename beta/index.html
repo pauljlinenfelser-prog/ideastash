@@ -212,6 +212,10 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .vslide .side button,.vslide .side a{width:50px;height:50px;border-radius:50%;background:#0008;font-size:22px;display:flex;
   align-items:center;justify-content:center;text-decoration:none;color:#fff}
 .vslide .side .saved{background:var(--accent)}
+.bnews{font-size:14px;line-height:1.5;color:var(--muted);padding:6px 0;border-bottom:1px solid #ffffff12}
+.bnews b{color:var(--text,#fff)}
+.bapp{font-size:12px;color:var(--accent);white-space:nowrap}
+.bolder summary{cursor:pointer;font-size:14px;padding:8px 0;color:var(--accent)}
 .faq{border-bottom:1px solid #ffffff1a;padding:10px 0}
 .faq summary{font-weight:700;cursor:pointer;line-height:1.4}
 .faq p{color:var(--muted);line-height:1.55;margin:8px 0 2px;font-size:15px}
@@ -1375,7 +1379,31 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 16;   // beta 13: shown in More (Beta experiments + About); bump with each beta
+const BETA_NO = 17;
+// beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
+const BETA_NEWS = [
+  [17, 'This list: what each beta added, newest first.', ''],
+  [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', ''],
+  [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', ''],
+  [14, 'The Daily Text card links to the jw.org EPUB it was taken from.', ''],
+  [13, 'The beta’s number shows here in More and in About.', ''],
+  [12, 'The Daily Text comes from jw.org’s own download of Examining the Scriptures Daily (an EPUB, once a year): download it, then pick the file. Nothing is read from jw.org’s pages.', ''],
+  [11, 'The beta has its own icon: the gems with a pink B.', ''],
+  [10, 'Narrated articles only: articles jw.org hasn’t narrated are left out.', 'v26'],
+  [9, 'No article text taken from jw.org: Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the Family and From Our Archives became listen cards (picture, title and jw.org’s narration).', 'v26'],
+  [7, 'Was It Designed? narration-only cards: title card on top, the article’s picture below.', 'v24'],
+  [6, 'Fixed narration-only cards switching to an empty middle band.', 'v24'],
+  [5, 'Was It Designed? sorted by what jw.org offers: full videos, narration cards, or narration with a short clip.', 'v24'],
+  [4, 'The narration no longer stops when the screen changes size for a moment.', 'v24'],
+  [3, 'The Was It Designed? title card on top, from jw.org’s own video.', 'v24'],
+  [2, 'New layout: art on top, the short video in the middle, the picture and title below.', 'v24'],
+  [1, 'The first layered card for Was It Designed?: picture, jw.org narration and a short video.', 'v24']];
+function betaNewsHTML(){
+  const row = ([n, t, app]) => `<div class="bnews"><b>Beta ${n}</b> ${t}${app ? ` <span class="bapp">now in the app (${app})</span>` : ''}</div>`;
+  const [latest, ...older] = BETA_NEWS;
+  return `<p style="font-size:14px;margin:4px 0 2px"><b>What’s new</b></p>${row(latest)}
+    <details class="bolder"><summary>Earlier betas (${older.length})</summary>${older.map(row).join('')}</details>`;
+}   // beta 13: shown in More (Beta experiments + About); bump with each beta
 const DT_NEED = 'add this year’s Daily Text';
 const dtStore = y => 'dailytext:' + y;
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2184,6 +2212,7 @@ function renderMore(){
     <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
     <div class="sec">🧪 Beta experiments · Beta ${BETA_NO}</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">This is the test copy of GemStash, with its own separate data. Your real app isn't affected.</p>
+    ${betaNewsHTML()}
     <label class="row chk"><input type="checkbox" ${db.betaRemora ? 'checked' : ''} onchange="db.betaRemora=this.checked;save();toast(this.checked?'The Remora card is now right after the Daily Text':'Remora example off')">
       <span class="t"><b>Show the Remora example card</b><small>A layered card right after the Daily Text: picture, jw.org narration, short video</small></span></label>
     ${friendsHTML()}

@@ -93,6 +93,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   from and how that fits jw.org's Terms of Use (personal, free, jw.org's own files, links back).
   Beta 16: each listen card says "from jw.org's MP3 download" and links to that MP3 (its sound,
   title and the picture packed inside it). The FAQ says so too. Series banners stay for now.
+  Beta 17: More > Beta experiments lists what each beta added (newest first, older ones folded
+  under Earlier betas), and which ones are now in the app. Each new beta adds its line there.
+  Beta 17: More > Beta experiments lists what each beta added (newest first, older ones folded
+  under Earlier betas), and which ones are now in the app. Each new beta adds its line there.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
