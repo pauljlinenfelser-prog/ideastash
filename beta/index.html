@@ -322,9 +322,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 27;
+const BETA_NO = 28;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [28, 'How long finished things rest is now set in months (1 to 12) in More, or Auto, which works it out from how much jw.org has on your shelf and how much you get through a day.', ''],
   [27, 'Like TikTok: hearting or saving something keeps it in Stashes, now shown as pictures you tap to open, and it stops coming back in Today. Each stash has a “Replay in Today” switch if you want its gems to come round again.', ''],
   [26, 'Your circle is on the Shelf: choose whose photos mix into Today (none, only yours, or yours and your circle’s), how many a day, and how spread out they are.', ''],
   [25, 'Things you finish take a rest: a card you read, or a story or video you watch to the end, stays out of Today for a month (change it in More). Hearted or stashed ones never rest.', ''],
@@ -487,8 +488,16 @@ function ensureDaily(){
   }
   db.daily.ids = dt ? [dt.id, ...ids] : ids; save();
 }
-const REST_CHOICES = [7, 14, 30, 90];
-const restDays = () => db.restDays || 30;
+// beta 28 (Mike): rest is set in months (1-12), or Auto: long enough to get through what jw.org has on your shelf at your pace
+function restAuto(){
+  const avail = db.shelf.filter(it => it.kind !== 'daily' && it.kind !== 'nwt' && !it.paused).reduce((n, it) => n + Math.max(0, it.total || 0), 0);
+  const recent = Object.values(db.rest || {}).filter(t => Date.now() - t < 30 * 864e5).length / 30;
+  const pace = Math.max(recent, db.shelf.filter(it => it.kind !== 'daily' && !it.paused).reduce((n, it) => n + (it.perDay || 1), 0), 1);
+  return {avail, pace: Math.round(pace), months: Math.min(12, Math.max(1, Math.round(avail / pace / 30)))};
+}
+const restMonths = () => db.restMonths === undefined || db.restMonths === 'auto' ? restAuto().months : db.restMonths;
+const restDays = () => restMonths() * 30;
+function restStep(d){ const m = db.restMonths === undefined || db.restMonths === 'auto' ? restAuto().months : db.restMonths; db.restMonths = Math.min(12, Math.max(1, m + d)); save(); renderMore(); }
 function finished(id, why){                                  // beta 25
   const i = findIdea(id); if (!i) return;
   (db.rest ||= {})[id] = Date.now(); save(); tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
@@ -2947,8 +2956,11 @@ function renderMore(){
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">Things you’ve finished</div>
     <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">A card, story or video you finish rests this long before it comes back in Today. Anything you heart or save stays out of Today and waits for you in Stashes (each stash has a Replay switch). Scrolling back up still shows today’s again.</p>
-    <div class="seg">${REST_CHOICES.map(d => `<button class="${restDays() === d ? 'on' : ''}" onclick="db.restDays=${d};save();renderMore()">${d < 30 ? d / 7 + (d === 7 ? ' week' : ' weeks') : d === 30 ? '1 month' : '3 months'}</button>`).join('')}</div>
-    <button class="btn alt" onclick="db.rest={};save();renderMore();toast('Everything is back in the mix')">↩️ Bring them all back now (${Object.keys(db.rest || {}).filter(id => { const i = findIdea(id); return i && resting(i); }).length} resting)</button>
+    ${(a => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div class="step"><button onclick="restStep(-1)">−</button><b>${restMonths()} month${restMonths() > 1 ? 's' : ''}</b><button onclick="restStep(1)">+</button></div>
+      <button class="btn sm ${db.restMonths === undefined || db.restMonths === 'auto' ? '' : 'alt'}" style="width:auto;margin:0" onclick="db.restMonths='auto';save();renderMore()">Auto</button></div>
+      <p style="color:var(--muted);font-size:13px;line-height:1.5">Auto picks the time from how much jw.org has on your shelf: about ${a.avail} cards, at about ${a.pace} a day, is ${a.months} month${a.months > 1 ? 's' : ''}${a.months === 12 ? ' (the most)' : ''}. New videos from your channels never repeat.</p>`)(restAuto())}
+    <button class="btn alt" onclick="db.rest={};save();renderMore();toast('Everything is back in the mix')">↩️ Bring them all back now (${Object.keys(db.rest || {}).filter(id => { const i = findIdea(id); return i && !kept(i) && resting(i); }).length} resting)</button>
     <div class="sec">Something not working?</div>
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
