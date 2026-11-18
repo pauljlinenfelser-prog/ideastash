@@ -268,6 +268,9 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .cseg button{font-size:13px;padding:10px 4px;white-space:nowrap}
 .cmore{font-size:20px;padding:4px 8px;color:var(--muted)}
 .cwarn{background:#2b2238;border-left:4px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;margin-top:10px}
+.cpgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.cpgrid>div{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#000}
+.cpgrid img{width:100%;height:100%;object-fit:cover;display:block}.cpgrid button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;background:#000b;color:#fff;font-size:14px;padding:0;line-height:26px}
+.cpgrid label{display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:12px;color:var(--accent);background:var(--panel2);cursor:pointer;aspect-ratio:1;border-radius:10px}.cpgrid label b{font-size:26px;line-height:1}
 .cpbar{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:10px}.cpbar i{display:block;height:100%;width:0;background:var(--accent)}
 nav .ic{position:relative}
 nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;top:-4px;right:-10px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 5px}
@@ -370,9 +373,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 39;
+const BETA_NO = 40;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [40, 'Share several photos with your circle at once (up to 10): they go in as one set you swipe through sideways, like the Illustrated Bible Stories, with a “1 / 5” counter. Pick them in one go, then add more or take some out before sharing.', ''],
   [39, 'The pink B on the beta’s icon moved to the top corner, where Edge’s own little “e” doesn’t cover it.', ''],
   [38, 'The beta’s icon now matches the app: the treasure chest, with a pink B.', ''],
   [37, 'Parental controls also lock the daily scrolling time: changing it needs the parent’s PIN.', ''],
@@ -1653,9 +1657,10 @@ async function removePerson(uid){
   const p = people()[uid]; if (!p || !confirm(`Remove ${p.name} from your circle? You’ll stop seeing each other’s photos and videos.`)) return;
   try {
     const c = await cb(), me = c.uid();
-    await c.batch([['del', `people/${me}/circle/${uid}`], ['del', `people/${uid}/circle/${me}`],
+    const ops = [['del', `people/${me}/circle/${uid}`], ['del', `people/${uid}/circle/${me}`],
       ...(db.me && db.me.pic ? [['upd', 'photos/av_' + me, {aud: c.remove([uid])}]] : []),
-      ...(db.circlePosts || []).filter(x => x.uid === me).flatMap(x => [['upd', 'posts/' + x.id, {aud: c.remove([uid])}], ...(/^fs:/.test(x.url || '') ? [['upd', 'photos/' + x.id, {aud: c.remove([uid])}]] : [])])]);
+      ...(db.circlePosts || []).filter(x => x.uid === me).flatMap(x => [['upd', 'posts/' + x.id, {aud: c.remove([uid])}], ...postPhotoIds(x).map(f => ['upd', 'photos/' + f, {aud: c.remove([uid])}])])];   // beta 40: every photo of a set
+    for (let k = 0; k < ops.length; k += 400) await c.batch(ops.slice(k, k + 400));   // a batch takes at most 500 writes
     closeSheet(); toast('Removed');
   } catch(e){ friendErr(e); }
 }
@@ -1668,7 +1673,7 @@ async function healAud(){                                    // my posts reach e
     }
     for (const x of (db.circlePosts || []).filter(x => x.uid === me)){
       const miss = ids.filter(u => !(x.aud || []).includes(u));
-      if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); if (/^fs:/.test(x.url || '')) await c.upd('photos/' + x.id, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }
+      if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); for (const f of postPhotoIds(x)) await c.upd('photos/' + f, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }   // beta 40: every photo of a set
     }
   } catch(e){ console.warn(e); }
 }
@@ -1696,17 +1701,29 @@ function addCircleToFeed(){                                  // posts that came 
   let at = feedCurrent && el.contains(feedCurrent) ? feedCurrent : el.firstElementChild;
   fresh.forEach(p => { at.insertAdjacentHTML('afterend', circleSlideHTML(p)); at = at.nextElementSibling; if (feedObs) feedObs.observe(at); fillPhotos(at); });
 }
+// beta 40: a photo set = one post. The first photo is photos/{postId} as before (url 'fs:<id>'); the others are listed in
+// path as 'set:<id2>,<id3>…' (each its own photos/ doc, since one Firestore doc holds at most 1 MB). No rules change needed.
+const PHOTO_SET_MAX = 10;
+function postPhotoIds(p){
+  if (!/^fs:/.test(p.url || '')) return [];
+  return [p.url.slice(3), ...(/^set:/.test(p.path || '') ? p.path.slice(4).split(',').filter(Boolean) : [])];
+}
+function setStripHTML(ids){
+  return `<div class="strip" onscroll="stripMoved(this)">${ids.map(f => `<div class="pg"><img class="poster" data-fsimg="${esc(f)}" alt=""></div>`).join('')}</div>
+    <div class="count">1 / ${ids.length}</div><div class="dots">${ids.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>`;
+}
 function circleSlideHTML(p){ return `<div class="vslide pslide cslide" data-post="${esc(p.id)}">${circlePostHTML(p)}</div>`; }
 function circlePostHTML(p){
   const mine = db.me && p.uid === db.me.uid, who = mine ? 'You' : esc(p.name);
   const media = p.kind === 'video'
     ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
+    : postPhotoIds(p).length > 1 ? setStripHTML(postPhotoIds(p))   // beta 40: a set you swipe sideways
     : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
   return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours' : 'From ' + who} · your circle</div>
     <div class="side" ${parentLocked() ? 'style="display:none"' : ''}><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
-      ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : 'Photo'))}
+      ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : postPhotoIds(p).length > 1 ? 'Photos' : 'Photo'))}
       <button title="More" onclick="cpMenu('${esc(p.id)}')">⋯</button></div>
-    <div class="info"><b>${esc(p.caption || '')}</b><small>${who} · ${ago(new Date(p.at || Date.now()))}${p.kind === 'video' && p.dur ? ' · ' + fmtDur(p.dur) : ''}</small></div></div>`;
+    <div class="info"><b>${esc(p.caption || '')}</b><small>${who} · ${ago(new Date(p.at || Date.now()))}${p.kind === 'video' && p.dur ? ' · ' + fmtDur(p.dur) : ''}${postPhotoIds(p).length > 1 ? ' · ' + postPhotoIds(p).length + ' photos · swipe ⟷' : ''}</small></div></div>`;
 }
 async function cpHeart(id, btn){
   db.cpHearts ||= {}; const on = !db.cpHearts[id]; if (on) db.cpHearts[id] = 1; else delete db.cpHearts[id]; save();
@@ -1724,7 +1741,7 @@ function cpMenu(id){
 }
 async function deletePost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
-  try { const c = await cb(); await c.del('posts/' + id); if (/^fs:/.test(p.url || '')) await c.del('photos/' + id).catch(() => {}); if (p.path) c.unload(p.path).catch(() => {});
+  try { const c = await cb(); await c.del('posts/' + id); for (const f of postPhotoIds(p)) await c.del('photos/' + f).catch(() => {}); if (p.path && !/^set:/.test(p.path)) c.unload(p.path).catch(() => {});   // beta 40: every photo of a set
     db.circlePosts = db.circlePosts.filter(x => x.id !== id); save(); closeSheet();
     document.querySelectorAll(`[data-post="${id}"]`).forEach(s => s.remove()); if (currentView === 'circle') renderCirclePosts(); toast('Deleted');
   } catch(e){ friendErr(e); }
@@ -1753,34 +1770,48 @@ async function photoDataURL(file){                          // shrink until it f
   throw new Error('that photo is too big');
 }
 let pending = null;
-function postSheet(){
+function postSheet(cap){
   pending = null;
   openSheet(`<h3>Share with my circle</h3>
-    <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}
-      <input type="file" accept="${CIRCLE_VIDEOS ? 'image/*,video/*' : 'image/*'}" hidden onchange="pickMedia(this.files[0])"></label></div>
-    <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px"></textarea>
+    <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick ${CIRCLE_VIDEOS ? 'photos or a video' : 'photos'}
+      <input type="file" accept="${CIRCLE_VIDEOS ? 'image/*,video/*' : 'image/*'}" multiple hidden onchange="pickMedia(this.files);this.value=''"></label>
+      <p style="color:var(--muted);font-size:13px;margin:6px 2px 0;text-align:center">Pick up to ${PHOTO_SET_MAX} at once: they go in as one set you swipe through.</p></div>
+    <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px">${typeof cap === 'string' ? esc(cap) : ''}</textarea>
     <div class="cwarn">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
     <p style="color:var(--muted);font-size:13px;margin:8px 2px">Seen by the ${peerIds().length} people in your circle who show your posts. Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos can be up to 1 minute.' : 'Photos for now; videos are coming later.'}</p>
     <div id="cpProg" style="display:none" class="cpbar"><i></i></div>
     <button class="btn" id="cpGo" onclick="doPost()">Share with my circle</button>
     <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
 }
-async function pickMedia(file){
-  if (!file) return;
-  const isV = /^video\//.test(file.type), url = URL.createObjectURL(file), box = document.getElementById('cpPrev');
-  if (isV && !CIRCLE_VIDEOS) return toast('Photos for now: sharing videos is coming later');   // beta 24
-  if (isV){
-    const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
+async function pickMedia(files){                             // beta 40: one photo, several photos (a set), or one video
+  files = files instanceof File ? [files] : [...(files || [])]; if (!files.length) return;
+  const box = document.getElementById('cpPrev'), vids = files.filter(f => /^video\//.test(f.type)), pics = files.filter(f => /^image\//.test(f.type));
+  if (vids.length && !CIRCLE_VIDEOS){ toast('Photos for now: sharing videos is coming later'); if (!pics.length) return; }   // beta 24
+  else if (vids.length){
+    if (files.length > 1 || (pending && pending.kind === 'photo')) return toast('A video goes on its own: pick just the video');
+    const file = vids[0], url = URL.createObjectURL(file), v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
     await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
     if (!(v.duration > 0)) return toast('That video can’t be read here');
     if (v.duration > 61) return toast(`That video is ${fmtDur(v.duration)}. Videos can be up to 1 minute: trim it on your phone first.`);
     pending = {file, kind: 'video', dur: Math.round(v.duration)};
     box.innerHTML = `<video src="${url}" playsinline muted controls style="width:100%;max-height:260px;border-radius:12px;background:#000"></video>`;
-  } else if (/^image\//.test(file.type)){
-    pending = {file, kind: 'photo'};
-    box.innerHTML = `<img src="${url}" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#000">`;
-  } else toast('Pick a photo or a video');
+    return;
+  }
+  if (!pics.length) return toast('Pick a photo or a video');
+  if (!pending || pending.kind !== 'photo') pending = {kind: 'photo', files: []};
+  const room = PHOTO_SET_MAX - pending.files.length;
+  if (pics.length > room) toast(`Up to ${PHOTO_SET_MAX} photos in one set: ${room > 0 ? 'the first ' + room + ' were added' : 'take one out to add another'}`);
+  pending.files.push(...pics.slice(0, Math.max(0, room)).map(file => ({file, url: URL.createObjectURL(file)})));
+  drawPicks();
 }
+function drawPicks(){                                        // beta 40: the photos picked so far, each with ✕, plus "add more"
+  const box = document.getElementById('cpPrev'), list = (pending && pending.files) || []; if (!box) return;
+  if (!list.length) return postSheet(document.getElementById('cpCap') ? document.getElementById('cpCap').value : '');
+  box.innerHTML = `<div class="cpgrid">${list.map((x, n) => `<div><img src="${x.url}" alt=""><button title="Take out" onclick="unpick(${n})">✕</button></div>`).join('')}
+    ${list.length < PHOTO_SET_MAX ? `<label><b>＋</b>Add more<input type="file" accept="image/*" multiple hidden onchange="pickMedia(this.files);this.value=''"></label>` : ''}</div>
+    <p style="color:var(--muted);font-size:13px;margin:6px 2px 0">${list.length === 1 ? '1 photo' : list.length + ' photos: they go in as one set you swipe through'} (up to ${PHOTO_SET_MAX})</p>`;
+}
+function unpick(n){ if (!pending || !pending.files) return; const [x] = pending.files.splice(n, 1); if (x) URL.revokeObjectURL(x.url); drawPicks(); }
 async function shrinkPhoto(file){
   const bmp = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
   const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
@@ -1808,15 +1839,26 @@ async function doPost(){
   try {
     const c = await cb(), me = c.uid(), id = c.newId('posts');
     if (pending.kind === 'photo' && !CIRCLE_VIDEOS){                     // beta 24: free plan, photo kept in Firestore
-      prog(0.2, 'Getting it ready…'); const data = await photoDataURL(pending.file); prog(0.6, 'Sending…');
+      // beta 40: several photos = one post; each photo is its own photos/ doc (first: the post's id, then <id>_2, _3…)
+      const files = pending.files, n = files.length, ids = files.map((_, k) => k ? id + '_' + (k + 1) : id), datas = [];
+      for (let k = 0; k < n; k++){ prog(0.05 + 0.35 * k / n, n > 1 ? `Getting photo ${k + 1} of ${n} ready…` : 'Getting it ready…'); datas.push(await photoDataURL(files[k].file)); }
       const aud = [me, ...peerIds()], caption = (document.getElementById('cpCap').value || '').trim().slice(0, 200);
-      const post = {uid: me, name: db.me.name, caption, kind: 'photo', url: 'fs:' + id, path: '', dur: 0, at: c.now(), aud};
-      await c.batch([['set', 'photos/' + id, {uid: me, aud, data}], ['set', 'posts/' + id, post]]);
-      photoMem[id] = data; try { await idb.set('cphoto:' + id, data); } catch(e){}
+      const post = {uid: me, name: db.me.name, caption, kind: 'photo', url: 'fs:' + id, path: n > 1 ? 'set:' + ids.slice(1).join(',') : '', dur: 0, at: c.now(), aud};
+      prog(0.4, 'Sending…');
+      if (n === 1) await c.batch([['set', 'photos/' + id, {uid: me, aud, data: datas[0]}], ['set', 'posts/' + id, post]]);
+      else {
+        const done = [];
+        try {   // one photo at a time (a batch can carry at most 10 MB), the post last so nobody sees a half-sent set
+          for (let k = 0; k < n; k++){ prog(0.4 + 0.55 * k / n, `Sending photo ${k + 1} of ${n}…`); await c.set('photos/' + ids[k], {uid: me, aud, data: datas[k]}); done.push(ids[k]); }
+          await c.set('posts/' + id, post);
+        } catch(e){ for (const f of done) await c.del('photos/' + f).catch(() => {}); throw e; }
+      }
+      for (let k = 0; k < n; k++){ photoMem[ids[k]] = datas[k]; try { await idb.set('cphoto:' + ids[k], datas[k]); } catch(e){} }
+      files.forEach(x => URL.revokeObjectURL(x.url));
       db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
-      closeSheet(); toast('Shared with your circle'); if (currentView === 'circle') renderCirclePosts(); return;
+      closeSheet(); toast(n > 1 ? `Shared ${n} photos with your circle` : 'Shared with your circle'); if (currentView === 'circle') renderCirclePosts(); return;
     }
-    let blob = pending.file;
+    let blob = pending.kind === 'photo' ? pending.files[0].file : pending.file;
     if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
     else blob = await shrinkVideo(blob, p => prog(p * 0.5, 'Getting your video ready…'));
     const ext = pending.kind === 'photo' ? 'jpg' : /webm/.test(blob.type) ? 'webm' : 'mp4', path = `posts/${me}/${id}.${ext}`;
