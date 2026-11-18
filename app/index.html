@@ -180,7 +180,8 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .lplay.lread small{font-size:13px;font-weight:700}
 .lcard.noimg .hero{background-size:cover !important}
 .lcard .hero{position:absolute;left:0;right:0;top:60%;bottom:0;overflow:hidden;background:linear-gradient(135deg,#18506b,#4ad7ff)}
-.lcard .hero img{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero img,.lcard .hero video.art{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .hero video.art{object-fit:contain;background:#000;padding-bottom:90px;box-sizing:border-box}   /* (v38) the whole title card, above the title */
 .lcard .hero .ht{display:none}
 .lcard.noimg .hero img{display:none}   /* the nautilus art (hero background) shows instead */
 .lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
@@ -461,7 +462,7 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
   return i;
 }
-const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // jw.org's own Was It Designed? series art (fallback)
+const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // RETIRED (v38): website banner, no longer shown
 // Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
 // jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
 const WID_TITLE_VID = 'https://cfp2.jw-cdn.org/a/acf9753/1/o/502200111_E_cnt_1_r360P.mp4#t=4';
@@ -470,14 +471,14 @@ function layeredHTML(i){
   const we = WID_LIST.find(x => x.u === i.url);            // BETA 5: narration only (no short clip)? older cards don't say, so check the list
   const S = LISTEN_SERIES[i.lkind];                        // (v26): a listen card from another series
   const audioOnly = !!S || i.clip === false || i.clip === '' || (i.clip === undefined && we && we.m === 'audio');   // '' = saved by beta 5: no clip
-  const art = S ? S.art : WID_ART, cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
+  const art = S ? S.art : '', cls = (audioOnly ? ' audio' : '') + (S && !i.image ? ' noimg' : '') + (i.link ? ' link' : '');
   return `<div class="card lcard${cls}" data-id="${i.id}">
     ${S ? `<div class="series" style="background-image:url('${art}')"><span>${S.name}</span></div>`
-        : `<div class="series" style="background-image:url('${WID_ART}')"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}" poster="${WID_ART}"></video></div>`}
+        : `<div class="series" style="background:#000"><video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}"></video></div>`}
     ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
-    <div class="hero" style="background:url('${art}') center/cover">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
+    <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
       <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : 'narrated by jw.org'} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i></i></div></div></div>
     <div class="side">
@@ -492,7 +493,8 @@ function layeredHTML(i){
 function heroFallback(img){
   const tries = ['_univ_sqr_xl.jpg', '_univ_lss_lg.jpg', '_univ_pnr_lg.jpg'], cur = tries.findIndex(t => img.src.endsWith(t));
   if (cur > -1 && cur < tries.length - 1) img.src = img.src.slice(0, -tries[cur].length) + tries[cur + 1];
-  else img.closest('.lcard').classList.add('noimg');
+  else if (img.closest('.lcard').querySelector('.series span')) img.closest('.lcard').classList.add('noimg');
+  else img.outerHTML = `<video class="art" muted playsinline preload="auto" src="${WID_TITLE_VID}"></video>`;   // (v38)
 }
 let layer = null;                                           // the card that's playing: {id, a, v, stopping}
 // Beta 4: a screen-size change (address bar sliding, rotating, a resized window) can briefly push the card part-way
@@ -2190,7 +2192,7 @@ function renderMore(){
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
     <div class="sec">About</div>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v37 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v38 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text and Gutenberg books are still read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){

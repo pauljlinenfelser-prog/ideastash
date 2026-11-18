@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v37)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v38)
 =======================================
 
 FOLDERS
@@ -215,4 +215,6 @@ VERSIONS
   v37 Bible Character Cards you can swipe: each card shows its front (picture and questions), then
       swipe sideways for the back (profile, map, timeline and answers), like the Illustrated Bible Stories.
       It's jw.org's own picture of the same card that's in the PDF; the 🖨️ PDF link stays.
+  v38 Was It Designed? uses only the title card from 0:04 of jw.org's video (Mike's pick); the nautilus
+      website banner is gone. The one article with no picture (the Pomelo) shows the title card there too.
   Next: Daily Text from the es26 EPUB (in the beta)
