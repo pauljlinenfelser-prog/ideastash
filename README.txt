@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v46)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v47)
 =======================================
 
 FOLDERS
@@ -237,4 +237,6 @@ VERSIONS
   v45 The Bible reading shortcut uses the 📖 open-book picture Mike liked (Google's free Noto emoji, the
       same one Android shows).
   v46 The Shelf tab's icon is now 📚 (books), so 📖 means the Bible reading.
+  v47 A 📖 Bible button at the top of Today (next to Auto) jumps straight to today's Listen to the Bible
+      chapter. (Mike's phone doesn't show the home-screen icon menu from v44.)
   Next: ask Mike

@@ -240,6 +240,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 <div id="app">
   <header>
     <h1>Gem<span>Stash</span></h1>
+    <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖 Bible</button>   <!-- (v47) -->
     <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
     <span class="pill" id="streak">🔥 0</span>
   </header>
@@ -361,6 +362,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.data
 function go(v){
   currentView = v;
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
+  document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
@@ -677,9 +679,13 @@ async function renderFeed(){
   goBible(el);                                    // (v44)
   observeFeed();
 }
-function goBible(el){
-  const q = new URLSearchParams(location.search); if (q.get('go') !== 'bible') return;
-  history.replaceState(null, '', location.pathname);           // only once: a reload doesn't jump again
+// (v47) Mike: the home-screen menu doesn't show on his phone, so a 📖 button at the top of Today does the same
+function openBible(){ goBible(document.getElementById('feed'), true); }
+function goBible(el, now){
+  if (!now){
+    const q = new URLSearchParams(location.search); if (q.get('go') !== 'bible') return;
+    history.replaceState(null, '', location.pathname);         // only once: a reload doesn't jump again
+  }
   const isBible = c => c && (findIdea(c.dataset.id) || {}).lkind === 'nwt';
   let s = [...el.children].find(x => isBible(x.querySelector('.lcard')));
   if (!s){                                                      // not in Today (time's up, or it came in earlier): put it second
@@ -687,8 +693,9 @@ function goBible(el){
     const c = it && db.ideas.filter(i => i.shelfId === it.id).sort((a, b) => (b.created || 0) - (a.created || 0))[0];
     if (!c){ toast('Turn on “Listen to the Bible” on the Shelf first'); return; }
     el.children[0].insertAdjacentHTML('afterend', slideHTML({card: c}, -1)); s = el.children[1];
+    if (now && feedObs) feedObs.observe(s);                     // (v47) the feed is already running
   }
-  el.scrollTop = s.offsetTop; tlog('opened from the Bible reading shortcut');
+  el.scrollTop = s.offsetTop; tlog(now ? '📖 button' : 'opened from the Bible reading shortcut');
   toast('📖 Today’s Bible reading: tap ▶ to listen');
 }
 function slideHTML(x, k){
@@ -2368,7 +2375,7 @@ function renderMore(){
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v46 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash v47 (formerly IdeaStash) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
