@@ -98,6 +98,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 17: More > Beta experiments lists what each beta added (newest first, older ones folded
   under Earlier betas), and which ones are now in the app. Each new beta adds its line there.
   Beta 18: the stuck-feed fix from app v40 (extra listen/picture cards no longer stop Today).
+  Beta 19: What's new marks Betas 12, 14, 15 and 16 as now in the app (v41-v43).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

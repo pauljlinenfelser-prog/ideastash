@@ -1379,16 +1379,17 @@ async function bookImport(ix){
 }
 // BETA 12: today's text comes from jw.org's own "Examining the Scriptures Daily" EPUB, downloaded once a year and
 // picked in GemStash. Nothing is read from jw.org's pages. The days are kept on the phone (IndexedDB 'dailytext:<year>').
-const BETA_NO = 18;
+const BETA_NO = 19;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [19, 'The Daily Text download, the FAQ and the MP3 links are now in the app too (v41–v43).', ''],
   [18, 'Fixed: Today could get stuck after many cards, when an extra card at the end was a listen or picture card.', 'v40'],
   [17, 'This list: what each beta added, newest first.', ''],
-  [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', ''],
-  [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', ''],
-  [14, 'The Daily Text card links to the jw.org EPUB it was taken from.', ''],
+  [16, 'Each listen card says “from jw.org’s MP3 download” and links to that MP3, the file its sound, title and picture come from.', 'v43'],
+  [15, 'More → About has “How does GemStash work?”: short answers on where everything comes from and how that fits jw.org’s Terms of Use.', 'v42'],
+  [14, 'The Daily Text card links to the jw.org EPUB it was taken from.', 'v41'],
   [13, 'The beta’s number shows here in More and in About.', ''],
-  [12, 'The Daily Text comes from jw.org’s own download of Examining the Scriptures Daily (an EPUB, once a year): download it, then pick the file. Nothing is read from jw.org’s pages.', ''],
+  [12, 'The Daily Text comes from jw.org’s own download of Examining the Scriptures Daily (an EPUB, once a year): download it, then pick the file. Nothing is read from jw.org’s pages.', 'v41'],
   [11, 'The beta has its own icon: the gems with a pink B.', ''],
   [10, 'Narrated articles only: articles jw.org hasn’t narrated are left out.', 'v26'],
   [9, 'No article text taken from jw.org: Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the Family and From Our Archives became listen cards (picture, title and jw.org’s narration).', 'v26'],
