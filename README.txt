@@ -1,4 +1,4 @@
-GemStash (formerly IdeaStash) — your own free Deepstash (current: v48)
+GemStash (formerly IdeaStash) — your own free Deepstash (current: v49)
 =======================================
 
 FOLDERS
@@ -241,4 +241,8 @@ VERSIONS
       chapter. (Mike's phone doesn't show the home-screen icon menu from v44.)
   v48 New look: Mike's treasure chest of gems (with G S on the front) is the app icon, and a small copy
       sits in the top-left corner of the app instead of the word GemStash.
+  v49 The Bible reading remembers where you left off: stop or close mid-chapter and ▶ carries on from
+      there (a few seconds back), even days later. A chapter stays as your Bible card until you've heard it
+      to the end, and then a "Next chapter ▶" button lets you go straight on. Other listen cards remember
+      their spot too.
   Next: ask Mike
