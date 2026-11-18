@@ -370,9 +370,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 34;
+const BETA_NO = 35;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [35, 'Invite links: 📤 Share on the Circle tab now sends a link. Someone new taps it, types their name, taps Join, and their request comes straight to you; just tap Accept.', ''],
   [34, 'Profile pictures now fit their circle: the whole picture shows, not a zoomed-in corner.', ''],
   [33, 'Profile pictures: tap your name at the top of the Circle tab to add yours. People in your circle see it next to your name, on your photos and on your comments.', ''],
   [32, 'Stashes is now Treasures, a treasure chest: ❤️ Hearted, 💎 Gems, 🕘 Recently finished, and a pouch for each tag. Tapping 💎 saves straight away; a tag is optional (tap 💎 again to skip). Your old stashes became tags.', ''],
@@ -1504,10 +1505,31 @@ async function setupMe(){
     if (!code) throw new Error('couldn’t make a code, try again');
     await c.batch([['set', 'codes/' + code, {uid: me, name}], ['set', 'people/' + me, {name, code, limit: 20, created: c.now()}]]);
     db.me = {uid: me, name, code, limit: 20}; db.myName = name; db.circleMode = db.circleMode || 'all'; save();
-    toast('Your code is ' + prettyCode(code)); renderCircle(); circleStart();
+    toast('Your code is ' + prettyCode(code)); renderCircle(); circleStart(); joinPending();   // beta 35
   } catch(e){ friendErr(e); }
 }
-function shareMyCode(){ shareLink(`Add me in GemStash: open the Circle tab and enter my code ${prettyCode(db.me.code)}`, APP_URL + 'app/'); }
+const CIRCLE_HOME = 'beta/';   // beta 35: circles live in the beta for now; change to 'app/' when they move to the app
+const inviteUrl = () => APP_URL + CIRCLE_HOME + '?join=' + db.me.code;
+function shareMyCode(){ shareLink(`Join my circle on GemStash, a free app for daily gems from jw.org. Tap the link, type your name, and you're in. (My code is ${prettyCode(db.me.code)} if you need it.)`, inviteUrl()); }
+{ const j = normCode(new URLSearchParams(location.search).get('join') || '');   // opened from an invite link
+  if (j.length === 8){ window._joinFromLink = j; history.replaceState(null, '', location.pathname); } }
+async function joinPending(){                                  // send the invite's request once you're set up
+  const code = db.pendingJoin; if (!code || !circleReady() || window._joining) return;
+  if (code === db.me.code){ delete db.pendingJoin; save(); return; }
+  window._joining = true;
+  try {
+    const c = await cb(), who = await c.get('codes/' + code);
+    if (!who){ toast('That invite link’s code wasn’t found'); }
+    else if (people()[who.uid]){ toast(`${who.name} is already in your circle`); }
+    else { await c.set(`people/${who.uid}/requests/${c.uid()}`, {name: db.me.name, code: db.me.code, at: c.now()});
+      toast(`Request sent to ${who.name}: you’ll be in their circle as soon as they tap Accept`); tlog('invite link: request sent'); }
+    delete db.pendingJoin; delete db.pendingJoinName; save(); renderCircle();
+  } catch(e){ friendErr(e); } finally { window._joining = false; }
+}
+async function inviterName(){
+  if (db.pendingJoinName || !db.pendingJoin) return;
+  try { const c = await cb(), who = await c.get('codes/' + db.pendingJoin); if (who){ db.pendingJoinName = who.name; save(); if (currentView === 'circle') renderCircle(); } } catch(e){}
+}
 async function sendRequest(){
   const code = normCode(document.getElementById('cCode').value);
   if (code.length !== 8) return toast('A code has 4 letters and 4 numbers');
@@ -1807,8 +1829,10 @@ function renderCircle(){
       <p style="color:var(--muted);line-height:1.5;margin-top:0">Share your own photos and videos with family and friends, and talk about the gems together.
         You get a personal code; people you give it to send you a request, and you choose who joins.</p>
       ${db.circle ? `<p class="cwarn" style="margin-bottom:10px">Circles work differently now: instead of one code for a whole circle (yours was ${esc(db.circle.code)}), everyone has their own code. Share your new code with your friends.</p>` : ''}
+      ${db.pendingJoin ? `<div class="row" style="display:block;border:1px solid var(--accent)"><b>🎉 ${db.pendingJoinName ? esc(db.pendingJoinName) + ' invited you' : 'You’ve been invited'} to their circle</b>
+        <small style="display:block;color:var(--muted);margin-top:4px">Type your name and tap Join. That’s all: your request goes to them straight away.</small></div>` : ''}
       <label class="l">Your name (what your circle sees)</label><input id="cName" maxlength="40" value="${esc(db.myName || '')}" placeholder="e.g. Mike">
-      <button class="btn" onclick="setupMe()">✨ Get my code</button>
+      <button class="btn" onclick="setupMe()">${db.pendingJoin ? '✨ Join ' + (db.pendingJoinName ? esc(db.pendingJoinName) + '’s circle' : 'the circle') : '✨ Get my code'}</button>
       ${googleHTML()}`;
     return;
   }
@@ -3189,6 +3213,7 @@ autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { au
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed();
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
+if (window._joinFromLink){ db.pendingJoin = window._joinFromLink; delete db.pendingJoinName; save(); go('circle'); inviterName(); if (circleReady()) joinPending(); }   // beta 35
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(()=>{});
 </script>
 </body>
