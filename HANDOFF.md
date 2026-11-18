@@ -132,6 +132,18 @@ Mike: "I want this to always have the day's text."
 - **Drops:** no endless scroll. Scheduled drops (e.g. morning, noon, evening), each 5 items mixing cards and videos. After that comes a closing screen, "That's it, next drop at noon," with a countdown and nothing else to scroll.
 - **Listening / driving mode is the exception: unlimited.** One big Play button, then a **black screen** with the Screen Wake Lock API so audio keeps going. It reads cards aloud (speechSynthesis) and plays video audio (Morning Worship is ideal for Mike's 40-minute drive) and clips back to back, pulling continuously from the shelf. Rule: **limit the scrolling, not the listening.**
 
+### Personal circles + own photos/videos (Mike, 2026-11-18): PLANNED, mockup next
+Replaces the v19 circle-code design. Mike's decisions:
+- **Personal code per person** (not per circle). Typing someone's code sends a **request they approve** (Accept/Decline). Connections are mutual.
+- **Each person sets their own circle size limit: 5 to 50** (a full circle can't accept more).
+- **Own photos and videos** can be posted to your circle. **Videos up to 1 minute** (about 50 MB); photos resized on the phone before upload.
+- Uploads show **in Today between the jw.org cards with a "from <name>" label, plus a Circle tab** to look back through.
+- Kept **until the person who posted it deletes it**.
+- **Toggles:** a feed setting (jw.org only / plus my own / plus my circle's) and **a per-person switch** to show or hide each person's uploads.
+- Still to design: comments with person-based circles (likely: you see comments from people you're connected to), remove/block a person, a note that uploads must be your own photos/videos (not jw.org material, per jw.org's Terms), and moving the existing v19 circle members over.
+- **Cost/billing:** storing photos and videos needs Firebase Storage, which Google now ties to the pay-as-you-go (Blaze) plan. Mike must set the billing up himself on his own Google account (never do it for him). Small circles cost pennies a month; mainly downloads (about $0.12/GB).
+- Process: mockup first (stubbed, Playwright-style in headless Chrome), Mike's OK, then build in the **beta** first.
+
 ### Later
 - **Share target:** share a page, a jw.org link or a TikTok/IG link into IdeaStash (manifest `share_target`). Public TikTok/IG posts can be saved as embeds. Neither platform allows reading Mike's feeds automatically, so don't try.
 - **IdeaStash Studio:** a separate **PC tool**, not part of the phone app. Input a DRM-free audiobook (e.g. a Libro.fm MP3; Mike wants *The 7 Habits of Highly Effective People*) plus a cover image, as a **one-time batch per book**:
