@@ -163,6 +163,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 50: Shelf sync fixed: sources are matched by what they are (Daily Text, QFR, Bible, a book's link), not by
   each device's own random id, so settings and progress carry over; doubled sources on the PC are tidied (the
   phone's copy is kept). On a device's first sync, what's already in the cloud wins.
+  Beta 51: auto-scroll no longer sticks on a narrated article whose narration ended without the player noticing
+  (bar stops short) or that couldn't play; uses jw.org's own length for the narration.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 50;
+const BETA_NO = 51;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [51, 'Auto-scroll no longer gets stuck on a narrated article: when the narration has played to its end (even if the bar stops just short), or it can’t play, it moves on to the next one.', ''],
   [50, 'Your Shelf now syncs properly: each source (Daily Text, Questions From Readers, the Bible, a book) is matched by what it is, so its settings and progress carry over. Doubled sources on a second device are tidied up.', ''],
   [49, 'Your profile picture now shows on your other device too (it was only on the one where you added it).', ''],
   [48, 'Sign out of Google: in More, under Sync. Sync stops on that device and it leaves your circle until you sign in again; nothing is deleted.', ''],
@@ -877,9 +878,25 @@ async function layerToggle(id){
     if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
     a.ontimeupdate = () => { heroFollow(c, a); const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
       if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)
-    a.onended = () => { i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard');   // (v49); beta 25
-      c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
-      const b = c.querySelector('.lplay'); if (b) b.textContent = '↻'; };
+    const done = (heard, why) => {                          // beta 51: the end, whether the browser noticed it or not
+      if (me.over) return; me.over = true; clearInterval(me.dog); if (why) tlog('narration ' + why + ' ' + (i.title || '').slice(0, 30) + ' @' + Math.round(a.currentTime) + '/' + Math.round(i.adur || a.duration || 0));
+      if (heard){ i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard'); }   // (v49); beta 25
+      c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (!a.ended) a.pause(); if (layer === me) layer = null;
+      const b = c.querySelector('.lplay'); if (b) b.textContent = heard ? '↻' : '▶'; };
+    a.onended = () => done(true);
+    // beta 51 (Mike: "Jews: temple police", 1:31, played to the end but the bar stopped short and Auto never moved on):
+    // Edge can think an MP3 is a little longer than it is, run out of sound and wait for ever. jw.org tells us the real length,
+    // so if the sound stops moving near the end, that's the end. Stuck part-way: nudge it, then give up so Auto carries on.
+    me.lastT = -1; me.lastMove = Date.now(); me.nudged = false;
+    me.dog = setInterval(() => {
+      if (layer !== me || me.stopping){ clearInterval(me.dog); return; }
+      const t = a.currentTime, now = Date.now(), len = i.adur || (isFinite(a.duration) ? a.duration : 0);
+      if (Math.abs(t - me.lastT) > 0.2){ me.lastT = t; me.lastMove = now; me.nudged = false; return; }
+      const still = now - me.lastMove;
+      if (len && t >= len - Math.max(8, len * 0.1) && still > 3000) return done(true, 'stopped at the end');   // the last 8 s (or tenth)
+      if (still > 8000 && !me.nudged){ me.nudged = true; tlog('narration stalled, nudging @' + Math.round(t)); a.play().catch(() => {}); }
+      else if (still > 20000) done(false, 'stalled, moving on');
+    }, 1000);
     a.onpause = () => {                                      // paused by the phone (not by you)? carry on
       if (me.stopping || a.ended || layer !== me || me.resumes > 5) return;
       me.resumes++; setTimeout(() => { if (layer === me && a.paused && !a.ended) a.play().catch(() => {}); }, 400);
@@ -888,7 +905,8 @@ async function layerToggle(id){
     await a.play();
     btn.textContent = '❚❚';
     c.querySelector('.ldur').textContent = i.adur ? '· ' + fmtDur(i.adur) : '';
-  } catch(e){ btn.textContent = '▶'; if (layer && layer.id === id) layer = null; toast('Couldn’t play the narration'); }
+  } catch(e){ if (c.dataset.ended) return;   // beta 51: already finished or given up
+    btn.textContent = '▶'; if (layer && layer.id === id){ clearInterval(layer.dog); layer = null; } c.dataset.ended = '1'; tlog('narration failed ' + (e.message || e)); toast('Couldn’t play the narration'); }   // beta 51: Auto moves on
 }
 function cardHTML(i){
   if (i.layered) return layeredHTML(i);
