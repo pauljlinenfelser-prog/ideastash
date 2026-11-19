@@ -159,6 +159,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   keeps its circle and the Google sign-in moves to it; the PC then asks to sign in again.
   Beta 48: "Sign out of Google" in More (under Sync): sync stops there, the device leaves the circle until you
   sign in again; nothing is deleted.
+  Beta 49: your own profile picture shows on your other device too (fetched from photos/av_<uid>).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

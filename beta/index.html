@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 48;
+const BETA_NO = 49;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [49, 'Your profile picture now shows on your other device too (it was only on the one where you added it).', ''],
   [48, 'Sign out of Google: in More, under Sync. Sync stops on that device and it leaves your circle until you sign in again; nothing is deleted.', ''],
   [47, 'Sync fix: if you signed in on the PC first, signing in on the phone (where your circle is) now keeps your circle, and the PC asks you to sign in once more to join it.', ''],
   [46, 'Sync between your devices: in More, tap “Sign in with Google and sync” on your phone and on your PC (the same Google account). Hearts, gems and tags, your shelf and how far along you are, what you’ve finished and seen, your settings and streak stay the same on both, and your daily scrolling time counts both. The Daily Text download and PDF/EPUB books stay on each device.', ''],
@@ -1913,7 +1914,9 @@ function syncHTML(){
 async function syncNewUid(f){
   const {F, fs} = f, p = await F.getDoc(F.doc(fs, 'people', f.uid));
   const before = sj(db.me || null);
-  if (p.exists()){ const d = p.data(); db.me = {uid: f.uid, name: d.name, code: d.code, limit: d.limit || 20}; db.myName = d.name; }
+  if (p.exists()){ const d = p.data(); db.me = {uid: f.uid, name: d.name, code: d.code, limit: d.limit || 20}; db.myName = d.name;
+    try { const a = await F.getDoc(F.doc(fs, 'photos', 'av_' + f.uid)); if (a.exists() && a.data().data){ db.me.pic = true; await idb.set('av:' + f.uid, a.data().data); } } catch(e){}   // beta 49: your picture comes too
+    if (db.avChecked) delete db.avChecked[f.uid]; }
   else if (db.me && db.me.uid !== f.uid) delete db.me;
   if (sj(db.me || null) !== before){ db.people = {}; save(); toast('Signed in: opening your circle…'); setTimeout(() => location.reload(), 1800); }
 }
@@ -2317,8 +2320,10 @@ async function avData(u){
   if (avMem[u]) return avMem[u];
   let d = ''; try { d = await idb.get('av:' + u) || ''; } catch(e){}
   const mine = db.me && u === db.me.uid, seen = (db.avChecked ||= {})[u] || 0;
-  if (!mine && Date.now() - seen > (d ? 12 * 3600e3 : 5 * 60e3)){   // look for a new picture twice a day (every 5 minutes while they have none)
-    try { const c = await cb(), x = await c.get('photos/av_' + u); d = x && x.data || ''; try { await idb.set('av:' + u, d); } catch(e){} }
+  // beta 49: your own picture too, when this device hasn't got it (it was added on your other device)
+  if ((!mine || !d) && Date.now() - seen > (d ? 12 * 3600e3 : 5 * 60e3)){   // look for a new picture twice a day (every 5 minutes while they have none)
+    try { const c = await cb(), x = await c.get('photos/av_' + u); d = x && x.data || ''; try { await idb.set('av:' + u, d); } catch(e){}
+      if (mine && d && !db.me.pic){ db.me.pic = true; if (currentView === 'circle') setTimeout(renderCircle, 50); } }
     catch(e){ d = d || ''; }
     db.avChecked[u] = Date.now(); save();
   }
