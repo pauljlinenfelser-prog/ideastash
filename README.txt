@@ -146,6 +146,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   locks them.
   Beta 44: narrated articles with several pictures on jw.org show them as a swipeable set that moves along
   with the narration (jw.org's numbered pictures, img/p/<doc>/univ/art/<doc>_univ_cnt_<n>_xl|lg.jpg).
+  Beta 45: how-to videos (video/howto/GemStash-1..7-*.mp4, made from the beta with the pitch music, each ending
+  on "Turn your doom scrolling into LIFEscrolling"): More > 🎬 How-to videos, and at the top of the FAQ.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

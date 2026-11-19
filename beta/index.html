@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 44;
+const BETA_NO = 45;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [45, 'How-to videos: seven short videos with music, one for each part of GemStash. Find them in More (🎬 How-to videos) and at the top of “How does GemStash work?”.', ''],
   [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays.', ''],
   [43, 'Messages: on the Circle tab, tap someone under 💬 Messages to chat with them (words and photos). Only the two of you can read it. New messages ring the 🔔. A parent’s PIN locks messages too.', ''],
   [42, 'A 🔔 at the top tells you when someone joins your circle or asks to, shares photos, or comments on yours. Tap it to see the list; tap an alert to go there.', ''],
@@ -503,8 +504,27 @@ const FAQ = [
    'Your hearts, gems, shelf, books and Daily Text stay on your phone. If you join a friends circle, only your name, your comments and jw.org links are kept online, in a private circle. No jw.org text or media is stored there.'],
   ['What about books?',
    'Free books from Project Gutenberg are public domain. Books you add yourself (PDF or EPUB) are read and kept only on your phone.']];
+// beta 45 (Mike): the how-to videos (made from the beta, with music), kept on the site at /ideastash/video/howto/
+const HOWTO = [['GemStash-1-Today.mp4', '✨', 'Today: your daily feed', '1:06'], ['GemStash-2-Treasures.mp4', '💎', 'Treasures: hearts, gems and tags', '0:57'],
+  ['GemStash-3-Shelf.mp4', '📚', 'The Shelf: choose what comes each day', '1:01'], ['GemStash-4-Circle.mp4', '👥', 'Your circle: invite family with one link', '0:53'],
+  ['GemStash-5-Sharing.mp4', '📸', 'Sharing, comments and messages', '1:07'], ['GemStash-6-Parental-controls.mp4', '🔒', 'Parental controls', '0:52'],
+  ['GemStash-7-Settings-and-help.mp4', '⚙️', 'Settings and help (More)', '0:40']];
+const howtoUrl = f => APP_URL + 'video/howto/' + f;
+function howtoHTML(){
+  return `<div class="howto">${HOWTO.map(([f, e, t, d], n) => `<button class="shelfitem" onclick="playHowto(${n})"><span class="e">${e}</span>
+    <span class="t" style="flex:1;min-width:0"><b>${t}</b><small style="display:block;color:var(--muted)">▶ ${d} video</small></span><span>›</span></button>`).join('')}</div>`;
+}
+function openHowto(){ openSheet(`<h3>🎬 How-to videos</h3><p style="color:var(--muted);margin-top:-6px;font-size:14px">Short videos showing how to use each part of GemStash.</p>${howtoHTML()}<button class="btn alt" onclick="closeSheet()">Close</button>`); }
+function playHowto(n){
+  const [f, e, t] = HOWTO[n];
+  openSheet(`<h3>${e} ${t}</h3><video src="${howtoUrl(f)}" controls playsinline autoplay preload="auto" style="width:100%;max-height:68vh;border-radius:14px;background:#000"></video>
+    ${n + 1 < HOWTO.length ? `<button class="btn" onclick="playHowto(${n + 1})">Next: ${HOWTO[n + 1][2]} ›</button>` : ''}
+    <button class="btn alt" onclick="openHowto()">All how-to videos</button><button class="btn alt" onclick="closeSheet()">Close</button>`);
+  tlog('how-to video ' + (n + 1));
+}
 function openFaq(){
   openSheet(`<h3>❓ How does GemStash work?</h3>
+    <button class="btn" onclick="openHowto()">🎬 Watch the how-to videos</button>
     ${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}
     <button class="btn alt" onclick="closeSheet()">Close</button>`);
 }
@@ -3533,6 +3553,7 @@ function renderMore(){
     <div class="sec">Something not working?</div>
     <button class="btn alt" onclick="copyReport()">📋 Copy a problem report for Claude</button>
     <div class="sec">About</div>
+    <button class="btn" onclick="openHowto()">🎬 How-to videos</button>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
     <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy of GemStash v50) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
     jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
