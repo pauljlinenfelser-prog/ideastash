@@ -224,6 +224,11 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .hero img,.lcard .hero video.art{width:100%;height:100%;object-fit:cover;display:block}
 .lcard .hero video.art{object-fit:contain;background:#000;padding-bottom:90px;box-sizing:border-box}   /* (v38) the whole title card, above the title */
 .lcard .hero .ht{display:none}
+.lcard .hstrip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.lcard .hstrip::-webkit-scrollbar{display:none}
+.lcard .hstrip .pg{flex:0 0 100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.lcard .hdots{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:2}
+.lcard .hdots i{width:7px;height:7px;border-radius:50%;background:#fff6;box-shadow:0 0 3px #0008}.lcard .hdots i.on{background:#fff}
 .lcard.noimg .hero img{display:none}   /* the nautilus art (hero background) shows instead */
 .lcard .lmeta{position:absolute;left:0;right:70px;bottom:0;padding:30px 16px 18px;background:linear-gradient(transparent,#000c 45%)}
 .lcard .lmeta b{display:block;font-size:19px;line-height:1.3}
@@ -388,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 43;
+const BETA_NO = 44;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays.', ''],
   [43, 'Messages: on the Circle tab, tap someone under 💬 Messages to chat with them (words and photos). Only the two of you can read it. New messages ring the 🔔. A parent’s PIN locks messages too.', ''],
   [42, 'A 🔔 at the top tells you when someone joins your circle or asks to, shares photos, or comments on yours. Tap it to see the list; tap an alert to go there.', ''],
   [41, 'Shared photos moved to Treasures: yours are in “My treasures”, everyone else’s in “From my circle”. The Circle tab is now just your people and settings.', ''],
@@ -694,6 +700,55 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
   return i;
 }
+async function articlePics(i){
+  if (!i || !i.doc || i.apics !== undefined || i.lkind === 'nwt' || i.link) return i;
+  if (i._apicsBusy) return i; i._apicsBusy = true;
+  const tryImg = u => new Promise(r => { const im = new Image(); im.onload = () => r(im.naturalWidth > 50 ? u : ''); im.onerror = () => r(''); im.src = u; setTimeout(() => r(''), 12000); });
+  const base = `https://cms-imgp.jw-cdn.org/img/p/${i.doc}/univ/art/${i.doc}_univ_cnt_`, out = [];
+  let miss = 0;
+  for (let n = 1; n <= 12 && miss < 3; n++){
+    const u = await tryImg(base + n + '_xl.jpg') || await tryImg(base + n + '_lg.jpg');
+    if (u){ out.push(u); miss = 0; } else miss++;
+  }
+  // the main picture is often one of these, cropped: keep the article's full one only (compare small grey middles)
+  const look = u => new Promise(r => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try {
+      const k = Math.min(im.naturalWidth, im.naturalHeight), cv = document.createElement('canvas'); cv.width = cv.height = 16;
+      const g = cv.getContext('2d'); g.drawImage(im, (im.naturalWidth - k) / 2, (im.naturalHeight - k) / 2, k, k, 0, 0, 16, 16);
+      const d = g.getImageData(0, 0, 16, 16).data, v = []; for (let n = 0; n < d.length; n += 4) v.push((d[n] + d[n + 1] + d[n + 2]) / 3); r(v); } catch(e){ r(null); } };
+    im.onerror = () => r(null); im.src = u; });
+  const diff = (a, b) => a && b ? a.reduce((t, x, n) => t + Math.abs(x - b[n]), 0) / a.length : 999;
+  const sigs = []; for (const u of out) sigs.push(await look(u));
+  const keep = out.filter((u, n) => !sigs.slice(0, n).some(x => diff(x, sigs[n]) < 30));
+  const main = i.image ? await look(i.image) : null;
+  i.apicsMainDup = !!main && sigs.some(x => diff(x, main) < 30);
+  delete i._apicsBusy; i.apics = keep; save(); tlog(`pictures for ${i.doc}: ${keep.length}${i.apicsMainDup ? ' (main picture is one of them)' : ''}`);
+  return i;
+}
+const heroPics = i => [...(i.image && !(i.apicsMainDup && (i.apics || []).length) ? [i.image] : []), ...(i.apics || [])];
+function heroHTML(i){
+  const pics = heroPics(i);
+  if (pics.length < 2) return `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">`;
+  return `<div class="hstrip" onscroll="hstripMoved(this)" ontouchstart="this.dataset.t=Date.now()" onmousedown="this.dataset.t=Date.now()">${pics.map((u, n) =>
+    `<div class="pg"><img src="${esc(u)}" alt="" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+    <div class="hdots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>`;
+}
+function hstripMoved(st){
+  const n = Math.round(st.scrollLeft / st.clientWidth);
+  st.parentElement.querySelectorAll('.hdots i').forEach((d, k) => d.classList.toggle('on', k === n));
+}
+function heroUpgrade(i){                                       // the pictures arrived after the card was drawn
+  if (heroPics(i).length < 2) return;
+  document.querySelectorAll(`.lcard[data-id="${i.id}"] .hero`).forEach(h => {
+    if (h.querySelector('.hstrip')) return; const im = h.querySelector(':scope > img'); if (!im) return;
+    im.insertAdjacentHTML('beforebegin', heroHTML(i)); im.remove();
+  });
+}
+function heroFollow(c, a){                                     // while the narration plays, the pictures move along with it
+  const st = c.querySelector('.hstrip'); if (!st || !a.duration) return;
+  if (Date.now() - (+st.dataset.t || 0) < 10000) return;        // you swiped yourself a moment ago
+  const k = st.children.length, n = Math.min(k - 1, Math.floor(a.currentTime / a.duration * k));
+  if (Math.round(st.scrollLeft / st.clientWidth) !== n) st.scrollTo({left: n * st.clientWidth, behavior: 'smooth'});
+}
 const WID_ART = 'https://cms-imgp.jw-cdn.org/img/p/1011554/univ/art/1011554_univ_lsr_xl.jpg';   // RETIRED (v38): website banner, no longer shown
 // Beta 3 (Mike's pick): the series title card, the drafting desk with the WAS IT DESIGNED? logo, as it appears at 0:04 of
 // jw.org's own video. Shown by playing jw.org's file paused at 4 s (#t=4), so nothing is copied or re-hosted.
@@ -710,7 +765,7 @@ function layeredHTML(i){
     ${audioOnly ? '' : `<div class="clipbox"><video class="clip" playsinline loop muted preload="none"></video></div>`}
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
-    <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">` : ''}<div class="ht">${esc(i.title)}</div>
+    <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? heroHTML(i) : ''}<div class="ht">${esc(i.title)}</div>
       <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div>${i.lkind === 'nwt' && i.heard ? `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>` : ''}</div></div>
     <div class="side">
@@ -795,7 +850,7 @@ async function layerToggle(id){
     if (from){ a.currentTime = from; a.addEventListener('loadedmetadata', () => { if (a.currentTime < from - 1) a.currentTime = from; }, {once: true}); }
     const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0, el: c};   // beta 30: el = the card it plays on   // no clip element on an audio card
     if (v){ if (!v.src) v.src = i.clipSrc || (typeof i.clip === 'string' ? i.clip : ''); v.muted = true; v.loop = true; v.play().catch(() => {}); }   // silent, loops
-    a.ontimeupdate = () => { const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
+    a.ontimeupdate = () => { heroFollow(c, a); const bar = c.querySelector('.lbar i'); if (bar && a.duration) bar.style.width = (100 * a.currentTime / a.duration) + '%';
       if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)
     a.onended = () => { i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard');   // (v49); beta 25
       c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (layer === me) layer = null;
@@ -1010,7 +1065,7 @@ function observeFeed(){
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
-    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); articlePics(li).then(heroUpgrade).catch(() => {}); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
     if (circleReady()) s.querySelectorAll('.cmt').forEach(loadCount);   // beta 22 (was v19 circles)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }

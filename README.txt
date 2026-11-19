@@ -144,6 +144,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 43: messages: one-to-one chats (text and photos) with people in your circle, on the Circle tab under
   💬 Messages (or ⋯ → Message). Firestore chats/{a_b} + /m; rules published 2026-11-18 9:12 PM. Parent's PIN
   locks them.
+  Beta 44: narrated articles with several pictures on jw.org show them as a swipeable set that moves along
+  with the narration (jw.org's numbered pictures, img/p/<doc>/univ/art/<doc>_univ_cnt_<n>_xl|lg.jpg).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
