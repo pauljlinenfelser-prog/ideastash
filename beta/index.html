@@ -40,6 +40,15 @@ header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:mi
 .cmt .cc{position:absolute;top:0;right:0;background:var(--accent);color:#1b1408;border-radius:9px;font-size:11px;font-weight:700;padding:1px 5px;min-width:16px;line-height:1.2;text-align:center}
 .cmt .cc:empty{display:none}
 .cmts{max-height:45vh;overflow-y:auto;margin:6px 0 10px}
+.chatlist .crow{display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid #2c2846;cursor:pointer}
+.chatlist .crow:last-child{border-bottom:0}.chatlist .crow small{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatlist .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+#chatBox{height:min(58vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 2px 8px}
+.bub{max-width:78%;padding:9px 12px;border-radius:18px;background:var(--panel2);line-height:1.35;word-wrap:break-word;white-space:pre-wrap}
+.bub.me{align-self:flex-end;background:#6a4fd8;color:#fff;border-bottom-right-radius:6px}.bub.them{align-self:flex-start;border-bottom-left-radius:6px}
+.bub img{display:block;max-width:100%;border-radius:12px;margin:-3px -5px 4px}.bub small{display:block;font-size:11px;opacity:.65;margin-top:3px}
+.chatin{display:flex;gap:8px;align-items:flex-end}.chatin textarea{flex:1;min-height:44px;max-height:120px;margin:0}
+.chatin .btn,.chatin label{width:auto;margin:0;flex:none}
 .cm{background:var(--panel2);border-radius:14px;padding:10px 12px;margin-bottom:8px}
 .cm .who{font-size:13px;color:var(--accent);font-weight:600}
 .cm .when{font-size:12px;color:var(--muted);margin-left:6px;font-weight:400}
@@ -379,9 +388,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 42;
+const BETA_NO = 43;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [43, 'Messages: on the Circle tab, tap someone under 💬 Messages to chat with them (words and photos). Only the two of you can read it. New messages ring the 🔔. A parent’s PIN locks messages too.', ''],
   [42, 'A 🔔 at the top tells you when someone joins your circle or asks to, shares photos, or comments on yours. Tap it to see the list; tap an alert to go there.', ''],
   [41, 'Shared photos moved to Treasures: yours are in “My treasures”, everyone else’s in “From my circle”. The Circle tab is now just your people and settings.', ''],
   [40, 'Share several photos with your circle at once (up to 10): they go in as one set you swipe through sideways, like the Illustrated Bible Stories, with a “1 / 5” counter. Pick them in one go, then add more or take some out before sharing.', ''],
@@ -492,7 +502,7 @@ function openFaq(){
     ${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}
     <button class="btn alt" onclick="closeSheet()">Close</button>`);
 }
-function closeSheet(){ if (layer && layer.el && layer.el.closest('#sheet')) layerStop(); document.querySelectorAll('#sheet video').forEach(v => v.pause());   // beta 30
+function closeSheet(){ window._chatWith = null; /* beta 43 */ if (layer && layer.el && layer.el.closest('#sheet')) layerStop(); document.querySelectorAll('#sheet video').forEach(v => v.pause());   // beta 30
   document.getElementById('sheet').classList.remove('on'); if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; } }
 document.getElementById('sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
 function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -1440,7 +1450,7 @@ function parentSee(v){ needPin(() => { db.parent.see = v; save(); renderMore(); 
 function setLimitMin(m){ needPin(() => { db.limitMin = m; save(); renderMore(); }, 'The daily scrolling time is set by a parent.'); }   // beta 37
 function parentHTML(){
   if (!parentOn()) return `<button class="btn alt" onclick="parentSetup()">👪 Set a parent’s PIN</button>
-    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">For a child using GemStash: the PIN locks everything to do with your circle (the Circle tab, sharing photos, comments) and the daily scrolling time. jw.org content in Today stays open.</p>`;
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">For a child using GemStash: the PIN locks everything to do with your circle (the Circle tab, messages, sharing photos, comments) and the daily scrolling time. jw.org content in Today stays open.</p>`;
   return `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin-top:0">${parentLocked() ? '🔒 Locked.' : '🔓 Unlocked for a few minutes.'} The circle and the daily scrolling time need the parent’s PIN on this phone.</p>
     <label class="l">While locked, circle photos in Today</label>
     <div class="seg"><button class="${db.parent.see !== 'view' ? 'on' : ''}" onclick="parentSee('none')">Hidden</button><button class="${db.parent.see === 'view' ? 'on' : ''}" onclick="parentSee('view')">Can look, not reply</button></div>
@@ -1561,6 +1571,7 @@ async function circleStart(){                                // listen for reque
       list.forEach(x => addAlert('join:' + x.id + ':' + (x.since || ''), '👥', `${x.name} is now in your circle`, 'circle', alertQuiet() || !!(db.people || {})[x.id]));   // beta 42
       db.people = p; save(); healAud(); if (currentView === 'circle') renderCircle();
     }));
+    circleUnsub.push(c.watch('chats', chatsChanged, me));   // beta 43
     await loadPosts();
   } catch(e){ circleOn = false; friendErr(e); }
 }
@@ -1606,7 +1617,7 @@ async function commentAlerts(){                                 // comments othe
 setInterval(() => { if (circleReady() && !document.hidden && circleOn) loadPosts(); }, 5 * 60e3);   // new photos every few minutes
 document.addEventListener('visibilitychange', () => { if (!document.hidden && circleReady() && circleOn) loadPosts(); });
 function circleBadge(){
-  const b = document.querySelector('nav button[data-v=circle] .ic'), n = (window._circleReqs || []).length;
+  const b = document.querySelector('nav button[data-v=circle] .ic'), n = parentLocked() ? 0 : (window._circleReqs || []).length + (window._chats || []).filter(chatUnread).length;   // beta 43: + unread messages
   if (b) b.dataset.n = n || '';
 }
 async function setupMe(){
@@ -1985,7 +1996,7 @@ function renderCircle(){
   const el = document.getElementById('circle'); if (!el) return;
   if (parentLocked()){                                           // beta 36
     el.innerHTML = `<div style="text-align:center;padding:40px 10px"><div style="font-size:64px">🔒</div><h2>The circle is locked</h2>
-      <p style="color:var(--muted);line-height:1.5">A parent has locked sharing and comments on this phone.</p>
+      <p style="color:var(--muted);line-height:1.5">A parent has locked messages, sharing and comments on this phone.</p>
       <button class="btn" onclick="needPin(renderCircle)">Parent: type the PIN</button></div>`; return;
   }
   if (!circleReady()){
@@ -2005,6 +2016,7 @@ function renderCircle(){
   const me = db.me, ids = peerIds(), mode = db.circleMode || 'all';
   el.innerHTML = `
     <div class="row" onclick="avSheet()" style="cursor:pointer">${avHTML(me.uid, me.name, 52)}<span class="t" style="flex:1"><b>${esc(me.name)}</b><small>${me.pic ? 'Tap to change your picture' : '📷 Tap to add your picture'}</small></span></div>
+    <div class="sec">💬 Messages</div><div class="row chatlist" id="chatList" style="display:block;padding:2px 12px"></div>
     <div class="row"><span class="t"><small>My code: give it to family and friends</small><b class="ccode">${prettyCode(me.code)}</b></span>
       <button class="btn sm" style="width:auto;margin:0" onclick="shareMyCode()">📤 Share</button></div>
     <div id="circReq"></div>
@@ -2025,12 +2037,100 @@ function renderCircle(){
     <button class="btn alt" onclick="go('library')">📸 Shared photos are in Treasures</button>
     <p style="color:var(--muted);font-size:13px;margin-top:2px">Yours are in “My treasures”, everyone else’s in “From my circle”. Share new ones with ➕ Add.</p>
     ${googleHTML()}`;
-  renderCircleReqs(); renderCirclePosts(); circleStart(); fillAvatars(el);
+  renderCircleReqs(); renderCirclePosts(); circleStart(); renderChatList(); fillAvatars(el);
   if (parentOn()) el.insertAdjacentHTML('afterbegin', `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="parentLock()">🔒 Lock the circle again</button>`);   // beta 36
+}
+/* ---- beta 43: messages ---- */
+const chatId = u => [db.me.uid, u].sort().join('_');
+const chatOther = ch => (ch.aud || []).find(x => x !== db.me.uid);
+const chatUnread = ch => ch.lastUid && ch.lastUid !== db.me.uid && (ch.lastAt || 0) > (ch['r_' + db.me.uid] || 0);
+function chatsChanged(list){
+  window._chats = list;
+  list.forEach(ch => { if (chatUnread(ch)){ const o = chatOther(ch);
+    addAlert('msg:' + ch.id + ':' + ch.lastAt, '💬', `${ch['n_' + o] || (people()[o] || {}).name || 'Someone'}: ${ch.lastText || '📷 Photo'}`, 'chat:' + o); } });
+  circleBadge(); if (currentView === 'circle' && !parentLocked()) renderChatList();
+  if (window._chatWith && document.getElementById('chatBox')) chatRead(window._chatWith);
+}
+function renderChatList(){
+  const el = document.getElementById('chatList'); if (!el) return;
+  const by = {}; (window._chats || []).forEach(ch => by[chatOther(ch)] = ch);
+  const ids = peerIds().sort((a, b) => ((by[b] || {}).lastAt || 0) - ((by[a] || {}).lastAt || 0));
+  el.innerHTML = ids.length ? ids.map(u => { const ch = by[u], pp = people()[u];
+    return `<div class="crow" onclick="openChat('${esc(u)}')">${avHTML(u, pp.name)}<span style="flex:1;min-width:0"><b>${esc(pp.name)}</b>
+      <small>${ch ? (ch.lastUid === db.me.uid ? 'You: ' : '') + esc(ch.lastText || '📷 Photo') : 'Say hello 👋'}</small></span>${ch && chatUnread(ch) ? '<span class="dot"></span>' : ''}</div>`; }).join('')
+    : `<p style="color:var(--muted);font-size:14px;margin:4px">When someone is in your circle, you can message them here.</p>`;
+  fillAvatars(el);
+}
+function openChat(u){
+  if (parentLocked()) return needPin(() => openChat(u), 'Messages are locked by a parent.');
+  const pp = people()[u]; if (!pp) return toast('They’re not in your circle any more');
+  openSheet(`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${avHTML(u, pp.name, 40)}<h3 style="margin:0;flex:1">${esc(pp.name)}</h3></div>
+    <div id="chatBox"><small style="color:var(--muted);text-align:center">Loading…</small></div>
+    <div class="chatin"><label class="btn alt sm" title="Send a photo">📷<input type="file" accept="image/*" hidden onchange="chatPhoto('${esc(u)}', this.files[0]); this.value=''"></label>
+      <textarea id="chatText" maxlength="1000" placeholder="Message ${esc(pp.name)}…" rows="1"></textarea>
+      <button class="btn sm" onclick="chatSend('${esc(u)}')">Send</button></div>
+    <button class="btn alt" onclick="closeSheet()" style="margin-top:10px">Close</button>`);
+  fillAvatars(document.getElementById('sheetIn'));
+  window._chatWith = u; chatWatch(u);
+}
+async function chatWatch(u){
+  try {
+    const c = await cb(), cid = chatId(u);
+    if (window._unsubComments){ window._unsubComments(); window._unsubComments = null; }
+    const has = (window._chats || []).some(ch => ch.id === cid);
+    if (!has){ chatDraw([]); return; }
+    window._unsubComments = c.watch(`chats/${cid}/m`, list => { if (window._chatWith === u) chatDraw(list.sort((a, b) => (a.at || 0) - (b.at || 0))); });
+    chatRead(u);
+  } catch(e){ friendErr(e); }
+}
+function chatDraw(list){
+  const el = document.getElementById('chatBox'); if (!el) return;
+  const me = db.me.uid;
+  el.innerHTML = list.length ? list.map(m => `<div class="bub ${m.uid === me ? 'me' : 'them'}" ${m.uid === me ? `onclick="chatDel('${esc(m.id)}')"` : ''}>${m.photo ? `<img data-fsimg="${esc(m.photo)}" alt="">` : ''}${esc(m.text || '')}<small>${ago(new Date(m.at || Date.now()))}</small></div>`).join('')
+    : `<p style="color:var(--muted);text-align:center;margin:auto">No messages yet. Say hello!</p>`;
+  fillPhotos(el); el.scrollTop = el.scrollHeight; setTimeout(() => { el.scrollTop = el.scrollHeight; }, 300);
+}
+async function chatRead(u){
+  const ch = (window._chats || []).find(x => x.id === chatId(u)); if (!ch || !chatUnread(ch)) return;
+  try { const c = await cb(); ch['r_' + db.me.uid] = Date.now(); await c.upd('chats/' + ch.id, {['r_' + db.me.uid]: c.now()}); } catch(e){ console.warn(e); }
+}
+async function chatEnsure(c, u){                                // the chat document, made the first time either of you writes
+  const cid = chatId(u); if ((window._chats || []).some(ch => ch.id === cid)) return cid;
+  const ex = await c.get('chats/' + cid).catch(() => null);
+  if (!ex){ const aud = [db.me.uid, u].sort();
+    await c.set('chats/' + cid, {aud, ['n_' + db.me.uid]: db.me.name, ['n_' + u]: people()[u].name, lastText: '', lastUid: '', lastAt: c.now(), ['r_' + db.me.uid]: c.now()}); }
+  window._chats = [...(window._chats || []), {id: cid, aud: [db.me.uid, u].sort()}]; chatWatch(u);
+  return cid;
+}
+async function chatSend(u, photo){
+  if (parentLocked()) return;
+  const t = document.getElementById('chatText'), text = ((t && t.value) || '').trim().slice(0, 1000);
+  if (!text && !photo) return;
+  try {
+    const c = await cb(), cid = await chatEnsure(c, u);
+    if (t) t.value = '';
+    await c.add(`chats/${cid}/m`, {uid: db.me.uid, name: db.me.name, text, at: c.now(), ...(photo ? {photo} : {})});
+    await c.upd('chats/' + cid, {lastText: text || '📷 Photo', lastUid: db.me.uid, lastAt: c.now(), ['r_' + db.me.uid]: c.now()});
+  } catch(e){ friendErr(e); }
+}
+async function chatPhoto(u, file){
+  if (!file) return;
+  try {
+    toast('Sending the photo…');
+    const c = await cb(), data = await photoDataURL(file), id = c.newId('photos');
+    await c.set('photos/' + id, {uid: db.me.uid, aud: [db.me.uid, u], data});
+    photoMem[id] = data; try { await idb.set('cphoto:' + id, data); } catch(e){}
+    await chatSend(u, id);
+  } catch(e){ toast('Couldn’t send that photo: ' + (e.message || e)); }
+}
+async function chatDel(mid){
+  const u = window._chatWith; if (!u || !confirm('Delete this message for both of you?')) return;
+  try { const c = await cb(); await c.del(`chats/${chatId(u)}/m/${mid}`); } catch(e){ friendErr(e); }
 }
 function personMenu(u){
   const p = people()[u]; if (!p) return;
   openSheet(`<h3>${esc(p.name)}</h3>
+    <button class="btn" onclick="openChat('${esc(u)}')">💬 Message ${esc(p.name)}</button>
     <button class="btn alt" onclick="toggleShow('${esc(u)}');closeSheet()">${p.show ? '🙈 Hide' : '👁️ Show'} ${esc(p.name)}’s photos and videos</button>
     <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(u)}')">Remove from my circle</button>
     <button class="btn" onclick="closeSheet()">Close</button>`);

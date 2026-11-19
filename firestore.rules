@@ -93,6 +93,25 @@ service cloud.firestore {
                     && request.resource.data.aud.size() <= 51;
       allow delete: if signedIn() && resource.data.uid == me();
     }
+    // beta 43: messages between two people in each other's circle. Chat id = the two uids, sorted, joined by "_".
+    function otherOf(a) { return a[0] == me() ? a[1] : a[0]; }
+    function inMyCircle(u) { return exists(/databases/$(database)/documents/people/$(me())/circle/$(u)); }
+    match /chats/{chat} {
+      allow read: if signedIn() && me() in resource.data.aud;
+      allow create: if signedIn() && request.resource.data.aud.size() == 2 && me() in request.resource.data.aud
+                    && chat == request.resource.data.aud[0] + '_' + request.resource.data.aud[1]
+                    && inMyCircle(otherOf(request.resource.data.aud));
+      allow update: if signedIn() && me() in resource.data.aud && request.resource.data.aud == resource.data.aud
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastUid', 'lastAt', 'r_' + me(), 'n_' + me()]);
+      match /m/{mid} {
+        function chatAud() { return get(/databases/$(database)/documents/chats/$(chat)).data.aud; }
+        allow read: if signedIn() && me() in chatAud();
+        allow create: if signedIn() && me() in chatAud() && inMyCircle(otherOf(chatAud()))
+                      && request.resource.data.uid == me() && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'photo'])
+                      && request.resource.data.text is string && request.resource.data.text.size() <= 1000;
+        allow delete: if signedIn() && resource.data.uid == me();
+      }
+    }
     match /gemc/{tid}/c/{cid} {
       allow read: if signedIn() && me() in resource.data.aud;
       allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud

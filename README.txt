@@ -139,6 +139,11 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   ("1 / 4" counter), in Today and on the Circle tab. Add more or take some out before sharing. No rules change.
   Beta 41: shared photos moved from the Circle tab to Treasures ("My treasures" = yours, "From my circle" =
   everyone else's); the Circle tab is just people and settings.
+  Beta 42: 🔔 alerts at the top: someone joins or asks to join, shares photos, comments on your photos
+  (and new messages). Kept on the phone (db.alerts); new photos are checked every 5 minutes.
+  Beta 43: messages: one-to-one chats (text and photos) with people in your circle, on the Circle tab under
+  💬 Messages (or ⋯ → Message). Firestore chats/{a_b} + /m; rules published 2026-11-18 9:12 PM. Parent's PIN
+  locks them.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
