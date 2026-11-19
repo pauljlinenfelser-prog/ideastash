@@ -1,0 +1,134 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Circle mockup</title>
+<style>
+:root{--bg:#14121f;--panel:#1e1b2e;--panel2:#272340;--text:#f3f1fb;--muted:#a39fbd;--accent:#ffb84d;--accent2:#7c6cff;--danger:#ff5c7a;--ok:#3ed6a0}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0a12;font-family:"Segoe UI","Segoe UI Emoji",sans-serif;color:var(--text);padding:28px}
+h1{margin:0 0 4px;font-size:30px}h1 span{color:var(--accent)}
+.lead{color:var(--muted);margin:0 0 22px;font-size:16px}
+.wrap{display:flex;gap:30px;align-items:flex-start}
+.col{width:384px}
+.cap{font-weight:700;font-size:17px;margin:14px 4px 4px;color:#FFC24A}
+.note{color:var(--muted);font-size:14px;line-height:1.45;margin:0 4px}
+.phone{width:384px;height:824px;background:var(--bg);border-radius:34px;outline:10px solid #05050a;box-shadow:0 0 0 12px #2a2a36;position:relative;overflow:hidden;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:8px;padding:12px 14px}
+header img{width:40px;height:40px}
+.pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.sp{flex:1}
+.body{flex:1;overflow:hidden;padding:0 14px}
+nav{display:flex;background:var(--panel);padding:6px;border-top:1px solid #2c2846}
+nav b{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted);font-weight:400}
+nav b i{font-style:normal;font-size:20px}
+nav b.on{color:var(--accent)}
+.sec{margin:14px 0 7px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.card{background:var(--panel);border-radius:16px;padding:13px 14px;margin-bottom:9px}
+.code{font-size:30px;font-weight:800;letter-spacing:3px;color:var(--accent)}
+.btn{background:var(--accent);color:#1b1408;font-weight:700;border-radius:13px;padding:11px 14px;text-align:center;font-size:15px}
+.btn.alt{background:var(--panel2);color:var(--text)}
+.btn.sm{padding:8px 12px;font-size:13.5px;border-radius:11px}
+.row{display:flex;align-items:center;gap:10px}
+.av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#14121f;flex:none}
+.small{font-size:12.5px;color:var(--muted)}
+.seg{display:flex;background:var(--panel2);border-radius:11px;padding:3px}
+.seg span{flex:1;text-align:center;padding:8px 2px;border-radius:9px;font-size:12.5px}
+.seg span.on{background:var(--accent);color:#1b1408;font-weight:700}
+.step{display:flex;align-items:center;gap:12px}
+.step span{width:34px;height:34px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.sw{width:42px;height:24px;border-radius:12px;background:var(--panel2);position:relative;flex:none}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#777}
+.sw.on{background:var(--ok)}.sw.on::after{left:21px;background:#fff}
+.photo{border-radius:14px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-weight:700;position:relative}
+.ph1{background:linear-gradient(135deg,#3a7bd5,#00d2ff)}.ph2{background:linear-gradient(135deg,#f7971e,#ffd200)}.ph3{background:linear-gradient(135deg,#7f53ac,#647dee)}
+.tag{position:absolute;left:10px;top:10px;background:#000a;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:700}
+.play{width:58px;height:58px;border-radius:50%;background:var(--accent);color:#1b1408;display:flex;align-items:center;justify-content:center;font-size:24px}
+.side{position:absolute;right:10px;bottom:120px;display:flex;flex-direction:column;gap:10px}
+.side span{width:46px;height:46px;border-radius:50%;background:#0008;display:flex;align-items:center;justify-content:center;font-size:20px}
+.field{background:var(--panel2);border-radius:12px;padding:11px 12px;font-size:14.5px;color:var(--text)}
+.warn{background:#2b2238;border-left:4px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;color:#e7e2f7}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:22px 22px 0 0;padding:16px 16px 20px}
+.dim{position:absolute;inset:0;background:#0009}
+</style></head><body>
+<h1>Gem<span>Stash</span> circles: mockup</h1>
+<p class="lead">Personal codes, your own circle size (5–50), your own photos and videos, and switches for what you see. Names and pictures are examples.</p>
+<div class="wrap">
+
+<!-- 1. Circle tab -->
+<div class="col"><div class="phone">
+  <header><img src="../../app/logo-chest-128.png"><span class="sp"></span><span class="pill">🔥 3</span></header>
+  <div class="body">
+    <div class="card"><div class="small">My code — give it to family and friends</div>
+      <div class="row" style="margin-top:4px"><div class="code">MIKE·4827</div><span class="sp"></span><span class="btn sm">📤 Share</span></div></div>
+    <div class="sec">Requests</div>
+    <div class="card row"><div class="av" style="background:#7fd1ae">A</div><div style="flex:1"><b>Anna</b><div class="small">wants to join your circle</div></div>
+      <span class="btn sm">Accept</span><span class="btn sm alt">Decline</span></div>
+    <div class="sec">My circle · 12 of 30</div>
+    <div class="card"><div class="row"><div style="flex:1"><b>Circle size</b><div class="small">From 5 to 50 people</div></div>
+      <div class="step"><span>−</span><b style="font-size:18px">30</b><span>+</span></div></div></div>
+    <div class="card"><b>In my Today, show</b>
+      <div class="seg" style="margin-top:8px"><span>jw.org only</span><span>+ mine</span><span class="on">+ my circle’s</span></div></div>
+    <div class="sec">People · show their photos &amp; videos</div>
+    <div class="card" style="padding:4px 14px">
+      <div class="row" style="padding:9px 0"><div class="av" style="background:#ffb84d">S</div><div style="flex:1"><b>Sarah</b><div class="small">daughter</div></div><div class="sw on"></div></div>
+      <div class="row" style="padding:9px 0;border-top:1px solid #2c2846"><div class="av" style="background:#9ab6ff">D</div><div style="flex:1"><b>David</b></div><div class="sw on"></div></div>
+      <div class="row" style="padding:9px 0;border-top:1px solid #2c2846"><div class="av" style="background:#ff9db0">R</div><div style="flex:1"><b>Grandma Ruth</b></div><div class="sw"></div></div>
+    </div>
+  </div>
+  <nav><b><i>✨</i>Today</b><b><i>📚</i>Shelf</b><b class="on"><i>👥</i>Circle</b><b><i>💎</i>Stashes</b><b><i>➕</i>Add</b><b><i>⚙️</i>More</b></nav>
+</div>
+<div class="cap">1. The Circle tab</div>
+<p class="note">Your personal code to share. Requests wait for your Accept. You set how big your circle can be. One switch for what comes into Today, and one switch per person for their photos and videos.</p></div>
+
+<!-- 2. Today with a circle post -->
+<div class="col"><div class="phone">
+  <header><img src="../../app/logo-chest-128.png"><span class="sp"></span><span class="pill">📖 Bible</span><span class="pill">▶ Auto</span><span class="pill">🔥 3</span></header>
+  <div class="body" style="padding:0;position:relative">
+    <div class="photo ph1" style="position:absolute;inset:0;border-radius:0">
+      <div style="font-size:90px">🎉</div><div style="opacity:.85">(their photo)</div>
+      <div class="tag">👥 From Sarah · your circle</div>
+    </div>
+    <div class="side"><span>🤍</span><span>💬</span><span>💎</span><span>⋯</span></div>
+    <div style="position:absolute;left:0;right:70px;bottom:0;padding:40px 16px 18px;background:linear-gradient(transparent,#000c 45%)">
+      <b style="font-size:19px">Josh got baptized today!</b><div class="small" style="color:#fffc">Sarah · 2 hours ago · 4 ❤️</div></div>
+  </div>
+  <nav><b class="on"><i>✨</i>Today</b><b><i>📚</i>Shelf</b><b><i>👥</i>Circle</b><b><i>💎</i>Stashes</b><b><i>➕</i>Add</b><b><i>⚙️</i>More</b></nav>
+</div>
+<div class="cap">2. In Today, between the jw.org cards</div>
+<p class="note">New photos and videos from your circle come in with a “From Sarah” label. ❤️, comments and 💎 work like on any gem. ⋯ lets you hide Sarah’s posts or remove her.</p></div>
+
+<!-- 3. Circle posts -->
+<div class="col"><div class="phone">
+  <header><img src="../../app/logo-chest-128.png"><span class="sp"></span><span class="pill">🔥 3</span></header>
+  <div class="body">
+    <div class="btn" style="margin-top:4px">＋ Share a photo or video</div>
+    <div class="sec">From your circle</div>
+    <div class="photo ph1" style="height:210px;margin-bottom:6px"><div style="font-size:60px">🎉</div><div class="tag">Sarah · 2 h</div></div>
+    <div class="small" style="margin:0 2px 10px"><b style="color:var(--text)">Josh got baptized today!</b> · 4 ❤️ · 2 💬</div>
+    <div class="photo ph2" style="height:210px;margin-bottom:6px"><div class="play">▶</div><div style="margin-top:8px;opacity:.9">0:48</div><div class="tag">David · yesterday</div></div>
+    <div class="small" style="margin:0 2px 10px"><b style="color:var(--text)">Our congregation’s new Kingdom Hall</b> · 7 ❤️</div>
+    <div class="photo ph3" style="height:120px"><div style="font-size:44px">🌅</div><div class="tag">You · 3 days</div></div>
+  </div>
+  <nav><b><i>✨</i>Today</b><b><i>📚</i>Shelf</b><b class="on"><i>👥</i>Circle</b><b><i>💎</i>Stashes</b><b><i>➕</i>Add</b><b><i>⚙️</i>More</b></nav>
+</div>
+<div class="cap">3. Everything from your circle</div>
+<p class="note">Scroll down the Circle tab to look back at everyone’s photos and videos, newest first. Your own posts are here too, and you can delete them any time.</p></div>
+
+<!-- 4. Posting -->
+<div class="col"><div class="phone">
+  <header><img src="../../app/logo-chest-128.png"><span class="sp"></span><span class="pill">🔥 3</span></header>
+  <div class="body"><div class="photo ph3" style="height:300px;margin-top:6px"></div></div><div style="height:58px"></div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <b style="font-size:19px">Share with my circle</b>
+    <div class="photo ph1" style="height:170px;margin:12px 0 10px"><div class="play">▶</div><div style="margin-top:6px">0:52 · up to 1 minute</div></div>
+    <div class="field">Josh got baptized today!</div>
+    <div class="warn" style="margin-top:10px">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
+    <div class="small" style="margin:10px 2px">Seen by the 12 people in your circle who show your posts. Stays until you delete it.</div>
+    <div class="btn">Share with my circle</div>
+    <div class="btn alt" style="margin-top:8px">Cancel</div>
+  </div>
+  
+</div>
+<div class="cap">4. Sharing a photo or video</div>
+<p class="note">Pick a photo, or a video of up to 1 minute, add a few words, and share. A reminder that it must be your own, not jw.org’s.</p></div>
+
+</div></body></html>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>install video</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// "How to install GemStash": drawn browser steps (Chrome, Edge), then the real app (recorded), then other browsers
+const C = document.getElementById('c'), g = C.getContext('2d');
+const W = 1080, H = 1920, PH = 1400, PW = Math.round(PH * 384 / 824), PX = (W - PW) / 2, PY = 360, S = PW / 384;
+const URL_TXT = 'pauljlinenfelser-prog.github.io/ideastash/app';
+const font = (w, s) => `${w} ${s}px "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif`;
+function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function wrap(text, maxW){ const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words){ const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur); return lines; }
+const ld = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+let TL, IMGS = [], LOGO, PAGE, ICON;
+async function load(){
+  TL = await (await fetch('timeline.json')).json();
+  LOGO = await ld('../../app/logo-chest-128.png'); ICON = await ld('../../app/icon-chest-192.png'); PAGE = await ld('page.png');
+  IMGS = await Promise.all(TL.frames.map(f => ld('frames/' + String(f.n).padStart(4, '0') + '.jpg')));
+  total(); return IMGS.filter(Boolean).length;
+}
+// --- drawing inside the phone, in phone (CSS px) coordinates ---
+function sx(x){ return PX + x * S; } function sy(y){ return PY + y * S; }
+function box(x, y, w, h, r, fill){ g.fillStyle = fill; rr(sx(x), sy(y), w * S, h * S, r * S); g.fill(); }
+function text(t, x, y, size, color, weight = 400, align = 'left'){ g.fillStyle = color; g.font = font(weight, size * S); g.textAlign = align; g.textBaseline = 'middle'; g.fillText(t, sx(x), sy(y)); }
+function tap(x, y, p){ if (p < 0 || p > 1) return; g.fillStyle = `rgba(255,255,255,${0.5 * (1 - p)})`; g.beginPath(); g.arc(sx(x), sy(y), (16 + 28 * p) * S, 0, 7); g.fill();
+  g.strokeStyle = `rgba(255,194,74,${0.95 * (1 - p)})`; g.lineWidth = 5; g.beginPath(); g.arc(sx(x), sy(y), (16 + 28 * p) * S, 0, 7); g.stroke(); }
+function page(top, bottom){ g.drawImage(PAGE, 0, 0, PAGE.width, PAGE.height * (824 - top - bottom) / 824, sx(0), sy(top), 384 * S, (824 - top - bottom) * S); }
+function urlPill(x, y, w){ box(x, y, w, 34, 17, '#e3e5e8'); text('🔒', x + 12, y + 17, 12, '#444'); g.save(); g.beginPath(); g.rect(sx(x + 30), sy(y), (w - 36) * S, 34 * S); g.clip(); text(URL_TXT, x + 30, y + 17, 13, '#202124'); g.restore(); }
+function chrome(t){            // Chrome-style: address bar on top, ⋮ menu top right
+  box(0, 0, 384, 824, 0, '#fff'); page(56, 0);
+  box(0, 0, 384, 56, 0, '#f1f3f4'); urlPill(10, 11, 316); text('⋮', 352, 28, 26, '#202124', 700, 'center');
+  if (t > 1.3){ g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(sx(0), sy(56), 384 * S, 768 * S);
+    box(150, 8, 226, 330, 10, '#fff'); g.strokeStyle = '#ddd'; g.lineWidth = 2; rr(sx(150), sy(8), 226 * S, 330 * S, 10 * S); g.stroke();
+    text('↻    ☆    ⬇    ⓘ', 168, 34, 17, '#444');
+    const items = ['New tab', 'History', 'Downloads', 'Bookmarks', 'Add to Home screen', 'Settings'];
+    items.forEach((it, i) => { const y = 66 + i * 44; if (it.startsWith('Add')){ box(154, y, 218, 40, 8, t > 3 ? '#ffe7a8' : '#fff4d1'); }
+      text(it, 170, y + 20, 16, '#202124', it.startsWith('Add') ? 700 : 400); });
+  }
+  tap(352, 28, (t - 0.6) / 0.7); tap(250, 66 + 4 * 44 + 20, (t - 3) / 0.7);
+}
+function edge(t){              // Edge-style: address bar on top, toolbar with ⋯ at the bottom
+  box(0, 0, 384, 824, 0, '#fff'); page(56, 52);
+  box(0, 0, 384, 56, 0, '#f7f7f7'); urlPill(10, 11, 364);
+  box(0, 772, 384, 52, 0, '#f7f7f7'); ['‹', '›', '＋', '⋯', '▢'].forEach((c, i) => text(c, 38 + i * 77, 798, i === 3 ? 26 : 22, '#202124', 700, 'center'));
+  if (t > 1.3){ g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(sx(0), sy(0), 384 * S, 772 * S);
+    box(0, 500, 384, 272, 18, '#fff'); box(172, 510, 40, 5, 3, '#ccc');
+    const items = [['☆', 'Favorites'], ['🕘', 'History'], ['⬇', 'Downloads'], ['📲', 'Add to phone'], ['↗', 'Share'], ['⚙', 'Settings'], ['🔊', 'Read aloud'], ['🔍', 'Find on page']];
+    items.forEach(([ic, lb], i) => { const x = 14 + (i % 4) * 90, y = 532 + Math.floor(i / 4) * 110;
+      if (lb === 'Add to phone') box(x, y, 84, 96, 12, t > 3 ? '#ffe7a8' : '#fff4d1');
+      text(ic, x + 42, y + 34, 24, '#333', 400, 'center'); text(lb, x + 42, y + 74, 12.5, '#202124', lb === 'Add to phone' ? 700 : 400, 'center'); });
+  }
+  tap(269, 798, (t - 0.6) / 0.7); tap(14 + 3 * 90 + 42, 532 + 48, (t - 3) / 0.7);
+}
+function install(t){
+  box(0, 0, 384, 824, 0, '#fff'); page(56, 0); box(0, 0, 384, 56, 0, '#f1f3f4'); urlPill(10, 11, 316); text('⋮', 352, 28, 26, '#202124', 700, 'center');
+  g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(sx(0), sy(0), 384 * S, 824 * S);
+  box(32, 300, 320, 200, 22, '#fff');
+  text('Install app?', 56, 334, 20, '#202124', 700);
+  g.drawImage(ICON, sx(56), sy(362), 48 * S, 48 * S);
+  text('GemStash', 118, 376, 17, '#202124', 700); text('pauljlinenfelser-prog.github.io', 118, 398, 12, '#5f6368');
+  text('Cancel', 210, 466, 16, '#1a73e8', 600, 'center'); box(254, 446, 84, 40, 20, '#1a73e8'); text('Install', 296, 466, 16, '#fff', 700, 'center');
+  tap(296, 466, (t - 1.8) / 0.7);
+}
+function home(t){
+  const gr = g.createLinearGradient(sx(0), sy(0), sx(384), sy(824)); gr.addColorStop(0, '#30475e'); gr.addColorStop(1, '#5b3f74'); g.fillStyle = gr; g.fillRect(sx(0), sy(0), 384 * S, 824 * S);
+  text('9:41', 24, 22, 14, '#fff', 600);
+  const cols = ['#e57373', '#64b5f6', '#81c784', '#ffb74d', '#ba68c8', '#4db6ac', '#f06292', '#90a4ae', '#aed581', '#7986cb', '#ffd54f'];
+  let k = 0;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++){
+    const x = 24 + c * 88, y = 380 + r * 100;
+    if (r === 3 && c === 1){ g.drawImage(ICON, sx(x + 6), sy(y), 56 * S, 56 * S); text('GemStash', x + 34, y + 70, 12, '#fff', 600, 'center'); continue; }
+    box(x + 6, y, 56, 56, 16, cols[k++ % cols.length]); box(x + 22, y + 16, 24, 24, 6, 'rgba(255,255,255,0.55)');
+  }
+  tap(24 + 88 + 34, 380 + 300 + 28, (t - 2.2) / 0.7);
+}
+function phoneFrame(drawScreen){
+  g.fillStyle = '#05050a'; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.fill();
+  g.strokeStyle = '#3a3a48'; g.lineWidth = 3; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.stroke();
+  g.fillStyle = '#2a2a36'; g.fillRect(PX + PW + 22, PY + 240, 6, 110); g.fillRect(PX + PW + 22, PY + 400, 6, 70);
+  g.save(); rr(PX, PY, PW, PH, 50); g.clip(); drawScreen(); g.restore();
+  g.fillStyle = '#000'; g.beginPath(); g.arc(PX + PW / 2, PY + 22, 11, 0, 7); g.fill();
+}
+function bg(){ g.fillStyle = '#0f0d1a'; g.fillRect(0, 0, W, H); }
+function caption(c, a, sub){
+  g.globalAlpha = a; g.fillStyle = '#fff'; g.font = font(700, 54); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const lines = wrap(c, 960), lh = 66, y0 = 190 - (lines.length - 1) * lh / 2;
+  lines.forEach((l, i) => g.fillText(l, W / 2, y0 + i * lh));
+  g.fillStyle = '#FFC24A'; g.fillRect(W / 2 - 50, y0 + (lines.length - 1) * lh + 30, 100, 6);
+  if (sub){ g.font = font(600, 32); g.fillText(sub, W / 2, y0 + (lines.length - 1) * lh + 82); }
+  g.globalAlpha = 1;
+}
+function footer(){
+  g.drawImage(LOGO, W / 2 - 182, PY + PH + 52, 64, 64);
+  g.fillStyle = '#fff'; g.font = font(700, 40); g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('Gem', W / 2 - 106, PY + PH + 86);
+  const w = g.measureText('Gem').width; g.fillStyle = '#FFC24A'; g.fillText('Stash', W / 2 - 106 + w, PY + PH + 86);
+}
+function card(sub, sub2, a, list){
+  bg(); g.globalAlpha = a;
+  g.drawImage(LOGO, W / 2 - 170, list ? 250 : 520, 340, 340);
+  g.font = font(800, 92); const w1 = g.measureText('Gem').width, w2 = g.measureText('Stash').width, x = W / 2 - (w1 + w2) / 2, ty = list ? 700 : 1020;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff'; g.fillText('Gem', x, ty); g.fillStyle = '#FFC24A'; g.fillText('Stash', x + w1, ty);
+  g.textAlign = 'center'; g.fillStyle = '#d8d4ea'; g.font = font(600, 46); g.fillText(sub, W / 2, ty + 100);
+  if (sub2){ g.fillStyle = '#FFC24A'; g.font = font(600, 34); g.fillText(sub2, W / 2, ty + 180); }
+  if (list){ g.textAlign = 'left'; list.forEach(([b, r], i) => { const y = ty + 290 + i * 150; g.fillStyle = '#FFC24A'; g.font = font(700, 42); g.fillText(b, 110, y); g.fillStyle = '#fff'; g.font = font(500, 38); g.fillText(r, 110, y + 56); }); }
+  g.globalAlpha = 1;
+}
+const SC = [
+  {d: 3.0, card: ['How to install GemStash', 'Chrome · Edge · Samsung Internet · Firefox · Safari']},
+  {d: 4.0, cap: '1. On your phone, open this link in your browser', sub: URL_TXT, screen: t => { box(0, 0, 384, 824, 0, '#fff'); page(56, 0); box(0, 0, 384, 56, 0, '#f1f3f4'); urlPill(10, 11, 364); }},
+  {d: 5.0, cap: '2. Chrome: tap ⋮ at the top, then “Add to Home screen”', screen: chrome},
+  {d: 5.0, cap: 'Edge: tap ⋯ at the bottom, then “Add to phone”', screen: edge},
+  {d: 3.8, cap: '3. Tap Install (or Add)', sub: 'The names can differ a little from phone to phone', screen: install},
+  {d: 4.0, cap: '4. Open GemStash from its new icon', screen: home},
+  {rec: true},
+  {d: 7.0, card: ['Other browsers', 'Same idea, slightly different menu:'], list: [['Samsung Internet', '☰ menu → Add page to → Home screen'], ['Firefox', '⋮ menu → Install (or Add to Home screen)'], ['iPhone / iPad (Safari)', 'Share □↑ → Add to Home Screen']]},
+  {d: 3.4, card: ['Free · private · no account', URL_TXT]}
+];
+SC.forEach(s => { if (s.rec) s.d = TL ? TL.end : 0; });
+function total(){ SC.forEach(s => { if (s.rec) s.d = TL.end; }); return SC.reduce((a, s) => a + s.d, 0); }
+function draw(T){
+  let t = T, s; for (s of SC){ if (t < s.d) break; t -= s.d; }
+  if (s.card){ card(s.card[0], s.card[1], Math.min(1, t / 0.45), s.list); return; }
+  bg();
+  if (s.rec){
+    let c = null; for (const m of TL.marks) if (m.cap && m.t <= t) c = m;
+    if (c) caption((c === TL.marks.find(m => m.cap) ? '5. ' : '') + c.cap, Math.min(1, (t - c.t) / 0.35));
+    let k = 0; for (let i = 0; i < TL.frames.length; i++){ if (TL.frames[i].t <= t) k = i; else break; }
+    phoneFrame(() => { if (IMGS[k]) g.drawImage(IMGS[k], PX, PY, PW, PH);
+      for (const m of TL.marks) if (m.tap && t >= m.t && t < m.t + 0.7) tap(m.tap[0], m.tap[1], (t - m.t) / 0.7); });
+  } else { caption(s.cap, Math.min(1, t / 0.35), s.sub); phoneFrame(() => s.screen(t)); }
+  footer();
+}
+async function record(){
+  const tot = total();
+  const types = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm'];
+  const type = types.find(t => MediaRecorder.isTypeSupported(t));
+  const rec = new MediaRecorder(C.captureStream(30), {mimeType: type, videoBitsPerSecond: 9000000}), parts = [];
+  rec.ondataavailable = e => e.data.size && parts.push(e.data); const done = new Promise(r => rec.onstop = r);
+  draw(0); rec.start(); const t0 = performance.now();
+  await new Promise(res => { const iv = setInterval(() => { const T = (performance.now() - t0) / 1000; draw(Math.min(T, tot - 0.001)); if (T >= tot){ clearInterval(iv); res(); } }, 1000 / 30); });
+  rec.stop(); await done;
+  const buf = new Uint8Array(await new Blob(parts, {type}).arrayBuffer()); let bin = ''; for (let i = 0; i < buf.length; i += 32768) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 32768));
+  window.OUT = btoa(bin); return type + ' ' + buf.length;
+}
+</script></body></html>

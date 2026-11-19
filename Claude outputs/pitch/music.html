@@ -1,0 +1,115 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GemStash pitch music</title></head><body>
+<script>
+// Original music for the GemStash pitch (written in code, no samples, no one else's recording). Timed to compose.html:
+//  0.0-4.6  restless plucks that speed up with each flick of the endless feed, over a low drone
+//  4.6-6.2  hush ("Where did the evening go?")
+//  6.2      the title: a warm D major bloom and a sparkle of bells (the gems)
+//  8.6-50.9 gentle piano arpeggios over strings, 80 bpm: D A Bm G / D A Bm G / G D Em A (+ melody) / D A ...
+// 50.9      "when it's up, it stops": the piano stops, a soft chime, strings carry on
+// 56.6      IV - V - I to land on D as the tagline appears (59.5), then fade out by 63.9
+const SR = 48000, LEN = 63.9;
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+function render(){
+  const ac = new OfflineAudioContext(2, Math.ceil(SR * LEN), SR);
+  const master = ac.createGain(); master.gain.value = 0.8;
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
+  master.connect(comp); comp.connect(ac.destination);
+  // reverb: generated hall impulse
+  const rv = ac.createConvolver(), ir = ac.createBuffer(2, SR * 3, SR);
+  for (let c = 0; c < 2; c++){ const d = ir.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3.2); }
+  rv.buffer = ir; const wet = ac.createGain(); wet.gain.value = 0.32; rv.connect(wet); wet.connect(master);
+  const bus = (dry = 1, rev = 1, pan = 0) => { const g = ac.createGain(), p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p);
+    const d = ac.createGain(); d.gain.value = dry; p.connect(d); d.connect(master); const r = ac.createGain(); r.gain.value = rev; p.connect(r); r.connect(rv); return g; };
+
+  // ---- instruments
+  function piano(m, t, vel = 0.5, len = 1.8, pan = 0){
+    const out = bus(1, 0.9, pan), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(3200 + vel * 2000, t); lp.frequency.exponentialRampToValueAtTime(900, t + len); lp.connect(out);
+    [[1, 1], [2, 0.35], [3, 0.12], [4, 0.06]].forEach(([p, a], k) => {
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = k ? 'sine' : 'triangle'; o.frequency.value = hz(m) * p * (1 + (k ? 0.0008 * k : 0));
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel * a * 0.22, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + len / (1 + k * 0.6)); o.connect(g); g.connect(lp); o.start(t); o.stop(t + len + 0.1);
+    });
+  }
+  function bell(m, t, vel = 0.3, pan = 0){
+    const out = bus(0.8, 1.4, pan);
+    [[1, 1, 2.2], [2.76, 0.4, 1.0], [5.4, 0.15, 0.5]].forEach(([p, a, d]) => {
+      const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = hz(m) * p;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel * a * 0.12, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0005, t + d);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + d + 0.1);
+    });
+  }
+  function pad(ms, t0, t1, vel = 0.5, cut = 1100, att = 0.8){
+    const out = bus(1, 0.7), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; lp.Q.value = 0.5; lp.connect(out);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vel * 0.05, t0 + att);
+    g.gain.setValueAtTime(vel * 0.05, Math.max(t0 + att, t1 - 0.2)); g.gain.linearRampToValueAtTime(0, t1 + 1.2); g.connect(lp);
+    ms.forEach((m, i) => [-6, 6].forEach(dt => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = dt + (i % 2 ? 2 : -2);
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.15 + i * 0.03; lg.gain.value = 3; lfo.connect(lg); lg.connect(o.detune);
+      o.connect(g); o.start(t0); o.stop(t1 + 1.4); lfo.start(t0); lfo.stop(t1 + 1.4); }));
+  }
+  function bass(m, t0, t1, vel = 0.5){
+    const out = bus(1, 0.2), o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = hz(m);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vel * 0.32, t0 + 0.05); g.gain.setTargetAtTime(vel * 0.18, t0 + 0.05, 0.6);
+    g.gain.setValueAtTime(vel * 0.18, t1 - 0.08); g.gain.linearRampToValueAtTime(0, t1 + 0.1); o.connect(g); g.connect(out); o.start(t0); o.stop(t1 + 0.2);
+  }
+  function whoosh(t, vel = 0.3){
+    const n = ac.createBufferSource(), b = ac.createBuffer(1, SR * 0.4, SR), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; n.buffer = b;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(600, t); bp.frequency.exponentialRampToValueAtTime(3500, t + 0.25);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel * 0.09, t + 0.08); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.32);
+    n.connect(bp); bp.connect(g); g.connect(bus(1, 0.3)); n.start(t); n.stop(t + 0.4);
+  }
+
+  // ---- 1. the hook
+  const flicks = []; let ft = 0.6, gap = 0.95; while (ft < 4.6){ flicks.push(ft); ft += gap; gap = Math.max(0.28, gap * 0.72); }
+  pad([38, 45], 0.0, 4.4, 0.7, 500, 0.6);                                   // low D/A drone
+  const up = [64, 66, 67, 69, 71, 72, 74, 76, 77, 79, 81];                     // climbing, a little uneasy (C natural)
+  flicks.forEach((t, i) => { whoosh(t, 0.6 + i * 0.05); piano(up[i % up.length], t + 0.02, 0.35 + i * 0.03, 0.6, (i % 2 ? 0.3 : -0.3)); });
+  piano(38, 4.6, 0.35, 1.6); piano(50, 4.6, 0.25, 1.6);                      // the hush lands softly
+
+  // ---- 2. the title bloom
+  pad([50, 57, 62, 66, 69], 6.2, 8.9, 0.9, 1600, 0.35);
+  bass(38, 6.2, 8.6, 0.6);
+  [74, 78, 81, 86, 90, 93].forEach((m, i) => bell(m, 6.25 + i * 0.085, 0.35 - i * 0.03, -0.5 + i * 0.2));
+  piano(62, 6.2, 0.45, 2.6); piano(66, 6.2, 0.35, 2.6); piano(69, 6.2, 0.35, 2.6);
+
+  // ---- 3. the body
+  const CH = {D: [38, [57, 62, 66, 69]], A: [33, [57, 61, 64, 69]], Bm: [35, [59, 62, 66, 71]], G: [31, [55, 59, 62, 67]], Em: [28, [55, 59, 64, 67]]};
+  const PROG = ['D', 'A', 'Bm', 'G', 'D', 'A', 'Bm', 'G', 'G', 'D', 'Em', 'A', 'D', 'A', 'Bm', 'G'];
+  const MEL = {8: [74, 71], 9: [69, 66], 10: [67, 71], 11: [73, 76], 12: [78, 74], 13: [76, 73]};
+  const BAR = 3, B0 = 8.6, beat = BAR / 4, STOP = 50.9;
+  PROG.forEach((c, k) => {
+    const t = B0 + k * BAR, [bs, tones] = CH[c];
+    pad(tones, t, t + BAR, k < 2 ? 0.55 : 0.75, 1100);
+    bass(bs + 12, t, t + BAR, k < 4 ? 0.35 : 0.5);
+    if (t < STOP - 0.1){
+      const pat = k < 4 ? [0, 2, 1, 3] : [0, 1, 2, 3, 2, 1, 2, 3], step = BAR / pat.length;
+      pat.forEach((ix, j) => { const tt = t + j * step; if (tt < STOP - 0.05) piano(tones[ix] + (k >= 4 && j === 3 ? 0 : 0), tt, (j === 0 ? 0.42 : 0.3) * (k < 4 ? 0.85 : 1), 1.6, (ix - 1.5) * 0.2); });
+      if (k >= 4) piano(bs + 12, t, 0.3, 2.4);
+    }
+    if (MEL[k]) MEL[k].forEach((m, j) => piano(m, t + j * BAR / 2, 0.5, 2.6, 0.1));
+  });
+  bell(81, STOP, 0.45); bell(86, STOP + 0.02, 0.2, 0.3);                      // the gentle stop chime
+
+  // ---- 4. the landing: IV - V - I, then fade
+  const L0 = B0 + PROG.length * BAR;                                          // 56.6
+  pad([55, 59, 62, 67], L0, 58.1, 0.8, 1300); bass(43, L0, 58.1, 0.5); piano(55, L0, 0.35, 1.8); piano(62, L0 + 0.37, 0.3, 1.8); piano(67, L0 + 0.75, 0.3, 1.8);
+  pad([57, 61, 64, 69], 58.1, 59.5, 0.85, 1400); bass(45, 58.1, 59.5, 0.5); piano(57, 58.1, 0.35, 1.6); piano(64, 58.45, 0.3, 1.6); piano(69, 58.8, 0.33, 1.6); piano(73, 59.15, 0.35, 1.6);
+  pad([50, 57, 62, 66, 69, 74], 59.5, LEN - 1.4, 1.0, 1700, 0.5); bass(38, 59.5, LEN - 0.8, 0.6);
+  piano(62, 59.5, 0.5, 4.2); piano(66, 59.5, 0.4, 4.2); piano(69, 59.5, 0.4, 4.2); piano(74, 59.5, 0.45, 4.2); piano(78, 60.0, 0.35, 3.6);
+  [86, 90, 93, 98].forEach((m, i) => bell(m, 59.55 + i * 0.09, 0.3 - i * 0.05, -0.3 + i * 0.2));     // sparkle on LIFE
+  master.gain.setValueAtTime(0.8, LEN - 2.2); master.gain.linearRampToValueAtTime(0, LEN - 0.05);
+  master.gain.setValueAtTime(0, 0); master.gain.linearRampToValueAtTime(0.8, 0.25);
+  return ac.startRendering();
+}
+async function wav(){
+  const buf = await render(), L = buf.getChannelData(0), R = buf.getChannelData(1);
+  let peak = 0; for (let i = 0; i < L.length; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+  const k = 0.89 / peak, n = L.length, out = new DataView(new ArrayBuffer(44 + n * 4));
+  const s = (o, str) => { for (let i = 0; i < str.length; i++) out.setUint8(o + i, str.charCodeAt(i)); };
+  s(0, 'RIFF'); out.setUint32(4, 36 + n * 4, true); s(8, 'WAVE'); s(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 2, true);
+  out.setUint32(24, SR, true); out.setUint32(28, SR * 4, true); out.setUint16(32, 4, true); out.setUint16(34, 16, true); s(36, 'data'); out.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++){ out.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i] * k)) * 32767, true); out.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i] * k)) * 32767, true); }
+  const u = new Uint8Array(out.buffer); let bin = ''; for (let i = 0; i < u.length; i += 32768) bin += String.fromCharCode.apply(null, u.subarray(i, i + 32768));
+  window.OUT = btoa(bin); return 'peak ' + peak.toFixed(3) + ', ' + (u.length / 1e6).toFixed(1) + ' MB';
+}
+</script></body></html>

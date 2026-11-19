@@ -1,0 +1,92 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>compose</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// builds the GemStash demo video: the recorded screen inside a phone, captions above, tap circles, title + closing cards
+const C = document.getElementById('c'), g = C.getContext('2d');
+const W = 1080, H = 1920, PH = 1400, PW = Math.round(PH * 960 / 2060), PX = (W - PW) / 2, PY = 360;
+const INTRO = 2.6, OUTRO = 3.4;
+const font = (w, s) => `${w} ${s}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function wrap(text, maxW){ const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words){ const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur); return lines; }
+function bg(){ g.fillStyle = '#0f0d1a'; g.fillRect(0, 0, W, H); }
+function logo(cx, y, size, alpha = 1){ g.globalAlpha = alpha; g.drawImage(LOGO, cx - size / 2, y, size, size); g.globalAlpha = 1; }
+let TL, IMGS = [], LOGO;
+async function load(){
+  TL = await (await fetch('timeline.json')).json();
+  const ld = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+  LOGO = await ld('../../app/logo-chest-128.png');
+  IMGS = await Promise.all(TL.frames.map(f => ld('frames/' + String(f.n).padStart(4, '0') + '.jpg')));
+  return IMGS.filter(Boolean).length;
+}
+function frameAt(t){ let k = 0; for (let i = 0; i < TL.frames.length; i++){ if (TL.frames[i].t <= t) k = i; else break; } return IMGS[k]; }
+function captionAt(t){ let c = null; for (const m of TL.marks) if (m.cap && m.t <= t) c = m; return c; }
+function phone(t){
+  // body
+  g.fillStyle = '#05050a'; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.fill();
+  g.strokeStyle = '#3a3a48'; g.lineWidth = 3; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.stroke();
+  // side buttons
+  g.fillStyle = '#2a2a36'; g.fillRect(PX + PW + 22, PY + 240, 6, 110); g.fillRect(PX + PW + 22, PY + 400, 6, 70);
+  // screen
+  g.save(); rr(PX, PY, PW, PH, 50); g.clip();
+  const im = frameAt(t); if (im) g.drawImage(im, PX, PY, PW, PH);
+  // taps
+  const s = PW / 384;
+  for (const m of TL.marks) if (m.tap && t >= m.t && t < m.t + 0.7){
+    const p = (t - m.t) / 0.7, x = PX + m.tap[0] * s, y = PY + m.tap[1] * s;
+    g.fillStyle = `rgba(255,255,255,${0.45 * (1 - p)})`; g.beginPath(); g.arc(x, y, 26 + 46 * p, 0, 7); g.fill();
+    g.strokeStyle = `rgba(255,194,74,${0.9 * (1 - p)})`; g.lineWidth = 5; g.beginPath(); g.arc(x, y, 26 + 46 * p, 0, 7); g.stroke();
+  }
+  g.restore();
+  // punch-hole camera
+  g.fillStyle = '#000'; g.beginPath(); g.arc(PX + PW / 2, PY + 22, 11, 0, 7); g.fill();
+}
+function caption(t){
+  const c = captionAt(t); if (!c) return;
+  const a = Math.min(1, (t - c.t) / 0.35);
+  g.globalAlpha = a; g.fillStyle = '#fff'; g.font = font(700, 54); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const lines = wrap(c.cap, 940), lh = 66, y0 = 200 - (lines.length - 1) * lh / 2;
+  lines.forEach((l, i) => g.fillText(l, W / 2, y0 + i * lh));
+  g.fillStyle = '#FFC24A'; g.fillRect(W / 2 - 50, y0 + (lines.length - 1) * lh + 34, 100, 6);
+  g.globalAlpha = 1;
+}
+function footer(){
+  logo(W / 2 - 150, PY + PH + 52, 64);
+  g.fillStyle = '#fff'; g.font = font(700, 40); g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('Gem', W / 2 - 74, PY + PH + 86);
+  const w = g.measureText('Gem').width; g.fillStyle = '#FFC24A'; g.fillText('Stash', W / 2 - 74 + w, PY + PH + 86);
+}
+function card(title, sub, sub2, a){
+  bg(); g.globalAlpha = a;
+  logo(W / 2, 560, 380);
+  g.fillStyle = '#fff'; g.font = font(800, 96); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const w1 = g.measureText('Gem').width, w2 = g.measureText('Stash').width, x = W / 2 - (w1 + w2) / 2;
+  g.textAlign = 'left'; g.fillText('Gem', x, 1080); g.fillStyle = '#FFC24A'; g.fillText('Stash', x + w1, 1080);
+  g.textAlign = 'center'; g.fillStyle = '#d8d4ea'; g.font = font(600, 46); g.fillText(sub, W / 2, 1180);
+  if (sub2){ g.fillStyle = '#FFC24A'; g.font = font(600, 36); g.fillText(sub2, W / 2, 1270); }
+  g.globalAlpha = 1;
+}
+function draw(T){
+  const end = TL.end;
+  if (T < INTRO){ card('GemStash', 'How to use the Shelf', 'Choose what comes each day', Math.min(1, T / 0.5, (INTRO - T) / 0.4 + 0.2)); return; }
+  const t = T - INTRO;
+  if (t < end){ bg(); caption(t); phone(t); footer(); return; }
+  const o = t - end; card('GemStash', 'Free · private · no account', 'pauljlinenfelser-prog.github.io/ideastash/app', Math.min(1, o / 0.5));
+}
+async function record(){
+  const total = INTRO + TL.end + OUTRO;
+  const types = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const type = types.find(t => MediaRecorder.isTypeSupported(t));
+  const stream = C.captureStream(30), rec = new MediaRecorder(stream, {mimeType: type, videoBitsPerSecond: 9000000}), parts = [];
+  rec.ondataavailable = e => e.data.size && parts.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  draw(0); rec.start();
+  const t0 = performance.now();
+  await new Promise(res => { const iv = setInterval(() => { const T = (performance.now() - t0) / 1000; draw(Math.min(T, total)); if (T >= total){ clearInterval(iv); res(); } }, 1000 / 30); });
+  rec.stop(); await done;
+  const blob = new Blob(parts, {type});
+  const buf = new Uint8Array(await blob.arrayBuffer()); let bin = ''; for (let i = 0; i < buf.length; i += 32768) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 32768));
+  window.OUT = btoa(bin); return type + ' ' + buf.length;
+}
+</script></body></html>

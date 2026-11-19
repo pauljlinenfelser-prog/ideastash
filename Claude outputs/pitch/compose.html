@@ -1,0 +1,196 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GemStash pitch</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// GemStash sales pitch for friends and family (about 60 s, tall phone video, captions only)
+// hook (endless feed) -> title -> clips of the real app from the earlier recordings -> the daily limit -> how to get it
+const C = document.getElementById('c'), g = C.getContext('2d');
+const W = 1080, H = 1920, PH = 1400, PW = Math.round(PH * 960 / 2060), PX = (W - PW) / 2, PY = 380;
+const GOLD = '#FFC24A';
+const font = (w, s) => `${w} ${s}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function wrap(text, maxW){ const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words){ const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur); return lines; }
+function bg(){ const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#171329'); gr.addColorStop(1, '#0b0a14'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+
+// ---- the story: [kind, seconds, ...]
+const HOOK = 6.2, TITLE = 2.4, OUTRO = 7.6;
+const SCENES = [
+  {src: 'demo',  a: 3.5,  b: 7.8,  cap: 'Start every day with the Daily Text'},
+  {src: 'demo',  a: 7.85, b: 12.05, cap: 'A few short jw.org videos, right in the feed'},
+  {src: 'demo',  a: 15.9, b: 21.0, cap: 'Busy hands? Listen to jw.org’s own narration'},
+  {src: 'demo',  a: 21.75,b: 26.4, cap: 'Bible Character Cards: swipe to turn them over'},
+  {src: 'demo',  a: 27.35,b: 31.6, cap: 'Keep the gems you love with ❤️ and 💎'},
+  {src: 'circle',a: 0.9,  b: 7.9,  cap: 'Start a small private circle and talk about the gems together 💬'},
+  {src: 'demo',  a: 32.4, b: 37.0, cap: 'Read or listen to the Bible, right where you left off'},
+  {src: 'shelf', a: 27.3, b: 32.4, cap: 'You choose what comes each day'},
+  {src: 'limit', a: 0.5,  b: 3.6,  cap: 'Pick your daily time…', gold: true},
+  {src: 'limit', a: 3.62, b: 9.0,  cap: '…and when it’s up, it stops. No endless scrolling.', gold: true},
+];
+let t = HOOK + TITLE; for (const s of SCENES){ s.start = t; t += s.b - s.a; }
+const CLIPS_END = t, TOTAL = CLIPS_END + OUTRO;
+
+// ---- loading the recordings
+const SRC = {demo: '../demo/', shelf: '../demo-shelf/', limit: 'limit/', circle: 'circle/'};
+const TL = {}, IM = {}; let LOGO;
+const ld = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+async function load(){
+  LOGO = await ld('../../app/logo-chest-128.png');
+  let n = 0;
+  for (const k in SRC){
+    TL[k] = await (await fetch(SRC[k] + 'timeline.json')).json();
+    // only the frames the scenes use (plus the one just before each scene)
+    const need = new Set();
+    for (const s of SCENES) if (s.src === k){ let last = 0; TL[k].frames.forEach((f, i) => { if (f.t <= s.a) last = i; else if (f.t <= s.b) need.add(i); }); need.add(last); }
+    IM[k] = {};
+    await Promise.all([...need].map(async i => { IM[k][i] = await ld(SRC[k] + 'frames/' + String(TL[k].frames[i].n).padStart(4, '0') + '.jpg'); if (IM[k][i]) n++; }));
+  }
+  return n + ' frames, total ' + TOTAL.toFixed(1) + ' s';
+}
+function frameAt(k, st){ const fr = TL[k].frames; let idx = 0; for (let i = 0; i < fr.length; i++){ if (fr[i].t <= st) idx = i; else break; } return IM[k][idx]; }
+
+// ---- pieces
+function phoneBody(){
+  g.save(); g.shadowColor = 'rgba(255,194,74,0.18)'; g.shadowBlur = 80;
+  g.fillStyle = '#05050a'; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.fill(); g.restore();
+  g.strokeStyle = '#3a3a48'; g.lineWidth = 3; rr(PX - 22, PY - 22, PW + 44, PH + 44, 70); g.stroke();
+  g.fillStyle = '#2a2a36'; g.fillRect(PX + PW + 22, PY + 240, 6, 110); g.fillRect(PX + PW + 22, PY + 400, 6, 70);
+}
+function camera(){ g.fillStyle = '#000'; g.beginPath(); g.arc(PX + PW / 2, PY + 22, 11, 0, 7); g.fill(); }
+function caption(text, since, y = 210, color = '#fff', size = 58){
+  const a = clamp(since / 0.35);
+  g.globalAlpha = a; g.fillStyle = color; g.font = font(700, size); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const lines = wrap(text, 960), lh = size * 1.2, y0 = y - (lines.length - 1) * lh / 2 + (1 - a) * 18;
+  lines.forEach((l, i) => g.fillText(l, W / 2, y0 + i * lh));
+  g.fillStyle = GOLD; g.fillRect(W / 2 - 50, y0 + (lines.length - 1) * lh + 36, 100, 6);
+  g.globalAlpha = 1;
+}
+function wordmark(cx, y, size, alpha = 1){
+  g.globalAlpha = alpha; g.font = font(800, size); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  const w1 = g.measureText('Gem').width, w2 = g.measureText('Stash').width, x = cx - (w1 + w2) / 2;
+  g.fillStyle = '#fff'; g.fillText('Gem', x, y); g.fillStyle = GOLD; g.fillText('Stash', x + w1, y); g.globalAlpha = 1;
+}
+function footer(){
+  const y = PY + PH + 90; g.drawImage(LOGO, W / 2 - 160, y - 36, 64, 64);
+  g.font = font(700, 42); g.textBaseline = 'middle'; g.textAlign = 'left';
+  g.fillStyle = '#fff'; g.fillText('Gem', W / 2 - 82, y); const w = g.measureText('Gem').width; g.fillStyle = GOLD; g.fillText('Stash', W / 2 - 82 + w, y);
+}
+
+// ---- 1. the hook: an endless feed that keeps flicking, the clock racing
+const FEED_COLS = ['#3b2f55', '#4a2a3a', '#23404a', '#4a3f22', '#2d4630', '#3a3050', '#512f2f', '#26385a'];
+function hook(T){
+  bg();
+  // flicks come faster and faster
+  const flickTimes = []; let ft = 0.6, gap = 0.95; while (ft < 4.6){ flickTimes.push(ft); ft += gap; gap = Math.max(0.28, gap * 0.72); }
+  let pos = 0; for (const f of flickTimes){ pos += ease(clamp((T - f) / 0.32)); }
+  phoneBody();
+  g.save(); rr(PX, PY, PW, PH, 50); g.clip();
+  g.fillStyle = '#111'; g.fillRect(PX, PY, PW, PH);
+  const first = Math.floor(pos);
+  for (let k = first - 1; k <= first + 1; k++){
+    const y = PY + (k - pos) * PH; if (k < 0) continue;
+    const c = FEED_COLS[k % FEED_COLS.length], gr = g.createLinearGradient(0, y, 0, y + PH);
+    gr.addColorStop(0, c); gr.addColorStop(1, '#0d0d12'); g.fillStyle = gr; g.fillRect(PX, y, PW, PH);
+    // a generic "video": blurred blob, side icons, caption lines
+    g.fillStyle = 'rgba(255,255,255,0.08)'; g.beginPath(); g.arc(PX + PW / 2, y + PH * 0.42, 150 + (k % 3) * 30, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.75)'; for (let i = 0; i < 3; i++){ g.beginPath(); g.arc(PX + PW - 60, y + PH * 0.55 + i * 110, 30, 0, 7); g.fill(); }
+    g.fillStyle = 'rgba(255,255,255,0.55)'; rr(PX + 34, y + PH - 230, PW * 0.55, 22, 11); g.fill(); rr(PX + 34, y + PH - 190, PW * 0.7, 18, 9); g.fill(); rr(PX + 34, y + PH - 156, PW * 0.4, 18, 9); g.fill();
+  }
+  // status-bar clock racing through the evening
+  const mins = 22 * 60 + 4 + Math.floor(clamp(pos / flickTimes.length) * 103) + Math.floor(clamp((T - 4.6) / 1.2) * 0);
+  const hh = Math.floor(mins / 60) % 24, mm = mins % 60, h12 = ((hh + 11) % 12) + 1;
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(PX, PY, PW, 70);
+  g.fillStyle = '#fff'; g.font = font(700, 30); g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText(`${h12}:${String(mm).padStart(2, '0')} ${hh >= 12 ? 'PM' : 'AM'}`, PX + 40, PY + 38);
+  // at the end the screen dims
+  const dim = clamp((T - 4.7) / 0.6); if (dim){ g.fillStyle = `rgba(8,7,14,${0.75 * dim})`; g.fillRect(PX, PY, PW, PH); }
+  g.restore(); camera();
+  // words above
+  if (T < 2.1) caption('“Just one more video…”', T - 0.15);
+  else if (T < 4.6) caption('“…okay, one more.”', T - 2.1);
+  else caption('Where did the evening go?', T - 4.6, 210, GOLD);
+  // fade to title
+  const out = clamp((T - (HOOK - 0.35)) / 0.35); if (out){ g.fillStyle = `rgba(11,10,20,${out})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---- 2. title
+function title(T){
+  bg(); const a = clamp(T / 0.45), s = 0.9 + 0.1 * ease(clamp(T / 0.6));
+  g.globalAlpha = a; const sz = 380 * s; g.drawImage(LOGO, W / 2 - sz / 2, 520 + (380 - sz) / 2, sz, sz); g.globalAlpha = 1;
+  wordmark(W / 2, 1080, 110, a);
+  g.globalAlpha = clamp((T - 0.5) / 0.4); g.textAlign = 'center'; g.fillStyle = '#d8d4ea'; g.font = font(600, 50);
+  g.fillText('A few gems from jw.org each day.', W / 2, 1200);
+  g.fillStyle = GOLD; g.fillText('Then you’re done.', W / 2, 1272); g.globalAlpha = 1;
+  const out = clamp((T - (TITLE - 0.25)) / 0.25); if (out){ g.fillStyle = `rgba(11,10,20,${out * 0.8})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---- 3. the app itself
+function clip(T){
+  let s = SCENES[0]; for (const x of SCENES) if (x.start <= T) s = x;
+  const st = s.a + (T - s.start);
+  bg(); caption(s.cap, T - s.start, 210, s.gold ? GOLD : '#fff');
+  phoneBody();
+  g.save(); rr(PX, PY, PW, PH, 50); g.clip();
+  const im = frameAt(s.src, st); if (im) g.drawImage(im, PX, PY, PW, PH);
+  const k = PW / 384;
+  for (const m of TL[s.src].marks) if (m.tap && m.t >= s.a - 0.05 && st >= m.t && st < m.t + 0.7){
+    const p = (st - m.t) / 0.7, x = PX + m.tap[0] * k, y = PY + m.tap[1] * k;
+    g.fillStyle = `rgba(255,255,255,${0.45 * (1 - p)})`; g.beginPath(); g.arc(x, y, 26 + 46 * p, 0, 7); g.fill();
+    g.strokeStyle = `rgba(255,194,74,${0.9 * (1 - p)})`; g.lineWidth = 5; g.beginPath(); g.arc(x, y, 26 + 46 * p, 0, 7); g.stroke();
+  }
+  // short dip between scenes
+  const into = T - s.start; if (into < 0.18 && s !== SCENES[0]){ g.fillStyle = `rgba(0,0,0,${0.6 * (1 - into / 0.18)})`; g.fillRect(PX, PY, PW, PH); }
+  g.restore(); camera(); footer();
+  if (T < 0.4){ g.fillStyle = `rgba(11,10,20,${0.8 * (1 - T / 0.4)})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---- 4. how to get it
+function outro(T){
+  bg(); const a = t0 => clamp((T - t0) / 0.45);
+  g.globalAlpha = a(0); g.drawImage(LOGO, W / 2 - 150, 300, 300, 300); g.globalAlpha = 1;
+  wordmark(W / 2, 720, 104, a(0));
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const pts = [['Free', '🆓'], ['No ads', '🚫'], ['No account to make', '🔓'], ['Your gems stay on your phone', '📱']];
+  pts.forEach(([txt, ic], i) => { g.globalAlpha = a(0.5 + i * 0.35); g.fillStyle = '#fff'; g.font = font(600, 50); g.fillText(ic + '  ' + txt, W / 2, 870 + i * 84); });
+  g.globalAlpha = a(2.2);
+  g.fillStyle = 'rgba(255,194,74,0.12)'; rr(90, 1260, W - 180, 330, 36); g.fill();
+  g.strokeStyle = GOLD; g.lineWidth = 3; rr(90, 1260, W - 180, 330, 36); g.stroke();
+  g.fillStyle = GOLD; g.font = font(800, 56); g.fillText('Try it on your phone', W / 2, 1345);
+  g.fillStyle = '#fff'; g.font = font(600, 40); g.fillText('pauljlinenfelser-prog.github.io', W / 2, 1425); g.fillText('/ideastash/app', W / 2, 1475);
+  g.fillStyle = '#d8d4ea'; g.font = font(500, 34); g.fillText('then tap “Add to Home screen” in your browser’s menu', W / 2, 1545);
+  // the tagline: "Turn your doomscrolling / into LIFEscrolling", LIFE in gold
+  const ta = a(3.2); g.globalAlpha = ta;
+  g.fillStyle = '#d8d4ea'; g.font = font(600, 54); g.fillText('Turn your doomscrolling', W / 2, 1712 + (1 - ta) * 14);
+  g.font = font(800, 72); const p1 = 'into ', p2 = 'LIFE', p3 = 'scrolling', w1 = g.measureText(p1).width, w2 = g.measureText(p2).width, w3 = g.measureText(p3).width;
+  let x = W / 2 - (w1 + w2 + w3) / 2, y = 1800 + (1 - ta) * 14; g.textAlign = 'left';
+  g.fillStyle = '#fff'; g.fillText(p1, x, y);
+  g.save(); g.shadowColor = 'rgba(255,194,74,0.7)'; g.shadowBlur = 28; g.fillStyle = GOLD; g.fillText(p2, x + w1, y); g.restore();
+  g.fillStyle = '#fff'; g.fillText(p3, x + w1 + w2, y); g.textAlign = 'center';
+  g.globalAlpha = 1;
+}
+
+function draw(T){
+  if (T < HOOK) return hook(T);
+  if (T < HOOK + TITLE) return title(T - HOOK);
+  if (T < CLIPS_END) return clip(T);
+  return outro(T - CLIPS_END);
+}
+
+async function record(){
+  const types = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const type = types.find(t => MediaRecorder.isTypeSupported(t));
+  const stream = C.captureStream(30), rec = new MediaRecorder(stream, {mimeType: type, videoBitsPerSecond: 3000000}), parts = [];
+  rec.ondataavailable = e => e.data.size && parts.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  draw(0); rec.start();
+  const t0 = performance.now();
+  await new Promise(res => { const iv = setInterval(() => { const T = (performance.now() - t0) / 1000; draw(Math.min(T, TOTAL)); if (T >= TOTAL){ clearInterval(iv); res(); } }, 1000 / 30); });
+  rec.stop(); await done;
+  const blob = new Blob(parts, {type});
+  const buf = new Uint8Array(await blob.arrayBuffer()); let bin = ''; for (let i = 0; i < buf.length; i += 32768) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 32768));
+  window.OUT = btoa(bin); return type + ' ' + buf.length;
+}
+</script></body></html>

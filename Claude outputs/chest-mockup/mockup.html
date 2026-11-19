@@ -1,0 +1,103 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#13111c;--panel:#1f1c2e;--panel2:#2a2640;--muted:#a39fbd;--accent:#ffb84d;--gold:#ffc24a}
+*{box-sizing:border-box}body{margin:0;background:#0b0a12;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;padding:28px;width:1260px}
+h1{font-size:26px;margin:0 0 4px;color:var(--gold)}.sub{color:var(--muted);margin:0 0 22px;font-size:15px}
+.row{display:flex;gap:28px}.col{width:384px}.cap{color:var(--muted);font-size:14px;line-height:1.45;margin:10px 4px 0}
+.cap b{color:#fff}.step{display:inline-block;background:var(--gold);color:#000;border-radius:50%;width:24px;height:24px;text-align:center;font-weight:800;margin-right:6px}
+.phone{width:384px;height:780px;background:var(--bg);border-radius:28px;border:3px solid #2e2a44;overflow:hidden;position:relative}
+.top{display:flex;align-items:center;gap:10px;padding:12px 16px}.top img{width:44px}.pill{background:#ff5c9a;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:800}
+.sec{color:var(--muted);letter-spacing:.08em;font-size:13px;margin:6px 16px 10px;text-transform:uppercase}
+nav{position:absolute;bottom:0;left:0;right:0;height:66px;background:#17151f;border-top:1px solid #2a2640;display:flex;justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}
+nav div{text-align:center;width:60px}nav i{font-style:normal;font-size:22px;display:block;height:28px}nav .on{color:var(--accent)}
+.chestbig{text-align:center;margin:4px 0 6px}.chestbig svg{width:110px}
+.comps{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.comp{background:var(--panel);border-radius:16px;padding:12px;position:relative;overflow:hidden;height:118px}
+.comp b{display:block;font-size:16px;margin-top:2px}.comp small{color:var(--muted);font-size:12px}
+.comp .e{font-size:24px}.comp .pics{position:absolute;right:-6px;bottom:-6px;display:flex}
+.comp .pics img{width:44px;height:58px;object-fit:cover;border-radius:6px;border:2px solid var(--panel);margin-left:-16px;transform:rotate(8deg)}
+.comp.wide{grid-column:span 2;height:auto;display:flex;align-items:center;gap:12px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px}
+.tag{background:var(--panel2);border-radius:999px;padding:8px 14px;font-size:14px}.tag small{color:var(--muted);margin-left:4px}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 4px}
+.th{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden}.th img{width:100%;height:100%;object-fit:cover}
+.th .tt{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 5px;font-size:11px;font-weight:600;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.th .tk{position:absolute;top:4px;right:5px;font-size:12px}
+.back{padding:4px 16px 8px;color:var(--accent);font-size:15px}
+.card{position:absolute;top:66px;left:0;right:0;bottom:66px;background:url(https://cms-imgp.jw-cdn.org/img/p/1011205/univ/art/1011205_univ_lsr_xl.jpg) center/cover}
+.card .t{position:absolute;left:16px;right:80px;bottom:150px;font-size:22px;font-weight:800;text-shadow:0 2px 6px #000}
+.side{position:absolute;right:12px;bottom:170px;display:flex;flex-direction:column;gap:14px}
+.side div{width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;font-size:24px}
+.side .hit{background:var(--accent);box-shadow:0 0 0 6px rgba(255,184,77,.35)}
+.strip{position:absolute;left:0;right:0;bottom:66px;background:var(--panel);border-radius:20px 20px 0 0;padding:14px 14px 16px}
+.strip .h{font-weight:700;font-size:15px;margin-bottom:4px}.strip .m{color:var(--muted);font-size:12px;margin-bottom:10px}
+.strip .tags{padding:0}.tag.new{border:1px dashed var(--muted);background:none}
+.toast{position:absolute;left:50%;transform:translateX(-50%);top:120px;background:#000c;padding:8px 14px;border-radius:999px;font-size:14px;white-space:nowrap}
+.arrow{position:absolute;color:var(--gold);font-size:13px;font-weight:700}
+</style></head><body><svg width="0" height="0" style="position:absolute"><defs>
+<linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8692a"/><stop offset=".55" stop-color="#8a4316"/><stop offset="1" stop-color="#5e2a0b"/></linearGradient>
+<linearGradient id="lid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d0803a"/><stop offset="1" stop-color="#8f4718"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".45" stop-color="#ffc24a"/><stop offset="1" stop-color="#b9770f"/></linearGradient>
+<linearGradient id="goldv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b9770f"/><stop offset=".5" stop-color="#ffe17a"/><stop offset="1" stop-color="#b9770f"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc24a" stop-opacity=".55"/><stop offset="1" stop-color="#ffc24a" stop-opacity="0"/></radialGradient>
+<symbol id="chest" viewBox="0 0 140 112">
+ <ellipse cx="70" cy="104" rx="56" ry="6" fill="#000" opacity=".35"/>
+ <path d="M14 50 H126 V94 a8 8 0 0 1 -8 8 H22 a8 8 0 0 1 -8 -8 Z" fill="url(#wood)" stroke="#3b1906" stroke-width="2.5"/>
+ <g stroke="#4a2209" stroke-width="1.2" opacity=".55"><path d="M16 66 H124"/><path d="M16 82 H124"/></g>
+ <path d="M10 52 Q10 12 70 10 Q130 12 130 52 Z" fill="url(#lid)" stroke="#3b1906" stroke-width="2.5"/>
+ <path d="M22 44 Q24 20 70 18 Q116 20 118 44" fill="none" stroke="#f0a560" stroke-width="2" opacity=".5"/>
+ <g stroke="#4a2209" stroke-width="1.2" opacity=".5"><path d="M14 34 Q70 26 126 34"/></g>
+ <rect x="8" y="47" width="124" height="10" rx="3" fill="url(#gold)" stroke="#6b4305" stroke-width="1.5"/>
+ <path d="M28 14 Q30 12 38 11 V102 H28 Z" fill="url(#goldv)" stroke="#6b4305" stroke-width="1.5"/>
+ <path d="M112 14 Q110 12 102 11 V102 H112 Z" fill="url(#goldv)" stroke="#6b4305" stroke-width="1.5"/>
+ <rect x="14" y="94" width="112" height="8" rx="2" fill="url(#gold)" stroke="#6b4305" stroke-width="1.5"/>
+ <g fill="#fff3c4" stroke="#6b4305" stroke-width=".8"><circle cx="33" cy="22" r="1.8"/><circle cx="33" cy="74" r="1.8"/><circle cx="107" cy="22" r="1.8"/><circle cx="107" cy="74" r="1.8"/><circle cx="20" cy="52" r="1.8"/><circle cx="120" cy="52" r="1.8"/></g>
+ <path d="M58 46 H82 V70 Q70 80 58 70 Z" fill="url(#gold)" stroke="#6b4305" stroke-width="1.8"/>
+ <circle cx="70" cy="58" r="4" fill="#3b1906"/><path d="M68 60 H72 L73 68 H67 Z" fill="#3b1906"/>
+ <path d="M60 48 H72" stroke="#fffbe0" stroke-width="1.5" opacity=".8"/>
+ <path d="M50 28 Q60 18 80 17" stroke="#fff" stroke-width="2.5" fill="none" opacity=".18" stroke-linecap="round"/>
+</symbol></defs></svg>
+<h1>Mockup: Treasures</h1>
+<p class="sub">Stashes becomes Treasures, with a closed treasure chest. Inside: Hearted, Gems, your tags and Recently finished. The gem button saves in one tap; a tag is optional.</p>
+<div class="row">
+<div class="col"><div class="phone">
+  <div class="top"><img src="../../app/logo-chest-128.png"><span class="pill">BETA</span></div>
+  <div class="chestbig" style="position:relative;height:120px"><svg viewBox="0 0 200 120" style="width:200px;position:absolute;left:50%;transform:translateX(-50%)"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#glow)"/><use href="#chest" x="40" y="6" width="120" height="110"/><g fill="#fff4c2"><path d="M34 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><path d="M160 84 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" opacity=".7"/></g></svg></div>
+  <div class="sec">Your treasures</div>
+  <div class="comps">
+    <div class="comp"><span class="e">❤️</span><b>Hearted</b><small>12 things</small><div class="pics"><img src="https://cms-imgp.jw-cdn.org/img/p/1011720/univ/art/1011720_univ_lsr_xl.jpg"><img src="https://cms-imgp.jw-cdn.org/img/p/1011703/univ/wpub/1011703_univ_lsr_xl.jpg"></div></div>
+    <div class="comp"><span class="e">💎</span><b>Gems</b><small>27 saved</small><div class="pics"><img src="https://cms-imgp.jw-cdn.org/img/p/1011205/univ/art/1011205_univ_lsr_xl.jpg"><img src="https://cms-imgp.jw-cdn.org/img/p/1011202/univ/art/1011202_univ_lsr_xl.jpg"></div></div>
+    <div class="comp wide"><span class="e">🕘</span><div><b>Recently finished</b><small>What you watched or read to the end, newest first</small></div></div>
+  </div>
+  <div class="sec" style="margin-top:16px">Tags</div>
+  <div class="tags"><span class="tag">🏷️ Family worship<small>8</small></span><span class="tag">🏷️ Talk ideas<small>5</small></span><span class="tag">🏷️ For the kids<small>4</small></span><span class="tag">🏷️ Ministry<small>3</small></span></div>
+  <nav><div><i>✨</i>Today</div><div><i>📚</i>Shelf</div><div><i>👥</i>Circle</div><div class="on"><i><svg viewBox="0 0 140 112" width="30" height="26"><use href="#chest"/></svg></i>Treasures</div><div><i>➕</i>Add</div><div><i>⚙️</i>More</div></nav>
+</div><p class="cap"><span class="step">1</span><b>The chest.</b> The Stashes button in the bottom bar becomes a closed treasure chest called Treasures. Open it to find ❤️ Hearted, 💎 Gems, 🕘 Recently finished and a pouch for each tag you've used. Tags appear only once you've tagged something.</p></div>
+
+<div class="col"><div class="phone">
+  <div class="top"><img src="../../app/logo-chest-128.png"><span class="pill">BETA</span></div>
+  <div class="back">‹ Treasures</div>
+  <div class="sec">💎 Gems · 27</div>
+  <div class="tags" style="margin-bottom:12px"><span class="tag" style="background:var(--accent);color:#000">All</span><span class="tag">Family worship</span><span class="tag">Talk ideas</span><span class="tag">Untagged</span></div>
+  <div class="thumbs">
+    <div class="th"><img src="https://cms-imgp.jw-cdn.org/img/p/1011205/univ/art/1011205_univ_lsr_xl.jpg"><span class="tk">🎧</span><div class="tt">The Benefits of Creative Play</div></div>
+    <div class="th"><img src="https://cms-imgp.jw-cdn.org/img/p/1011720/univ/art/1011720_univ_lsr_xl.jpg"><span class="tk">🎧</span><div class="tt">From Our Archives</div></div>
+    <div class="th"><img src="https://cms-imgp.jw-cdn.org/img/p/1011703/univ/wpub/1011703_univ_lsr_xl.jpg"><span class="tk">🎧</span><div class="tt">Psalm 37:4 “Delight Yourself in Jehovah”</div></div>
+    <div class="th"><img src="https://cms-imgp.jw-cdn.org/img/p/1011202/univ/art/1011202_univ_lsr_xl.jpg"><span class="tk">🎧</span><div class="tt">When Were the Accounts About Jesus Written?</div></div>
+    <div class="th"><img src="../../app/icon-chest-512.png" style="background:#2a2640"><span class="tk">▶️</span><div class="tt">A Morning Worship talk</div></div>
+    <div class="th"><img src="https://cms-imgp.jw-cdn.org/img/p/1011205/univ/art/1011205_univ_lsr_xl.jpg"><span class="tk">🖼️</span><div class="tt">A Bible story</div></div>
+  </div>
+  <div style="padding:14px 16px"><span class="tag">🔁 Replay in Today: Off</span></div>
+  <nav><div><i>✨</i>Today</div><div><i>📚</i>Shelf</div><div><i>👥</i>Circle</div><div class="on"><i><svg viewBox="0 0 140 112" width="30" height="26"><use href="#chest"/></svg></i>Treasures</div><div><i>➕</i>Add</div><div><i>⚙️</i>More</div></nav>
+</div><p class="cap"><span class="step">2</span><b>Inside a compartment</b>: the same picture grid as now. In Gems, the chips at the top narrow it to one tag (or Untagged). Tap a picture to open and play it. Each compartment keeps its Replay switch.</p></div>
+
+<div class="col"><div class="phone">
+  <div class="top"><img src="../../app/logo-chest-128.png"><span class="pill">BETA</span></div>
+  <div class="card"><div class="t">The Benefits of Creative Play</div>
+    <div class="side"><div>🤍</div><div class="hit">💎</div><div>📤</div><div>💬</div></div></div>
+  <div class="toast">💎 Saved to your Gems</div>
+  <div class="strip"><div class="h">Add a tag? <span style="color:var(--muted);font-weight:400">(optional)</span></div>
+    <div class="m">Tap a tag, or tap 💎 again (or just keep swiping) to skip</div>
+    <div class="tags"><span class="tag">Family worship</span><span class="tag">Talk ideas</span><span class="tag">For the kids</span><span class="tag new">＋ New tag</span></div></div>
+  <nav><div><i>✨</i>Today</div><div><i>📚</i>Shelf</div><div><i>👥</i>Circle</div><div><i><svg viewBox="0 0 140 112" width="30" height="26"><use href="#chest"/></svg></i>Treasures</div><div><i>➕</i>Add</div><div><i>⚙️</i>More</div></nav>
+</div><p class="cap"><span class="step">3</span><b>Tapping 💎</b> saves it to Gems straight away. A small tag strip slides up: tap a tag to file it there, or tap 💎 again to skip, and it's saved untagged. The strip closes by itself after a few seconds.</p></div>
+</div></body></html>

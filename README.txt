@@ -173,6 +173,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 54: Watch videos: slide along the bar at the bottom to move back or forward (time bubble), or tap a spot.
   Beta 55: auto-scroll moves on after a video that stopped in its last seconds or sits paused at the end, even
   when the phone never says it ended; the problem report notes what each video did.
+  Beta 56: Illustrated Bible Stories come from jw.org's own PDFs, saved on the phone once (Shelf > Illustrated
+  Bible Stories > Download all, then Add them). No story pictures are taken from jw.org's website any more.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

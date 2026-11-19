@@ -212,6 +212,7 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;background:linear-gradient(transparent,#000b 40%)}
 .pcard .info b{display:block;font-size:17px}
 .pcard .info small{color:#fffb}
+.ibsbox{background:#ffffff0d;border-radius:12px;padding:12px 14px;margin:8px 0 14px;line-height:1.5}.ibsbox p{margin:0 0 10px}.ibsbox .small{color:var(--muted);font-size:13px;margin-top:8px}.ibsbox details{margin-top:6px;color:var(--muted);font-size:14px}.ibsbox .ibs1{padding-left:20px;margin:8px 0 0}.ibsbox .ibs1 li{margin:4px 0}.ibsbox .ibs1 a{color:var(--accent)}   /* beta 56 */
 
 /* BETA: layered card — series art / video / article picture */
 .card.lcard{position:absolute;inset:0;border-radius:0;background:#0b0a12;box-shadow:none;display:block}
@@ -380,7 +381,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
 <div id="gemStrip"></div>
 <div id="toast"></div>
 
-<script src="sources.js?v=b21"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
+<script src="sources.js?v=b56"></script>   <!-- (v16) bump with each release that changes sources.js, so phones never keep an old copy -->
 <script>
 /* ================= storage ================= */
 const KEY = 'gemstash.beta.v1';   // BETA: its own storage, never touches the real app's data
@@ -411,9 +412,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 55;
+const BETA_NO = 56;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [56, 'Illustrated Bible Stories now come from jw.org’s own PDFs, saved on your phone once (Shelf → Illustrated Bible Stories → Download all, then Add them). No pictures are taken from jw.org’s website any more.', ''],
   [55, 'Auto-scroll moves on after a video even when the phone doesn’t report that the video has finished (it stops in its last few seconds). The problem report also notes what each video did.', ''],
   [54, 'Videos: slide your finger along the bar at the bottom of a video to move back or forward (a bubble shows the time), or tap a spot on the bar to jump there.', ''],
   [53, 'Volume: tap 🔊 at the top of Today for a slider. It sets how loud narrations, videos and the reading voice are in GemStash (on this device).', ''],
@@ -666,9 +668,9 @@ const ccPics = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) r
 function posterHTML(i){
   const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = isGem(i), many = pics.length > 1;
   return `<div class="card pcard" data-id="${i.id}">
-    <div class="bg" style="background-image:url('${esc(pics[many ? 1 : 0])}')"></div>
+    <div class="bg" style="${/^ibs:/.test(pics[0]) ? '' : `background-image:url('${esc(pics[many ? 1 : 0])}')`}"></div>
     <div class="strip" ${many ? 'onscroll="stripMoved(this)"' : ''}>${pics.map((u, n) =>
-      `<div class="pg"><img class="poster${/#front$/.test(u) ? ' cfront' : /#back$/.test(u) ? ' cback' : ''}" src="${esc(u)}" alt="${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
+      `<div class="pg"><img class="poster${/#front$/.test(u) ? ' cfront' : /#back$/.test(u) ? ' cback' : ''}" ${picAttr(u)} alt=""${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
@@ -678,7 +680,7 @@ function posterHTML(i){
       <button title="Full size" onclick="openPic(this)">🔍</button>
       ${i.pdf ? `<a title="Print it (jw.org PDF)" href="${esc(i.pdf)}" target="_blank" rel="noopener">🖨️</a>` : ''}
     </div>
-    <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)}${many ? ' · swipe ⟷' : ''} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
+    <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)}${many ? ' · swipe ⟷' : ''} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : i.ibs ? `Illustrated Bible Story · from your jw.org PDF${many ? ' · swipe ⟷' : ''}` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
 }
 function stripMoved(st){
   const n = Math.round(st.scrollLeft / st.clientWidth), c = st.closest('.pcard');
@@ -985,6 +987,7 @@ async function renderFeed(){
     db.widV24 = true; save();
   }
   toListenCards();                                       // (v26)
+  ibsCards();                                            // beta 56
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
@@ -2860,7 +2863,7 @@ function libOpen(f, tag){ libFilter = f; libTag = tag || 'all'; const q = docume
 function thumbOf(i){                                       // beta 27: the picture for a saved item
   const cc = i.kids === 'Bible Character Card' && ccPics(i);
   const u = (i.video && i.video.img) || (cc && cc[0]) || (i.pics && i.pics[0]) || i.image || i.pic || (i.lkind && LISTEN_SERIES[i.lkind] ? LISTEN_SERIES[i.lkind].art : '');
-  return u ? `<img src="${esc(u)}" alt="" loading="lazy"${/#front$/.test(u) ? ' class="cfront"' : ''}>` : `<div class="te" style="background:linear-gradient(160deg,${topicColors(i.topic).join(',')})">💡</div>`;
+  return u ? `<img ${picAttr(u)} alt="" loading="lazy"${/#front$/.test(u) ? ' class="cfront"' : ''}>` : `<div class="te" style="background:linear-gradient(160deg,${topicColors(i.topic).join(',')})">💡</div>`;
 }
 function thumbHTML(i){
   const kind = i.video ? '▶️' : i.layered ? '🎧' : (i.pics && i.pics.length > 1) ? '🖼️' : '';
@@ -3221,7 +3224,7 @@ const SHELF_KINDS = {
   fam:   {emoji:'🏡', title:'Help for the Family', sub:'jw.org', unit:'articles'},
   arch:  {emoji:'🏛️', title:'From Our Archives', sub:'Our history · jw.org', unit:'articles'},
   bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
-  ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org · swipe sideways through the pages', unit:'stories'},
+  ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org PDFs saved on your phone · swipe through the pages', unit:'stories'},
   nwt:   {emoji:'🎧', title:'Listen to the Bible', sub:'jw.org audio · a chapter a day, Genesis to Revelation', unit:'chapters'},   // (v35)
   kids:  {emoji:'✂️', title:'Children’s Activities', sub:'jw.org · Bible character cards and picture activities to print', unit:'activities'},   // (v33)
   book:  {emoji:'📖'}
@@ -3263,6 +3266,7 @@ function addSourceToShelf(kind){
   const it = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0, total, lastPull:'', paused:false, added:Date.now()};
   setOrder(it, kind==='daily' ? 'seq' : 'random');
   db.shelf.push(it); save(); toast('Added to your shelf'); renderShelf();
+  if (kind === 'ibs') shelfSheet(it.id);   // beta 56: the PDF note and buttons right away
 }
 async function addBookToShelf(ix){
   const bk = window._books[ix];
@@ -3514,12 +3518,128 @@ function kidsCard(e){
   return {id:uid(), title:e.q, body:`${e.g}: ${e.q} — print it from jw.org’s PDF`, topic:'Spiritual', source:'Children’s Activities — jw.org',
     url:e.u, image:e.img, pdf:e.pdf, kids:e.g, created:Date.now(), stashes:[]};
 }
-// (v10) Illustrated Bible Story: cover + comic pages, swiped sideways
+// (v10) Illustrated Bible Story: pages swiped sideways.
+// beta 56 (Mike): the pages come from jw.org's own PDF download, kept on this phone. jw.org's Terms of Use allow
+// downloading PDFs for personal use but not copying pictures from the website into an app (the v10 cards pulled every
+// page from jw.org's picture server). jw.org's file server doesn't let a web app fetch a PDF by itself (no CORS), so the
+// person taps "Download all" (the phone saves each PDF), then "Add them" (picks them all once). pdf.js draws each page
+// into a JPEG, kept in IndexedDB as 'ibs:<docid>' = [Blob…]. db.ibsHave = {docid: pages}: this phone only, not synced.
+// Cards hold placeholders 'ibs:<docid>:<page>' in pics; ibsFill() swaps in the phone's own copy when they're drawn.
+const IBS_KEY = id => 'ibs:' + id;
+const ibsHave = () => db.ibsHave || (db.ibsHave = {});
+const IBS_BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const IBS_NOTE = 'jw.org’s Terms of Use don’t allow apps to copy pictures from their website, but they do allow downloading their PDFs for your own use. So GemStash shows these stories from jw.org’s own PDFs, saved on your phone once. Nothing is shared or uploaded.';
+const IBS_WAIT = 'This story shows from jw.org’s own PDF, saved on your phone. Add the story PDFs once: Shelf → Illustrated Bible Stories.';
+const ibsPics = id => { const n = ibsHave()[id]; return n ? Array.from({length: n}, (_, k) => `ibs:${id}:${k}`) : null; };
 function storyCard(e){
-  const img = (k) => `https://cms-imgp.jw-cdn.org/img/p/${e.id}/E/art/${e.id}_E_${k}.jpg`;
-  const pics = [img('cnt_1_md'), ...Array.from({length:e.n}, (_, i) => img('cfb_' + String(i + 1).padStart(2, '0') + '_lg'))];
-  return {id:uid(), title:e.q, body:e.d, topic:'Spiritual', source:'Illustrated Bible Stories — jw.org',
-    url:'https://www.jw.org/en/bible-teachings/children/illustrated-bible-stories/' + e.u, pics, created:Date.now(), stashes:[]};
+  return {id:uid(), title:e.q, body:'', topic:'Spiritual', source:'Illustrated Bible Stories — your jw.org PDF',
+    url:'https://www.jw.org/en/bible-teachings/children/illustrated-bible-stories/' + e.u, ibs:e.id, pics:ibsPics(e.id), created:Date.now(), stashes:[]};
+}
+// story cards (old v10 ones too, and ones synced from another phone) point at this phone's PDFs, or wait for them
+function ibsCards(){
+  let changed = false;
+  for (const i of db.ideas){
+    if (!i.ibs && !/^Illustrated Bible Stories/.test(i.source || '')) continue;
+    if (!i.ibs){ const e = IBS_LIST.find(x => i.url && i.url.endsWith('/' + x.u)); if (!e) continue; i.ibs = e.id; }
+    const pics = ibsPics(i.ibs), body = pics ? '' : IBS_WAIT, src = 'Illustrated Bible Stories — your jw.org PDF';
+    if (JSON.stringify(i.pics || null) !== JSON.stringify(pics) || i.body !== body || i.source !== src){
+      i.pics = pics; i.body = body; i.source = src; changed = true; }
+  }
+  if (changed) save();
+}
+const IBS_URL = {}, ibsLoading = {};
+function ibsLoad(id){
+  return ibsLoading[id] ||= idb.get(IBS_KEY(id)).then(blobs => {
+    (blobs || []).forEach((b, k) => { IBS_URL[`ibs:${id}:${k}`] = URL.createObjectURL(b); });
+  }).catch(() => { delete ibsLoading[id]; });
+}
+async function ibsFill(){
+  for (const m of document.querySelectorAll('img[data-ibs]:not([data-done])')){
+    const u = m.dataset.ibs; await ibsLoad(u.split(':')[1]);
+    if (IBS_URL[u]){ m.src = IBS_URL[u]; m.dataset.done = '1'; }
+  }
+}
+new MutationObserver(() => ibsFill()).observe(document.documentElement, {childList: true, subtree: true});
+const picAttr = u => /^ibs:/.test(u) ? `src="${IBS_BLANK}" data-ibs="${esc(u)}"` : `src="${esc(u)}"`;
+async function ibsPdfUrl(id){
+  const j = await (await timed(`https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?docid=${id}&output=json&alllangs=0&langwritten=E&txtCMSLang=E`, 20000)).json();
+  const f = (((j.files || {}).E || {}).PDF || [])[0];
+  return f && f.file ? f.file.url : '';
+}
+// "Download all": the phone saves each PDF from jw.org (the browser may ask once to allow several downloads)
+async function ibsDownloadAll(btn){
+  const need = IBS_LIST.filter(e => !ibsHave()[e.id]);
+  if (!need.length) return toast('All the stories are already on this phone');
+  if (btn) btn.disabled = true;
+  let n = 0;
+  for (const e of need){
+    if (btn) btn.textContent = `⬇️ Downloading ${n + 1} of ${need.length}…`;
+    try {
+      const u = await ibsPdfUrl(e.id); if (!u) continue;
+      const a = document.createElement('a'); a.href = u; a.download = ''; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove(); n++;
+      await new Promise(r => setTimeout(r, 900));
+    } catch(err){ tlog('story download failed ' + e.id); }
+  }
+  if (btn){ btn.disabled = false; btn.textContent = '1. ⬇️ Download all from jw.org'; }
+  toast(n ? `${n} downloads started. When they finish, tap “Add them”.` : 'Couldn’t reach jw.org. Try again in a moment.');
+}
+// "Download one at a time" list (in case the phone blocks the batch)
+async function ibsOneList(det){
+  if (!det.open || det.dataset.ok) return; det.dataset.ok = '1';
+  const ul = det.querySelector('.ibs1');
+  for (const e of IBS_LIST){
+    const have = ibsHave()[e.id], li = document.createElement('li');
+    li.innerHTML = have ? `✓ ${esc(e.q)}` : `<a href="#" target="_blank" rel="noopener">${esc(e.q)}</a>`; ul.appendChild(li);
+    if (!have) ibsPdfUrl(e.id).then(u => { if (u) li.querySelector('a').href = u; }).catch(() => {});
+  }
+}
+// "Add them": read the picked PDFs, draw each page, keep it on this phone
+async function ibsAddFiles(files){
+  files = [...(files || [])]; if (!files.length) return;
+  const st = document.getElementById('ibsSt'), say = t => { if (st) st.textContent = t; };
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  } catch(e){ return toast('Couldn’t load the PDF reader. Check your connection.'); }
+  let added = 0, other = 0, k = 0;
+  for (const f of files){
+    k++;
+    const m = (f.name || '').match(/(\d{9})/), e = m && IBS_LIST.find(x => x.id === m[1]);
+    if (!e){ other++; continue; }
+    say(`Adding ${k} of ${files.length}: ${e.q}…`);
+    try {
+      const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise, blobs = [];
+      for (let n = 1; n <= pdf.numPages; n++){
+        const page = await pdf.getPage(n), scale = 1400 / page.getViewport({scale: 1}).height, vp = page.getViewport({scale});
+        const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+        blobs.push(await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85)));
+      }
+      await idb.set(IBS_KEY(e.id), blobs);
+      Object.keys(IBS_URL).filter(x => x.startsWith(`ibs:${e.id}:`)).forEach(x => { URL.revokeObjectURL(IBS_URL[x]); delete IBS_URL[x]; });
+      delete ibsLoading[e.id];
+      ibsHave()[e.id] = blobs.length; added++;
+    } catch(err){ other++; tlog('story PDF unreadable ' + f.name); }
+  }
+  const it = db.shelf.find(x => x.kind === 'ibs'); if (it){ it.lastPull = ''; it.error = ''; it.wait = false; }
+  save(); ibsCards();
+  const have = Object.keys(ibsHave()).length;
+  say(`${have} of ${IBS_LIST.length} stories on this phone.`);
+  toast(added ? `${added} ${added === 1 ? 'story' : 'stories'} added${other ? ` (${other} other files skipped)` : ''}` : 'Those weren’t Illustrated Bible Stories PDFs');
+  if (it && document.getElementById('sheet').classList.contains('on')) shelfSheet(it.id);
+  renderShelf();
+}
+function ibsSetupHTML(){
+  const have = Object.keys(ibsHave()).length, all = IBS_LIST.length;
+  return `<div class="ibsbox"><p>📄 ${IBS_NOTE}</p>
+    <p id="ibsSt"><b>${have} of ${all} stories on this phone.</b></p>
+    ${have < all ? `<button class="btn" onclick="ibsDownloadAll(this)">1. ⬇️ Download all from jw.org</button>
+    <label class="btn alt" style="display:block;text-align:center;margin-top:10px">2. 📂 Add them
+      <input type="file" accept=".pdf,application/pdf" multiple hidden onchange="ibsAddFiles(this.files); this.value=''"></label>
+    <p class="small">In the file picker, open Downloads and select all the story PDFs (names like 502016218_E_cnt_1.pdf). About 3 MB each.</p>
+    <details ontoggle="ibsOneList(this)"><summary>Download one at a time instead</summary><ul class="ibs1"></ul></details>`
+    : '<p class="small">All the stories are ready. ✓</p>'}</div>`;
 }
 function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
 
@@ -3553,9 +3673,10 @@ async function doPull(){
       } else {
         const list = KIND_LIST[it.kind]();
         it.total = list.length;
-        let got = 0, tries = 0;
+        let got = 0, tries = 0; it.wait = false;
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
           if (LISTEN_SERIES[it.kind] && it.kind !== 'nwt' && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
+          if (it.kind === 'ibs' && !ibsHave()[list[entryIndex(it)].id]){ it.wait = true; break; }   // beta 56: wait for its PDF
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
@@ -3572,6 +3693,7 @@ async function doPull(){
 }
 function shelfSub(it){
   if (it.kind === 'daily') return 'Always on · first card in Today every day';
+  if (it.kind === 'ibs' && (it.wait || !Object.keys(ibsHave()).length)) return `${Object.keys(ibsHave()).length} of ${IBS_LIST.length} stories on this phone · tap to add the PDFs`;   // beta 56
   const pct = it.total ? Math.round(100 * it.pos / it.total) : 0;
   return `${it.pos} of ${it.total || '…'} · ${it.perDay}/day · ${it.order === 'random' ? 'Random' : 'In order'}${it.total && it.pos >= it.total ? ' · Finished ✓' : ''}`;
 }
@@ -3629,6 +3751,7 @@ function shelfSheet(id){
       <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
     ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day.
       ${(db.dtYears || []).length ? 'On this phone: ' + db.dtYears.join(', ') + '.' : 'No Daily Text added yet.'}</p>${dtAddHTML()}` : `
+    ${it.kind === 'ibs' ? ibsSetupHTML() : ''}
     <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
     ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
     <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
