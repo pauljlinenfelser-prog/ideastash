@@ -157,6 +157,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   and Google always shows its account chooser. Mike's PC had signed in with a different Google account than his
   phone, so they synced into two separate spaces. Also: if the PC signs in first, the phone (with the circle) now
   keeps its circle and the Google sign-in moves to it; the PC then asks to sign in again.
+  Beta 48: "Sign out of Google" in More (under Sync): sync stops there, the device leaves the circle until you
+  sign in again; nothing is deleted.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

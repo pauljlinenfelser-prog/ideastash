@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 47;
+const BETA_NO = 48;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [48, 'Sign out of Google: in More, under Sync. Sync stops on that device and it leaves your circle until you sign in again; nothing is deleted.', ''],
   [47, 'Sync fix: if you signed in on the PC first, signing in on the phone (where your circle is) now keeps your circle, and the PC asks you to sign in once more to join it.', ''],
   [46, 'Sync between your devices: in More, tap “Sign in with Google and sync” on your phone and on your PC (the same Google account). Hearts, gems and tags, your shelf and how far along you are, what you’ve finished and seen, your settings and streak stay the same on both, and your daily scrolling time counts both. The Daily Text download and PDF/EPUB books stay on each device.', ''],
   [45, 'How-to videos: seven short videos with music, one for each part of GemStash. Find them in More (🎬 How-to videos) and at the top of “How does GemStash work?”.', ''],
@@ -1853,6 +1854,19 @@ async function syncSwitchAccount(){
     await syncTurnOn();
   } catch(e){ friendErr(e); }
 }
+// beta 48 (Mike: "if we have a login with Google we need a logout"): sign out on this device. Your hearts and gems stay on it;
+// your circle and synced things stay safe in your Google account and come back when you sign in again.
+async function googleSignOut(){
+  const was = db.googleEmail || db.google || 'Google';
+  if (!confirm('Sign out of ' + was + ' on this device? Sync stops here and this device leaves your circle until you sign in again. Nothing is deleted.')) return;
+  try {
+    const f = await fbInit(); syncStop(); syncBaseMem = null;
+    await f.U.signOut(f.auth); await f.U.signInAnonymously(f.auth); f.uid = f.auth.currentUser.uid;
+    db.google = ''; delete db.googleEmail; db.sync = false;
+    if (db.me && db.me.uid !== f.uid){ delete db.me; db.people = {}; }
+    save(); toast('Signed out'); setTimeout(() => location.reload(), 1200);
+  } catch(e){ friendErr(e); }
+}
 async function moveGoogleHere(f, cred){
   const {F, U} = f, A = await import(FB_BASE + 'firebase-app.js');
   let other = '', unlinked = false;
@@ -1890,7 +1904,7 @@ function syncHTML(){
     Stays on each device: the Daily Text download (pick the file once on each), PDF/EPUB books you added, Today’s lineup, and the parent’s PIN.</p>`;
   if (syncOn()) return `<div class="row"><span class="t"><b>🔄 Sync is on</b>${db.googleEmail || db.google ? `<small>Google account: <b>${esc(db.googleEmail || db.google)}</b>. Use the same one on each device.</small>` : ''}${st}</span></div>
     <button class="btn alt" onclick="syncRun()">🔄 Sync now</button>${what}
-    ${syncFake() ? '' : '<button class="btn alt sm" onclick="syncSwitchAccount()">Use a different Google account</button>'}
+    ${syncFake() ? '' : '<button class="btn alt sm" onclick="syncSwitchAccount()">Use a different Google account</button> <button class="btn alt sm" onclick="googleSignOut()">Sign out of Google</button>'}
     <button class="btn alt sm" onclick="syncTurnOff()">Turn sync off on this device</button>`;
   return `<p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">Use GemStash on more than one device? Sign in with the same Google account on each, and they stay in step.</p>
     <button class="btn" onclick="syncTurnOn()">${db.google ? '🔄 Turn on sync' : '<b>G</b>&nbsp; Sign in with Google and sync'}</button>${what}`;
