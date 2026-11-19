@@ -137,6 +137,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 39: the B moved to the top-right of the beta icon (Edge's "e" covers the bottom-right): icon-chest-bt-*.png.
   Beta 40: share several photos at once (up to 10): they go to your circle as ONE set you swipe through sideways
   ("1 / 4" counter), in Today and on the Circle tab. Add more or take some out before sharing. No rules change.
+  Beta 41: shared photos moved from the Circle tab to Treasures ("My treasures" = yours, "From my circle" =
+  everyone else's); the Circle tab is just people and settings.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

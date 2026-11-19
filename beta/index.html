@@ -116,7 +116,8 @@ nav button.on{color:var(--accent)}
 .comp{background:var(--panel);border-radius:16px;padding:12px;position:relative;overflow:hidden;min-height:110px;text-align:left;color:inherit;font:inherit;border:0}
 .comp b{display:block;font-size:16px;margin-top:2px}.comp small{color:var(--muted);font-size:12px}
 .comp .e{font-size:24px}.comp .pk{position:absolute;right:-6px;bottom:-6px;display:flex}
-.comp .pk img{width:44px;height:58px;object-fit:cover;border-radius:6px;border:2px solid var(--panel);margin-left:-16px;transform:rotate(8deg)}
+.comp .pk video,.thumb video{object-fit:cover}.thumb video{width:100%;height:100%;display:block}
+.comp .pk video,.comp .pk img{width:44px;height:58px;object-fit:cover;border-radius:6px;border:2px solid var(--panel);margin-left:-16px;transform:rotate(8deg)}
 .comp.wide{grid-column:span 2;min-height:0;display:flex;align-items:center;gap:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .chip{background:#2a2640;border-radius:999px;padding:8px 14px;font-size:14px;color:inherit;border:0;font:inherit}
@@ -373,9 +374,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 40;
+const BETA_NO = 41;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [41, 'Shared photos moved to Treasures: yours are in “My treasures”, everyone else’s in “From my circle”. The Circle tab is now just your people and settings.', ''],
   [40, 'Share several photos with your circle at once (up to 10): they go in as one set you swipe through sideways, like the Illustrated Bible Stories, with a “1 / 5” counter. Pick them in one go, then add more or take some out before sharing.', ''],
   [39, 'The pink B on the beta’s icon moved to the top corner, where Edge’s own little “e” doesn’t cover it.', ''],
   [38, 'The beta’s icon now matches the app: the treasure chest, with a pink B.', ''],
@@ -1684,7 +1686,7 @@ async function loadPosts(){
     const list = (await c.aud('posts', me)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 200);
     db.circlePosts = list.map(({id, uid, name, caption, kind, url, path, dur, at, aud}) => ({id, uid, name, caption, kind, url, path, dur, at, aud}));
     save(); healAud();
-    if (currentView === 'circle') renderCirclePosts();
+    renderCirclePosts();
     if (currentView === 'feed') addCircleToFeed();
   } catch(e){ console.warn(e); }
 }
@@ -1743,7 +1745,7 @@ async function deletePost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
   try { const c = await cb(); await c.del('posts/' + id); for (const f of postPhotoIds(p)) await c.del('photos/' + f).catch(() => {}); if (p.path && !/^set:/.test(p.path)) c.unload(p.path).catch(() => {});   // beta 40: every photo of a set
     db.circlePosts = db.circlePosts.filter(x => x.id !== id); save(); closeSheet();
-    document.querySelectorAll(`[data-post="${id}"]`).forEach(s => s.remove()); if (currentView === 'circle') renderCirclePosts(); toast('Deleted');
+    document.querySelectorAll(`[data-post="${id}"]`).forEach(s => s.remove()); renderCirclePosts(); toast('Deleted');
   } catch(e){ friendErr(e); }
 }
 // ---- posting a photo or video ----
@@ -1856,7 +1858,7 @@ async function doPost(){
       for (let k = 0; k < n; k++){ photoMem[ids[k]] = datas[k]; try { await idb.set('cphoto:' + ids[k], datas[k]); } catch(e){} }
       files.forEach(x => URL.revokeObjectURL(x.url));
       db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
-      closeSheet(); toast(n > 1 ? `Shared ${n} photos with your circle` : 'Shared with your circle'); if (currentView === 'circle') renderCirclePosts(); return;
+      closeSheet(); toast(n > 1 ? `Shared ${n} photos with your circle` : 'Shared with your circle'); renderCirclePosts(); return;
     }
     let blob = pending.kind === 'photo' ? pending.files[0].file : pending.file;
     if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
@@ -1867,7 +1869,7 @@ async function doPost(){
       url, path, dur: pending.dur || 0, at: c.now(), aud: [me, ...peerIds()]};
     await c.set('posts/' + id, post);
     db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
-    closeSheet(); toast('Shared with your circle'); if (currentView === 'circle') renderCirclePosts();
+    closeSheet(); toast('Shared with your circle'); renderCirclePosts();
   } catch(e){
     go.disabled = false; go.textContent = 'Share with my circle';
     if (/storage|bucket|unauthorized|403|404/i.test(e.code || e.message || '')) toast('Photos and videos aren’t switched on yet: Mike needs to turn on Firebase Storage');
@@ -1966,8 +1968,8 @@ function renderCircle(){
         <button class="sw ${p.show ? 'on' : ''}" title="Show their photos and videos" onclick="toggleShow('${esc(u)}')"></button>
         <button class="cmore" onclick="personMenu('${esc(u)}')">⋯</button></div>`; }).join('')}</div>`
       : `<p style="color:var(--muted);font-size:14px">No one yet. Share your code, or enter someone else’s above.</p>`}
-    <button class="btn" onclick="postSheet()">＋ Share a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}</button>
-    <div class="sec">From your circle</div><div id="circPosts"></div>
+    <button class="btn alt" onclick="go('library')">📸 Shared photos are in Treasures</button>
+    <p style="color:var(--muted);font-size:13px;margin-top:2px">Yours are in “My treasures”, everyone else’s in “From my circle”. Share new ones with ➕ Add.</p>
     ${googleHTML()}`;
   renderCircleReqs(); renderCirclePosts(); circleStart(); fillAvatars(el);
   if (parentOn()) el.insertAdjacentHTML('afterbegin', `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="parentLock()">🔒 Lock the circle again</button>`);   // beta 36
@@ -1989,6 +1991,7 @@ function renderCircleReqs(){
     + (full ? `<p style="color:var(--muted);font-size:13px">Your circle is full: make it bigger, or remove someone.</p>` : '') : '';
 }
 function renderCirclePosts(){
+  if (currentView === 'library' && ['home', 'mine', 'circ'].includes(libFilter)) renderLibrary();   // beta 41: they live in Treasures now
   const el = document.getElementById('circPosts'); if (!el) return;
   const list = (db.circlePosts || []).filter(p => p.uid === db.me.uid || (people()[p.uid] && people()[p.uid].show !== false));
   el.innerHTML = list.length ? list.map(p => `<div class="cpost">${circlePostHTML(p)}</div>`).join('')
@@ -2165,12 +2168,14 @@ function renderLibrary(){
       <div class="comps">
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
         <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
+        ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${myPosts().length} shared</small><span class="pk">${postPeek(myPosts())}</span></button>
+        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e">👥</span><b>From my circle</b><small>${circPosts().length} shared</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
         <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
       </div>
       ${tags.length ? `<div class="sec" style="margin-top:16px">Tags</div><div class="chips">${tags.map(t => `<button class="chip" onclick="libOpen('gem','${t.id}')">🏷️ ${esc(t.name)}<small>${db.ideas.filter(i => (i.stashes || []).includes(t.id)).length}</small></button>`).join('')}</div>` : ''}
       ${search}
       <button class="btn alt sm" onclick="libOpen('all')">🗂️ Everything GemStash has given you (${db.ideas.length})</button>`;
-    return;
+    fillPhotos(el); return;   // beta 41: the shared-photo peeks
   }
   const back = `<button class="btn alt sm" style="width:auto;margin:0 0 10px" onclick="libOpen('home')">‹ Treasures</button>`;
   let list, title, sid = null;
@@ -2181,6 +2186,13 @@ function renderLibrary(){
     title = '💎 Gems';
   }
   else if (libFilter === 'done') list = recentDone(), title = '🕘 Recently finished';
+  else if (libFilter === 'mine' || libFilter === 'circ'){                 // beta 41: shared photos
+    const ps = libFilter === 'mine' ? myPosts() : circPosts();
+    el.innerHTML = `${back}<div class="sec">${libFilter === 'mine' ? '📸 My treasures' : '👥 From my circle'} · ${ps.length}</div>
+      ${ps.length ? `<div class="thumbs">${ps.map(postThumbHTML).join('')}</div>` : `<p style="color:var(--muted)">${libFilter === 'mine' ? 'Photos you share with ➕ Add are kept here.' : 'Nothing shared by your circle yet.'}</p>`}
+      ${libFilter === 'mine' && !parentLocked() ? `<button class="btn" onclick="addMine()">＋ Share a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}</button>` : ''}`;
+    fillPhotos(el); return;
+  }
   else list = newest(db.ideas), title = '🗂️ Everything';
   const st = sid && (db.stashes.find(x => x.id === sid) || (sid === 'gem' ? (ensureGem(), db.stashes.find(x => x.id === 'gem')) : {}));
   const tagName = libFilter === 'gem' && libTag !== 'all' && libTag !== 'none' ? (tags.find(t => t.id === libTag) || {}).name : '';
@@ -2192,6 +2204,20 @@ function renderLibrary(){
     ${st && st.id ? `<button class="btn ${st.replay ? '' : 'alt'} sm" onclick="stashReplay('${st.id}')">🔁 Replay in Today: ${st.replay ? 'On' : 'Off'}</button>
       <p style="color:var(--muted);font-size:13px;margin:4px 0 8px">${st.replay ? 'These come back in Today now and then.' : 'Kept here, they stay out of Today. Turn on to see them again now and then.'}</p>` : ''}
     ${tagName ? `<button class="btn alt sm" onclick="delStash('${libTag}')">Delete the tag “${esc(tagName)}” (the gems stay)</button>` : ''}`;
+}
+const myPosts = () => circleReady() ? (db.circlePosts || []).filter(p => p.uid === db.me.uid) : [];
+const circPosts = () => circleReady() ? (db.circlePosts || []).filter(p => p.uid !== db.me.uid && people()[p.uid] && people()[p.uid].show !== false) : [];
+function postImg(p){ return p.kind === 'video' ? `<video src="${esc(p.url)}#t=0.5" muted playsinline preload="metadata"></video>` : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`; }
+const postPeek = list => list.slice(0, 2).map(postImg).join('');
+function postThumbHTML(p){
+  const n = postPhotoIds(p).length, mine = db.me && p.uid === db.me.uid;
+  return `<div class="thumb" onclick="openPost('${esc(p.id)}')">${postImg(p)}${p.kind === 'video' ? '<span class="tk">▶️</span>' : n > 1 ? `<span class="tk">🖼️${n}</span>` : ''}
+    <div class="tt">${esc(p.caption || '')}${mine ? '' : `<small style="display:block;opacity:.8">${esc(p.name || '')}</small>`}</div></div>`;
+}
+function openPost(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
+  openSheet(`<div style="height:70vh;display:flex;position:relative">${circlePostHTML(p)}</div><button class="btn alt" onclick="closeSheet()">Close</button>`);
+  fillPhotos(document.getElementById('sheetIn'));
 }
 function libOpen(f, tag){ libFilter = f; libTag = tag || 'all'; const q = document.getElementById('libQ'); if (q) q.value = ''; renderLibrary(); document.getElementById('library').scrollTop = 0; scrollTo(0, 0); }
 function thumbOf(i){                                       // beta 27: the picture for a saved item
