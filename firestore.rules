@@ -119,5 +119,17 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
       allow delete: if signedIn() && resource.data.uid == me();
     }
+    // beta 46: your own data, synced between your devices (same Google sign-in = same uid). Only you can read or write it.
+    // syncb = the beta's copy, sync = the app's (later). Each doc {j: JSON text, at: time}.
+    match /syncb/{uid}/p/{part} {
+      allow read, delete: if signedIn() && uid == me();
+      allow create, update: if signedIn() && uid == me() && request.resource.data.keys().hasOnly(['j', 'at'])
+                    && request.resource.data.j is string && request.resource.data.j.size() < 1000000;
+    }
+    match /sync/{uid}/p/{part} {
+      allow read, delete: if signedIn() && uid == me();
+      allow create, update: if signedIn() && uid == me() && request.resource.data.keys().hasOnly(['j', 'at'])
+                    && request.resource.data.j is string && request.resource.data.j.size() < 1000000;
+    }
   }
 }

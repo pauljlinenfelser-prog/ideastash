@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 45;
+const BETA_NO = 46;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [46, 'Sync between your devices: in More, tap “Sign in with Google and sync” on your phone and on your PC (the same Google account). Hearts, gems and tags, your shelf and how far along you are, what you’ve finished and seen, your settings and streak stay the same on both, and your daily scrolling time counts both. The Daily Text download and PDF/EPUB books stay on each device.', ''],
   [45, 'How-to videos: seven short videos with music, one for each part of GemStash. Find them in More (🎬 How-to videos) and at the top of “How does GemStash work?”.', ''],
   [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays.', ''],
   [43, 'Messages: on the Circle tab, tap someone under 💬 Messages to chat with them (words and photos). Only the two of you can read it. New messages ring the 🔔. A parent’s PIN locks messages too.', ''],
@@ -596,7 +597,7 @@ function ensureDaily(){
   const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
   let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !ids.includes(i.id) && !resting(i));
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !(i.url && db.syncU && db.syncU.s[i.url]) && !ids.includes(i.id) && !resting(i));
     const all = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id));
     const awake = all.filter(i => !resting(i));                                   // beta 25
     const pick = (pool.length >= 4-ids.length ? shuffle(pool) : awake.length >= 4-ids.length ? shuffle(awake) : byRest(all)).slice(0, 4-ids.length);
@@ -619,7 +620,7 @@ function finished(id, why){                                  // beta 25
   (db.rest ||= {})[id] = Date.now(); if (why !== 'saved') (db.done ||= {})[id] = Date.now(); save();   // beta 32: done = Recently finished tlog('rested ' + why + ' ' + (i.title || '').slice(0, 30));
 }
 const kept = i => !!i && (i.stashes || []).length > 0 && !(i.stashes || []).some(sid => (db.stashes.find(x => x.id === sid) || {}).replay);   // beta 27: saved = out of Today for good, unless its stash replays
-const resting = i => { if (kept(i)) return true; const t = (db.rest || {})[i.id]; return !!t && Date.now() - t < restDays() * 864e5; };
+const resting = i => { if (kept(i)) return true; const t = (db.rest || {})[i.id] || (i.url && db.syncU && db.syncU.r[i.url]);   /* beta 46: rested on another device */ return !!t && Date.now() - t < restDays() * 864e5; };
 const byRest = list => list.filter(i => !kept(i)).sort((a, b) => ((db.rest || {})[a.id] || 0) - ((db.rest || {})[b.id] || 0));   // longest-rested first
 function bumpStreak(){
   const t = today(); if (db.streak.last === t) return;
@@ -1000,7 +1001,7 @@ function slideHTML(x, k){
 }
 /* ---- (v8) daily scrolling time ---- */
 const LIMITS = [5, 10, 20, 30, 60, 0];
-const usedSecs = () => (db.usage && db.usage[today()]) || 0;
+const usedSecs = () => ((db.usage && db.usage[today()]) || 0) + (db.sync ? syncOthersToday() : 0);   // beta 46: your other devices' time counts too
 const timeUp = () => db.limitMin > 0 && usedSecs() >= db.limitMin * 60;
 setInterval(() => {                               // counts only while Today is on screen
   if (currentView !== 'feed' || document.hidden || !db) return;
@@ -1348,7 +1349,8 @@ async function googleSignIn(){
       if (e.code !== 'auth/credential-already-in-use') throw e;
       await U.signInWithCredential(auth, U.GoogleAuthProvider.credentialFromError(e));   // this Google account was used before (e.g. old phone)
     }
-    f.uid = auth.currentUser.uid;
+    const oldUid = f.uid; f.uid = auth.currentUser.uid;
+    if (oldUid !== f.uid){ syncStop(); try { await syncNewUid(f); } catch(e){ tlog('sync newuid ' + e.message); } }   // beta 46
     const u = auth.currentUser, gname = (u.displayName || u.providerData[0]?.displayName || '').trim();
     db.google = gname || 'your Google account'; if (!db.myName && gname) db.myName = gname.split(' ')[0];
     if (db.circle){                                                     // make sure this identity is in the circle
@@ -1626,6 +1628,224 @@ function fakeCB(base){                                       // tests only: a pr
     batch: ops => call('batch', ops),
     upload: async (p, blob, onProg) => { onProg && onProg(1); return call('file', p, await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); })); },
     unload: async () => {}};
+}
+/* ================= sync between your devices (beta 46) ================= */
+// Mike (2026-11-19): hearts, gems, tags, shelf progress, finished/seen and settings follow you between your phone and PC.
+// Who you are = Sign in with Google (same Google account on each device = same Firebase uid). Data lives in Firestore
+// syncb/{uid}/p/{part} (the app will use sync/{uid}/p/…), each doc {j: JSON text of {key: [value, changedAt]}, at}.
+// Every device keeps a "last synced" copy (IndexedDB 'syncbase'); comparing it with the live data shows what changed here,
+// and for each key the newest change wins (a removal is a null value, so un-hearting travels too).
+// Stays on each device: Today's lineup and resume spot, the Daily Text EPUB (personal download), PDF/EPUB books you added,
+// the parent's PIN, cached photos, auto-scroll, and each shelf source's "pulled today".
+var syncBusy = false, syncAgain = false, syncTimer = 0, syncLast = 0, syncBE = null, syncBaseMem = null, syncRemote = null,
+  syncApplying = false, syncState = '', syncUnsub = null;
+var SYNC_DEV = (() => { let d = ''; try { d = localStorage.getItem('gemstash-beta.dev') || ''; if (!d){ d = 'd' + uid(); localStorage.setItem('gemstash-beta.dev', d); } } catch(e){ d = 'd' + uid(); } return d; })();
+const syncFake = () => { try { return localStorage.getItem('gsFake') || ''; } catch(e){ return ''; } };
+const syncOn = () => !!db.sync && (!!db.google || !!syncFake());
+function sj(v){                                              // JSON with sorted keys, so the same data always compares equal
+  if (v === undefined) return 'null';
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(sj).join(',') + ']';
+  return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + sj(v[k])).join(',') + '}';
+}
+const syncHash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
+const urlKey = i => i && i.url ? 'u' + i.url : 'i' + (i ? i.id : '');
+function syncU(){ db.syncU ||= {}; for (const k of ['r', 'd', 's']) db.syncU[k] ||= {}; return db.syncU; }
+// rest / done / seen are kept by card id, but each device pulls its own copy of a jw.org card, so they travel by link
+function markColl(field, tag){
+  return {
+    out(o){
+      const m = db[field] || {}, u = syncU()[tag];
+      for (const [url, t] of Object.entries(u)) o[tag + '|u' + url] = t;
+      for (const [id, t] of Object.entries(m)){ const k = tag + '|' + urlKey(findIdea(id) || {id}); o[k] = Math.max(o[k] || 0, t); }
+    },
+    in(k, v){
+      const key = k.slice(2), m = db[field] ||= {}, u = syncU()[tag];
+      if (key[0] === 'i'){ const id = key.slice(1); if (v == null) delete m[id]; else m[id] = v; return; }
+      const url = key.slice(1), mine = db.ideas.filter(i => i.url === url);
+      if (v == null){ delete u[url]; mine.forEach(i => delete m[i.id]); }
+      else if (mine.length) mine.forEach(i => m[i.id] = v); else u[url] = v;
+    }};
+}
+const SYNC_SET = ['limitMin', 'restMonths', 'circleMode', 'circleEvery', 'circlePerDay', 'myName', 'streak'];
+const SYNC_C = [
+  {n: 'ideas', sh: 8,                                        // hearted / gem cards (anything in a treasure)
+    out(o){ for (const i of db.ideas) if ((i.stashes || []).length) o[i.id] = i; },
+    in(k, v){
+      const loc = findIdea(k);
+      if (v == null){ if (loc) loc.stashes = []; return; }
+      if (loc){ for (const x of Object.keys(loc)) if (!(x in v)) delete loc[x]; Object.assign(loc, v); return; }
+      const twin = v.url && db.ideas.find(i => i.url === v.url && !(i.stashes || []).length && i.title === v.title);   // this device pulled its own copy
+      if (twin){ db.ideas.splice(db.ideas.indexOf(twin), 1, v); db.daily.ids = (db.daily.ids || []).map(x => x === twin.id ? v.id : x); }
+      else db.ideas.push(v);
+    }},
+  {n: 'stashes', sh: 1,
+    out(o){ for (const s of db.stashes) o[s.id] = s; },
+    in(k, v){ const n = db.stashes.findIndex(s => s.id === k);
+      if (v == null){ if (n >= 0) db.stashes.splice(n, 1); } else if (n >= 0) db.stashes[n] = v; else db.stashes.push(v); }},
+  {n: 'shelf', sh: 2,                                        // your shelf and how far along each source is (PDF/EPUB books stay here)
+    out(o){ for (const it of db.shelf) if (!it.file){ const c = {...it}; delete c.lastPull; delete c.error; o[it.id] = c; } },
+    in(k, v){ const n = db.shelf.findIndex(s => s.id === k), loc = db.shelf[n];
+      if (v == null){ if (loc && !loc.file) db.shelf.splice(n, 1); return; }
+      if (loc && loc.file) return;
+      const c = {...v}; if (loc){ if (loc.lastPull) c.lastPull = loc.lastPull; if (loc.error) c.error = loc.error; db.shelf[n] = c; } else db.shelf.push(c); }},
+  {n: 'marks', sh: 3, parts: [markColl('rest', 'r'), markColl('done', 'd'), markColl('seen', 's')],
+    out(o){ this.parts.forEach(p => p.out(o)); },
+    in(k, v){ this.parts.find(p => k.startsWith(p.tag || ''))?.in(k, v); }},
+  {n: 'misc', sh: 1,                                         // settings, streak, Watch, circle hearts, where you are in a narration
+    out(o){
+      for (const k of SYNC_SET) if (db[k] !== undefined) o['s|' + k] = db[k];
+      const W = db.watch || {};
+      if (W.cats) o['s|watch.cats'] = W.cats; if (W.sound !== undefined) o['s|watch.sound'] = W.sound;
+      for (const [k, v] of Object.entries(W.seen || {})) o['w|' + k] = v;
+      for (const [k, v] of Object.entries(W.seenCore || {})) o['c|' + k] = v;
+      for (const k of Object.keys(db.cpHearts || {})) o['h|' + k] = 1;
+      for (const i of db.ideas) if (i.url && (i.lpos > 0 || i.heard)){ const k = 'l|' + i.url, v = {p: i.lpos || 0, h: !!i.heard}; if (!o[k] || v.h || v.p > o[k].p) o[k] = v; }
+    },
+    in(k, v){
+      const t = k.slice(0, 2), key = k.slice(2), W = db.watch ||= {};
+      if (t === 's|'){
+        if (key === 'limitMin' && parentOn()) return;                 // a parent's PIN on this device keeps its own limit
+        if (key === 'watch.cats'){ if (v != null) W.cats = v; } else if (key === 'watch.sound'){ if (v != null) W.sound = v; }
+        else if (v == null) delete db[key]; else db[key] = v;
+      }
+      else if (t === 'w|'){ W.seen ||= {}; if (v == null) delete W.seen[key]; else W.seen[key] = v; }
+      else if (t === 'c|'){ W.seenCore ||= {}; if (v == null) delete W.seenCore[key]; else W.seenCore[key] = v; }
+      else if (t === 'h|'){ db.cpHearts ||= {}; if (v == null) delete db.cpHearts[key]; else db.cpHearts[key] = 1; }
+      else if (t === 'l|' && v) db.ideas.filter(i => i.url === key).forEach(i => { i.lpos = v.p; i.heard = v.h; });
+    }},
+  {n: 'usage', sh: 1,                                        // scrolling time: each device's own minutes, added up for the daily limit
+    out(o){ for (const [d, u] of Object.entries(db.usageOther || {})) o[d] = u;
+      const mine = {}; Object.keys(db.usage || {}).sort().slice(-3).forEach(day => mine[day] = db.usage[day]); o[SYNC_DEV] = mine; },
+    in(k, v){ if (k === SYNC_DEV) return; db.usageOther ||= {}; if (v == null) delete db.usageOther[k]; else db.usageOther[k] = v; }}
+];
+SYNC_C[3].parts[0].tag = 'r|'; SYNC_C[3].parts[1].tag = 'd|'; SYNC_C[3].parts[2].tag = 's|';
+const syncOthersToday = () => Object.values(db.usageOther || {}).reduce((a, u) => a + ((u || {})[today()] || 0), 0);
+const syncPart = (c, k) => c.n + '-' + (syncHash(k) % c.sh);
+
+async function syncBackend(){
+  if (syncBE) return syncBE;
+  const fake = syncFake();
+  if (fake){
+    const c = fakeCB(fake), root = () => 'syncb/' + c.uid() + '/p';
+    return syncBE = {uid: c.uid(),
+      list: async () => { const m = {}; for (const d of await c.list(root())) m[d.id] = JSON.parse(d.j || '{}'); return m; },
+      put: async (part, ent) => { const d = await c.get(root() + '/' + part); const cur = d ? JSON.parse(d.j || '{}') : {};
+        syncMerge(cur, ent); await c.set(root() + '/' + part, {j: JSON.stringify(cur), at: Date.now()}); return cur; },
+      watch: fn => c.watch(root(), docs => { const m = {}; for (const d of docs) m[d.id] = JSON.parse(d.j || '{}'); fn(m); })};
+  }
+  const f = await fbInit(), {F, fs} = f, col = () => F.collection(fs, 'syncb', f.uid, 'p');
+  const toMap = s => { const m = {}; s.docs.forEach(d => { try { m[d.id] = JSON.parse(d.data().j || '{}'); } catch(e){} }); return m; };
+  return syncBE = {uid: f.uid,
+    list: async () => toMap(await F.getDocs(col())),
+    put: (part, ent) => F.runTransaction(fs, async tx => {      // read-merge-write, so two devices saving at once both keep their changes
+      const r = F.doc(fs, 'syncb', f.uid, 'p', part), s = await tx.get(r);
+      const cur = s.exists() ? JSON.parse(s.data().j || '{}') : {};
+      syncMerge(cur, ent); const j = JSON.stringify(cur);
+      if (new Blob([j]).size > 990000) throw new Error('too much to sync in ' + part);
+      tx.set(r, {j, at: Date.now()}); return cur; }),
+    watch: fn => F.onSnapshot(col(), s => { if (!s.metadata.hasPendingWrites) fn(toMap(s)); }, e => { syncState = 'error: ' + (e.message || e); tlog('sync watch ' + syncState); })};
+}
+function syncMerge(cur, ent){                                // newest change per key wins; old removals are tidied after 90 days
+  const old = Date.now() - 90 * 864e5;
+  for (const [k, e] of Object.entries(ent)) if (!cur[k] || e[1] > cur[k][1] || (e[1] === cur[k][1] && sj(e[0]) > sj(cur[k][0]))) cur[k] = e;
+  for (const k of Object.keys(cur)) if (cur[k][0] === null && cur[k][1] < old) delete cur[k];
+}
+function syncSoon(ms){
+  if (!syncOn() || syncApplying) return;
+  if (syncTimer) return;
+  const wait = ms != null ? ms : Math.max(4000, 20000 - (Date.now() - syncLast));
+  syncTimer = setTimeout(() => { syncTimer = 0; syncRun(); }, wait);
+}
+async function syncRun(){
+  if (!syncOn()) return;
+  if (syncBusy){ syncAgain = true; return; }
+  syncBusy = true; syncLast = Date.now();
+  try {
+    const be = await syncBackend();
+    const bkey = 'syncbase:' + be.uid;                      // one "last synced" copy per Google account
+    let base = syncBaseMem && syncBaseMem.uid === be.uid ? syncBaseMem.b : null; if (!base){ try { base = await idb.get(bkey); } catch(e){} }
+    const first = !base; base ||= {};
+    const now = Date.now(), dirty = new Set(), applied = [];
+    for (const c of SYNC_C){                                 // 1. what changed on this device since the last sync
+      const b = base[c.n] ||= {}, cur = {}; c.out(cur);
+      for (const [k, v] of Object.entries(cur)){ const j = sj(v); if (!b[k] || b[k][0] !== j){ b[k] = [j, first ? 1 : now]; dirty.add(syncPart(c, k)); } }
+      for (const k of Object.keys(b)) if (!(k in cur) && b[k][0] !== null){ b[k] = [null, first ? 1 : now]; dirty.add(syncPart(c, k)); }
+    }
+    const remote = syncRemote || await be.list();           // 2. what the other devices changed
+    for (const c of SYNC_C){
+      const b = base[c.n], seen = new Set();
+      for (let n = 0; n < c.sh; n++){
+        const part = c.n + '-' + n, ent = remote[part] || {};
+        for (const [k, [v, t]] of Object.entries(ent)){
+          seen.add(k); const j = v === null ? null : sj(v), mine = b[k];
+          if (!mine || t > mine[1] || (t === mine[1] && j !== mine[0] && sj(v) > sj(mine[0] === null ? null : JSON.parse(mine[0])))){
+            if (!mine || mine[0] !== j){ try { c.in(k, v); applied.push([c, k]); } catch(e){ tlog('sync apply ' + k + ' ' + e.message); } }
+            b[k] = [j, t];
+          } else if (t < mine[1]) dirty.add(part);
+        }
+      }
+      for (const k of Object.keys(b)) if (!seen.has(k)) dirty.add(syncPart(c, k));
+    }
+    if (applied.length){                                     // keep the "last synced" copy in step with how it now looks here
+      ensureFav(); syncApplying = true; save(); syncApplying = false;
+      const again = {}; for (const c of SYNC_C){ const o = {}; c.out(o); again[c.n] = o; }
+      for (const [c, k] of applied){ const b = base[c.n][k]; if (b) b[0] = k in again[c.n] ? sj(again[c.n][k]) : null; }
+      tlog('sync: ' + applied.length + ' changes from your other devices (' + applied.slice(0, 3).map(([c, k]) => c.n + ':' + k.slice(0, 40)).join(', ') + ')');
+    }
+    for (const part of dirty){                               // 3. send what this device has that the cloud doesn't
+      const [n] = part.split('-'), c = SYNC_C.find(x => x.n === n), ent = {};
+      for (const [k, [j, t]] of Object.entries(base[n])) if (syncPart(c, k) === part) ent[k] = [j === null ? null : JSON.parse(j), t];
+      const merged = await be.put(part, ent);
+      if (syncRemote) syncRemote[part] = merged;
+    }
+    syncBaseMem = {uid: be.uid, b: base}; try { await idb.set(bkey, base); } catch(e){}
+    db.syncAt = Date.now(); syncState = 'ok'; syncApplying = true; save(); syncApplying = false;
+    if (applied.length) syncRefresh();
+    else if (currentView === 'more') renderMore();
+  } catch(e){
+    syncState = 'error: ' + (e.message || e); tlog('sync ' + syncState);
+    if (/permission|insufficient/i.test(e.message || '')) syncState = 'error: the sync rules aren’t published yet';
+  } finally {
+    syncBusy = false;
+    if (syncAgain){ syncAgain = false; syncSoon(1500); }
+  }
+}
+function syncRefresh(){
+  renderStreak();
+  if (currentView === 'library') renderLibrary(); else if (currentView === 'shelf') renderShelf(); else if (currentView === 'more') renderMore();
+  document.querySelectorAll('#feed .card[data-id] .heart').forEach(b => { const i = findIdea(b.closest('.card').dataset.id); if (i) b.textContent = isHearted(i) ? '❤️' : '🤍'; });
+}
+// Mike: sync only when you sign in, open GemStash or come back to it (it fetches), and when you put it away (it sends).
+// Nothing is checked while you use it.
+function syncStart(){ if (syncOn()) syncRun(); }
+function syncStop(){ if (syncUnsub){ try { syncUnsub(); } catch(e){} } syncUnsub = null; syncRemote = null; syncBE = null; }
+document.addEventListener('visibilitychange', () => { if (syncOn()) syncRun(); });   // back in front: fetch; put away: send
+async function syncTurnOn(){
+  if (!db.google && !syncFake()){ db.sync = true; save(); await googleSignIn(); if (!db.google){ db.sync = false; save(); return; } }   // sync is on before a sign-in that reloads
+  db.sync = true; save(); syncBaseMem = null; syncStop(); await syncStart(); toast('Sync is on'); renderMore();
+}
+function syncTurnOff(){ db.sync = false; save(); syncStop(); renderMore(); toast('Sync is off on this device'); }
+function syncHTML(){
+  const ago = db.syncAt ? Math.round((Date.now() - db.syncAt) / 60000) : -1;
+  const st = syncState.startsWith('error') ? `<small style="color:var(--danger)">Couldn’t sync: ${esc(syncState.slice(7))}</small>`
+    : `<small>${ago < 0 ? 'Getting ready…' : ago === 0 ? 'Up to date (just now)' : 'Last synced ' + ago + ' min ago'}</small>`;
+  const what = `<p style="color:var(--muted);font-size:13px;line-height:1.5">It syncs when you open GemStash or come back to it, and when you leave it. It keeps the same on your phone and PC: ❤️ hearts, 💎 gems and tags, your shelf and how far along you are,
+    what you’ve finished and seen, your settings and streak. Your daily scrolling time counts both together.
+    Stays on each device: the Daily Text download (pick the file once on each), PDF/EPUB books you added, Today’s lineup, and the parent’s PIN.</p>`;
+  if (syncOn()) return `<div class="row"><span class="t"><b>🔄 Sync is on${db.google ? ' · ' + esc(db.google) : ''}</b>${st}</span></div>
+    <button class="btn alt" onclick="syncRun()">🔄 Sync now</button>${what}
+    <button class="btn alt sm" onclick="syncTurnOff()">Turn sync off on this device</button>`;
+  return `<p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">Use GemStash on more than one device? Sign in with the same Google account on each, and they stay in step.</p>
+    <button class="btn" onclick="syncTurnOn()">${db.google ? '🔄 Turn on sync' : '<b>G</b>&nbsp; Sign in with Google and sync'}</button>${what}`;
+}
+// beta 46: the PC signs in to the Google account the phone already uses, so it takes on the phone's identity, circle included
+async function syncNewUid(f){
+  const {F, fs} = f, p = await F.getDoc(F.doc(fs, 'people', f.uid));
+  const before = sj(db.me || null);
+  if (p.exists()){ const d = p.data(); db.me = {uid: f.uid, name: d.name, code: d.code, limit: d.limit || 20}; db.myName = d.name; }
+  else if (db.me && db.me.uid !== f.uid) delete db.me;
+  if (sj(db.me || null) !== before){ db.people = {}; save(); toast('Signed in: opening your circle…'); setTimeout(() => location.reload(), 1800); }
 }
 // ---- who I am, and my circle ----
 const circleReady = () => !!(db.me && db.me.code);
@@ -3526,10 +3746,11 @@ function renderMore(){
   const el = document.getElementById('more');
   el.innerHTML = `
     <div class="sec">Your library</div>
-    <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>Saved only on this phone/browser</small></span></div>
+    <div class="row"><span class="t"><b>${db.ideas.length} ideas · ${db.stashes.length} stashes · ${db.shelf.length} on shelf</b><small>${syncOn() ? 'Kept in step with your other devices' : 'Saved only on this phone/browser'}</small></span></div>
     <div class="sec">🧪 Beta experiments · Beta ${BETA_NO}</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">This is the test copy of GemStash, with its own separate data. Your real app isn't affected.</p>
     ${betaNewsHTML()}
+    <div class="sec">🔄 Sync with your other devices</div>${syncHTML()}
     <div class="sec">Friends</div>
     <button class="btn alt" onclick="go('circle')">👥 Your circle is on the Circle tab</button>
     <div class="sec">Parental controls</div>${parentHTML()}
@@ -3581,6 +3802,7 @@ autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { au
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed(); bellDraw();   // beta 42
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
+if (syncOn()) setTimeout(syncStart, 1200);   // beta 46
 if (window._joinFromLink){ db.pendingJoin = window._joinFromLink; delete db.pendingJoinName; save(); go('circle'); inviterName(); if (circleReady()) joinPending(); }   // beta 35
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(()=>{});
 </script>

@@ -148,6 +148,11 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   with the narration (jw.org's numbered pictures, img/p/<doc>/univ/art/<doc>_univ_cnt_<n>_xl|lg.jpg).
   Beta 45: how-to videos (video/howto/GemStash-1..7-*.mp4, made from the beta with the pitch music, each ending
   on "Turn your doom scrolling into LIFEscrolling"): More > 🎬 How-to videos, and at the top of the FAQ.
+  Beta 46: sync between your devices. More > "Sign in with Google and sync" on the phone, then on the PC
+  (same Google account). Hearts, gems, tags, shelf progress, finished/seen, settings, streak and scrolling time
+  stay the same on both. Syncs only when you sign in, open GemStash, come back to it, or leave it (Mike asked:
+  not every second). Stays per device: Daily Text EPUB, PDF/EPUB books, Today's lineup, parent's PIN.
+  Firestore syncb/{uid}/p/{part}; needs the new block in firestore.rules published.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
