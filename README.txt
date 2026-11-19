@@ -168,6 +168,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 52: More > Auto-scroll: reading speed (Slow 150 / Normal 200 / Fast 280 words a minute, also sets how long
   pictures stay), pause between items (None / Short 1.5 s / Longer 4 s), narrated articles Whole or move on after
   1, 2 or 5 min (Bible chapters always whole). Synced between devices.
+  Beta 53: 🔊 at the top of Today opens a volume slider for narrations, videos and the reading voice (kept on
+  each device, not synced). Top bar stays on one line on phones (Bible shows as 📖 on narrow screens).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

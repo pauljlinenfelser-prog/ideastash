@@ -35,6 +35,14 @@ header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:mi
 .alert{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--panel2);margin-bottom:8px;cursor:pointer}
 .alert.new{outline:2px solid var(--accent)}.alert .i{font-size:22px}.alert small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .pill.auto{font-weight:600}
+.pill.vol{padding:6px 9px}   /* beta 53 */
+header .pill{white-space:nowrap;flex:none}   /* beta 53: one line, even with 🔊 and 🔔 */
+header h1{min-width:0;white-space:nowrap}
+@media (max-width:440px){ header{gap:6px;padding-left:12px;padding-right:12px} header .pill{padding:6px 10px} header .pill.vol{padding:6px 8px} #bibleBtn .lbl{display:none} }
+.volpop{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 62px);z-index:30;display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--accent);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px #0008}
+.volpop[hidden]{display:none}
+.volpop input{flex:1;accent-color:var(--accent);height:28px}
+.volpop b{min-width:42px;text-align:right;font-size:14px}
 /* (v19) comments */
 .cmt{position:relative}
 .cmt .cc{position:absolute;top:0;right:0;background:var(--accent);color:#1b1408;border-radius:9px;font-size:11px;font-weight:700;padding:1px 5px;min-width:16px;line-height:1.2;text-align:center}
@@ -315,11 +323,13 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
 <div id="app">
   <header>
     <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash Beta"> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">BETA</small></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
-    <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖 Bible</button>   <!-- (v47) -->
+    <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖<span class="lbl"> Bible</span></button>   <!-- (v47) -->
+    <button class="pill vol" id="volBtn" onclick="volPanel()" title="Volume">🔊</button>   <!-- beta 53 -->
     <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
     <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none">🔔<b id="bellN"></b></button>   <!-- beta 42 -->
     <span class="pill" id="streak">🔥 0</span>
   </header>
+  <div id="volPop" class="volpop" hidden><span>🔈</span><input id="volRange" type="range" min="0" max="100" step="5" oninput="setVol(this.value)" aria-label="Volume"><span>🔊</span><b id="volPct"></b></div>   <!-- beta 53 -->
   <main>
     <section class="view active" id="feed"></section>
     <section class="view" id="shelf"></section>
@@ -393,9 +403,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 52;
+const BETA_NO = 53;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [53, 'Volume: tap 🔊 at the top of Today for a slider. It sets how loud narrations, videos and the reading voice are in GemStash (on this device).', ''],
   [52, 'Auto-scroll settings in More: reading speed (Slow, Normal, Fast), the pause between items (None, Short, Longer), and whether narrated articles play to the end or move on after 1, 2 or 5 minutes. They sync to your other devices.', ''],
   [51, 'Auto-scroll no longer gets stuck on a narrated article: when the narration has played to its end (even if the bar stops just short), or it can’t play, it moves on to the next one.', ''],
   [50, 'Your Shelf now syncs properly: each source (Daily Text, Questions From Readers, the Bible, a book) is matched by what it is, so its settings and progress carry over. Doubled sources on a second device are tidied up.', ''],
@@ -554,6 +565,7 @@ function addMine(){
 function go(v){
   currentView = v;
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
+  document.getElementById('volBtn').style.display = v === 'feed' ? '' : 'none'; document.getElementById('volPop').hidden = true;   // beta 53
   document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === (v === 'add' ? 'shelf' : v)));   // beta 31: adding books is part of the Shelf
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
@@ -873,6 +885,7 @@ async function layerToggle(id){
     await layerMedia(i);
     if (!i.audio) throw new Error('no narration');
     const a = new Audio(i.audio), v = c.querySelector('video.clip');   // null on an audio-only card
+    a.volume = vol();   // beta 53
     const from = i.lpos > 5 && (!i.adur || i.lpos < i.adur - 5) ? Math.max(0, i.lpos - 3) : 0;   // (v49) carry on where you stopped
     if (from){ a.currentTime = from; a.addEventListener('loadedmetadata', () => { if (a.currentTime < from - 1) a.currentTime = from; }, {once: true}); }
     const me = layer = {id, a, v: v ? v : null, stopping: false, resumes: 0, el: c};   // beta 30: el = the card it plays on   // no clip element on an audio card
@@ -1242,7 +1255,7 @@ async function listen(id){
       jwAudio = a;
       a.onended = () => { if (jwAudio === a){ jwAudio = null; speakingId = null; setListenIcons(); } };
       a.onerror = () => { if (jwAudio === a){ jwAudio = null; i.audio = ''; toast('Couldn’t play the recording'); speakingId = null; setListenIcons(); } };
-      await a.play();
+      a.volume = vol(); await a.play();   // beta 53
       if (!i.audio){ i.audio = a.src; save(); }
       return;
     } catch(e){
@@ -1263,13 +1276,32 @@ async function listen(id){
   parts.forEach((p, n) => {
     const u = new SpeechSynthesisUtterance(p);
     if (voice) u.voice = voice;
-    u.rate = 1;
+    u.rate = 1; u.volume = vol();   // beta 53
     if (n === parts.length - 1) u.onend = () => { if (speakingId === id){ speakingId = null; setListenIcons(); } };
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
     speechSynthesis.speak(u);
   });
   }, 350);
 }
+
+/* ================= volume (beta 53) ================= */
+// Mike: "can we add a volume slide in the app?" One level for narrations, videos and the reading voice, kept on this device
+// (each device's speakers differ, so it isn't synced). The phone's own volume buttons still set the overall level.
+const vol = () => (typeof db.vol === 'number' ? db.vol : 1);
+function applyVol(){
+  const v = vol(); document.querySelectorAll('audio, video').forEach(m => { m.volume = v; });
+  if (typeof layer !== 'undefined' && layer && layer.a) layer.a.volume = v;
+  if (typeof jwAudio !== 'undefined' && jwAudio) jwAudio.volume = v;
+  const b = document.getElementById('volBtn'); if (b) b.textContent = v === 0 ? '🔇' : v < 0.5 ? '🔉' : '🔊';
+}
+function setVol(p){ db.vol = Math.max(0, Math.min(100, +p)) / 100; document.getElementById('volPct').textContent = Math.round(db.vol * 100) + '%'; applyVol(); clearTimeout(setVol.t); setVol.t = setTimeout(save, 400); }
+function volPanel(){
+  const p = document.getElementById('volPop'); p.hidden = !p.hidden; if (p.hidden) return;
+  document.getElementById('volRange').value = Math.round(vol() * 100); document.getElementById('volPct').textContent = Math.round(vol() * 100) + '%';
+}
+document.addEventListener('play', e => { if (e.target && 'volume' in e.target) e.target.volume = vol(); }, true);   // every video as it starts
+document.addEventListener('pointerdown', e => { const p = document.getElementById('volPop');
+  if (p && !p.hidden && !e.target.closest('#volPop') && !e.target.closest('#volBtn')) p.hidden = true; }, true);
 
 /* ================= auto-scroll (v18) ================= */
 // Hands-off reading: text cards scroll down at reading pace then move on, videos play to the end, posters stay ~8 s,
@@ -3937,7 +3969,7 @@ function importData(file){
 db = load();
 db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes || []).length));
 ensureDailyShelf();
-autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
+applyVol(); autoOn = !!db.auto; setAutoButton();   // beta 53: applyVol if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed(); bellDraw();   // beta 42
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
