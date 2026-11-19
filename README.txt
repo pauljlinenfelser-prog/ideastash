@@ -165,6 +165,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   phone's copy is kept). On a device's first sync, what's already in the cloud wins.
   Beta 51: auto-scroll no longer sticks on a narrated article whose narration ended without the player noticing
   (bar stops short) or that couldn't play; uses jw.org's own length for the narration.
+  Beta 52: More > Auto-scroll: reading speed (Slow 150 / Normal 200 / Fast 280 words a minute, also sets how long
+  pictures stay), pause between items (None / Short 1.5 s / Longer 4 s), narrated articles Whole or move on after
+  1, 2 or 5 min (Bible chapters always whole). Synced between devices.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

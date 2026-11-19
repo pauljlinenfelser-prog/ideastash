@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 51;
+const BETA_NO = 52;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [52, 'Auto-scroll settings in More: reading speed (Slow, Normal, Fast), the pause between items (None, Short, Longer), and whether narrated articles play to the end or move on after 1, 2 or 5 minutes. They sync to your other devices.', ''],
   [51, 'Auto-scroll no longer gets stuck on a narrated article: when the narration has played to its end (even if the bar stops just short), or it can’t play, it moves on to the next one.', ''],
   [50, 'Your Shelf now syncs properly: each source (Daily Text, Questions From Readers, the Bible, a book) is matched by what it is, so its settings and progress carry over. Doubled sources on a second device are tidied up.', ''],
   [49, 'Your profile picture now shows on your other device too (it was only on the one where you added it).', ''],
@@ -1273,7 +1274,21 @@ async function listen(id){
 /* ================= auto-scroll (v18) ================= */
 // Hands-off reading: text cards scroll down at reading pace then move on, videos play to the end, posters stay ~8 s,
 // picture stories turn their pages. Touching the screen pauses it for a few seconds. The daily time limit still applies.
-const READ_WPM = 200, POSTER_MS = 8000, PAGE_MS = 7000, START_MS = 1500, END_MS = 1500, TOUCH_PAUSE_MS = 6000;
+const POSTER_MS = 8000, PAGE_MS = 7000, TOUCH_PAUSE_MS = 6000;
+// beta 52 (Mike: "the auto scroll speed, or the pause in between, can it be adjusted?"): settings in More → Auto-scroll
+const AUTO_SPEEDS = {slow: 150, normal: 200, fast: 280}, AUTO_GAPS = {none: 0, short: 1500, long: 4000}, AUTO_NARR = [0, 1, 2, 5];
+const autoSet = () => Object.assign({speed: 'normal', gap: 'short', narr: 0}, db.autoSet || {});
+const autoWpm = () => AUTO_SPEEDS[autoSet().speed] || 200, autoK = () => 200 / autoWpm();
+const autoGap = () => { const g = AUTO_GAPS[autoSet().gap]; return g === undefined ? 1500 : g; };
+function setAutoOpt(k, v){ db.autoSet = {...autoSet(), [k]: v}; save(); renderMore(); }
+function autoHTML(){
+  const a = autoSet(), seg = (k, list) => `<div class="seg" style="margin-top:8px">${list.map(([v, l]) => `<button class="${a[k] === v ? 'on' : ''}" onclick="setAutoOpt('${k}', ${JSON.stringify(v).replace(/"/g, '&quot;')})">${l}</button>`).join('')}</div>`;
+  return `<div class="row" style="display:block"><b>Reading speed</b>${seg('speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']])}</div>
+    <div class="row" style="display:block"><b>Pause between items</b>${seg('gap', [['none', 'None'], ['short', 'Short'], ['long', 'Longer']])}</div>
+    <div class="row" style="display:block"><b>Narrated articles</b>${seg('narr', AUTO_NARR.map(m => [m, m ? m + ' min' : 'Whole']))}
+      <small style="display:block;color:var(--muted);margin-top:6px">${a.narr ? `Auto moves on after ${a.narr} minute${a.narr > 1 ? 's' : ''} of a narration; tap ▶ later to hear the rest from where it stopped.` : 'Auto waits for each narration to finish.'} Bible chapters always play to the end.</small></div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">Turn Auto on with ▶ Auto at the top of Today. Reading speed also sets how long pictures stay.</p>`;
+}
 let autoOn = false, autoState = null, autoHold = 0, autoLast = 0;
 function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn); b.textContent = autoOn ? '⏸ Auto' : '▶ Auto'; }
 function toggleAuto(){
@@ -1289,11 +1304,11 @@ function autoNext(s){
   const f = document.getElementById('feed'), nx = s.nextElementSibling;
   if (!nx) return;
   f.scrollTo({top: nx.offsetTop, behavior: 'smooth'});
-  autoHold = performance.now() + 1200;                                     // let the feed settle on the next item
+  autoHold = performance.now() + 800;                                      // let the feed settle on the next item
 }
 function readMs(s){
   const words = (s.querySelector('.card')?.innerText || '').split(/\s+/).length;
-  return Math.max(5000, words / READ_WPM * 60000);
+  return Math.max(5000 * autoK(), words / autoWpm() * 60000);   // beta 52
 }
 function autoTick(now){
   if (!autoOn) return;
@@ -1306,29 +1321,37 @@ function autoTick(now){
   const st = autoState; st.t += dt;
   const vid = s.querySelector('video:not(.clip):not(.art)');   // BETA
   if (vid){                                                                 // videos: to the end
-    if (vid.ended) autoNext(s);
+    if (vid.ended){ st.endT = st.endT || st.t; if (st.t - st.endT >= autoGap()) autoNext(s); }   // beta 52: the pause between
     else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
     return;
   }
   const lc = s.querySelector('.lcard');                                    // BETA layered card
   if (lc && lc.classList.contains('link')){ if (st.t > 6000) autoNext(s); return; }   // (v26): nothing to play
-  if (lc){ if (lc.dataset.ended) return autoNext(s); if (!lc.dataset.started && st.t > 1500){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); } return; }
+  if (lc){
+    if (lc.dataset.ended){ st.endT = st.endT || st.t; if (st.t - st.endT >= autoGap()) autoNext(s); return; }   // beta 52: the pause between
+    if (!lc.dataset.started && st.t > Math.max(300, autoGap())){ lc.dataset.started = '1'; layerToggle(lc.dataset.id); }
+    const lim = autoSet().narr * 60, li = findIdea(lc.dataset.id);
+    if (lim && layer && layer.id === lc.dataset.id && li && li.lkind !== 'nwt'){   // beta 52: move on after N minutes (not Bible chapters)
+      if (st.nFrom === undefined) st.nFrom = layer.a.currentTime;
+      if (layer.a.currentTime - st.nFrom >= lim){ tlog('auto: moved on after ' + autoSet().narr + ' min of ' + (li.title || '').slice(0, 30)); layerStop(); lc.dataset.ended = '1'; }
+    }
+    return; }
   const strip = s.querySelector('.pcard .strip');
   if (strip && strip.children.length > 1){                                  // picture story: turn the pages
-    const pg = Math.floor(st.t / PAGE_MS);
+    const pg = Math.floor(st.t / (PAGE_MS * autoK()));
     if (pg >= strip.children.length) return autoNext(s);
     if (pg !== st.page){ st.page = pg; strip.scrollTo({left: pg * strip.clientWidth, behavior: 'smooth'}); }
     return;
   }
-  if (s.querySelector('.pcard')) { if (st.t > POSTER_MS) autoNext(s); return; }   // single poster
+  if (s.querySelector('.pcard')) { if (st.t > POSTER_MS * autoK()) autoNext(s); return; }   // single poster
   if (!s.querySelector('.card[data-id]') || s.classList.contains('timeup')) return;   // end / retry screens: stop here
   const total = readMs(s), extra = s.offsetHeight - f.clientHeight;         // text card
   if (extra > 4){                                                           // longer than the screen: glide down while you read
-    const p = Math.min(1, Math.max(0, (st.t - START_MS) / (total - START_MS)));
+    const p = Math.min(1, Math.max(0, (st.t - autoGap()) / total));   // beta 52: wait the pause, then glide
     const want = s.offsetTop + extra * p;
     if (Math.abs(f.scrollTop - want) > 0.5) f.scrollTop = want;
-    if (st.t > total + END_MS) autoNext(s);
-  } else if (st.t > total) autoNext(s);
+    if (st.t > autoGap() + total + autoGap()) autoNext(s);
+  } else if (st.t > total + autoGap()) autoNext(s);
 }
 
 /* ================= friends & comments (v19) ================= */
@@ -1694,7 +1717,7 @@ function markColl(field, tag){
       else if (mine.length) mine.forEach(i => m[i.id] = v); else u[url] = v;
     }};
 }
-const SYNC_SET = ['limitMin', 'restMonths', 'circleMode', 'circleEvery', 'circlePerDay', 'myName', 'streak'];
+const SYNC_SET = ['limitMin', 'restMonths', 'circleMode', 'circleEvery', 'circlePerDay', 'myName', 'streak', 'autoSet'];   // beta 52: + auto-scroll settings
 const SYNC_C = [
   {n: 'ideas', sh: 8,                                        // hearted / gem cards (anything in a treasure)
     out(o){ for (const i of db.ideas) if ((i.stashes || []).length) o[i.id] = i; },
@@ -3876,6 +3899,7 @@ function renderMore(){
     <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="setLimitMin(${m})">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
     <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
       When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
+    <div class="sec">Auto-scroll</div>${autoHTML()}
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
     <button class="btn alt" onclick="db.seen={};save();toast('Seen history cleared')">Reset "seen" history</button>
