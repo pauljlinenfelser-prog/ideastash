@@ -411,9 +411,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 54;
+const BETA_NO = 55;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [55, 'Auto-scroll moves on after a video even when the phone doesn’t report that the video has finished (it stops in its last few seconds). The problem report also notes what each video did.', ''],
   [54, 'Videos: slide your finger along the bar at the bottom of a video to move back or forward (a bubble shows the time), or tap a spot on the bar to jump there.', ''],
   [53, 'Volume: tap 🔊 at the top of Today for a slider. It sets how loud narrations, videos and the reading voice are in GemStash (on this device).', ''],
   [52, 'Auto-scroll settings in More: reading speed (Slow, Normal, Fast), the pause between items (None, Short, Longer), and whether narrated articles play to the end or move on after 1, 2 or 5 minutes. They sync to your other devices.', ''],
@@ -1343,7 +1344,7 @@ function toggleAuto(){
 }, {passive: true}));
 function autoNext(s){
   const f = document.getElementById('feed'), nx = s.nextElementSibling;
-  if (!nx) return;
+  if (!nx){ if (!s._noNext){ s._noNext = 1; tlog('auto: nothing after this one yet'); } return; }   // beta 55: say so in the report
   f.scrollTo({top: nx.offsetTop, behavior: 'smooth'});
   autoHold = performance.now() + 800;                                      // let the feed settle on the next item
 }
@@ -1362,8 +1363,16 @@ function autoTick(now){
   const st = autoState; st.t += dt;
   const vid = s.querySelector('video:not(.clip):not(.art)');   // BETA
   if (vid){                                                                 // videos: to the end
-    if (vid.ended){ st.endT = st.endT || st.t; if (st.t - st.endT >= autoGap()) autoNext(s); }   // beta 52: the pause between
-    else if (vid.paused && st.t > 3000 && !s.classList.contains('paused')) vid.play().catch(() => {});
+    // beta 55 (Mike: Auto didn't move on after a video, twice, on his phone): like narrations (beta 51), Edge may never say
+    // "ended". So a video that has stopped in its last few seconds, or sits paused at the very end, counts as finished.
+    const d = vid.duration, t = vid.currentTime;
+    if (Math.abs(t - (st.vt ?? -1)) > 0.2){ st.vt = t; st.vMove = st.t; }
+    const tail = d ? Math.min(30, Math.max(8, d * 0.03)) : 0;
+    const why = vid.ended ? 'ended' : d && t >= d - 1.5 && vid.paused ? 'paused at the end'
+      : d && t >= d - tail && !vid.paused && st.t - st.vMove > 3000 ? 'stopped near the end' : '';
+    if (why){ if (!st.endT){ st.endT = st.t; tlog('auto: video ' + why + ' @' + Math.round(t) + '/' + Math.round(d || 0)); }
+      if (st.t - st.endT >= autoGap()) autoNext(s); }   // beta 52: the pause between
+    else if (vid.paused && st.t > 3000 && !s.classList.contains('paused') && st.t - (st.tried || 0) > 3000){ st.tried = st.t; vid.play().catch(e => tlog('auto: video wouldn’t start: ' + (e.message || e).slice(0, 60))); }
     return;
   }
   const lc = s.querySelector('.lcard');                                    // BETA layered card

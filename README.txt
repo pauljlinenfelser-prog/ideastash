@@ -171,6 +171,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 53: 🔊 at the top of Today opens a volume slider for narrations, videos and the reading voice (kept on
   each device, not synced). Top bar stays on one line on phones (Bible shows as 📖 on narrow screens).
   Beta 54: Watch videos: slide along the bar at the bottom to move back or forward (time bubble), or tap a spot.
+  Beta 55: auto-scroll moves on after a video that stopped in its last seconds or sits paused at the end, even
+  when the phone never says it ended; the problem report notes what each video did.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
