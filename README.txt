@@ -170,6 +170,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   1, 2 or 5 min (Bible chapters always whole). Synced between devices.
   Beta 53: 🔊 at the top of Today opens a volume slider for narrations, videos and the reading voice (kept on
   each device, not synced). Top bar stays on one line on phones (Bible shows as 📖 on narrow screens).
+  Beta 54: Watch videos: slide along the bar at the bottom to move back or forward (time bubble), or tap a spot.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
