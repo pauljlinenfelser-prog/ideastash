@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 46;
+const BETA_NO = 47;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [47, 'Sync fix: if you signed in on the PC first, signing in on the phone (where your circle is) now keeps your circle, and the PC asks you to sign in once more to join it.', ''],
   [46, 'Sync between your devices: in More, tap “Sign in with Google and sync” on your phone and on your PC (the same Google account). Hearts, gems and tags, your shelf and how far along you are, what you’ve finished and seen, your settings and streak stay the same on both, and your daily scrolling time counts both. The Daily Text download and PDF/EPUB books stay on each device.', ''],
   [45, 'How-to videos: seven short videos with music, one for each part of GemStash. Find them in More (🎬 How-to videos) and at the top of “How does GemStash work?”.', ''],
   [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays.', ''],
@@ -1343,16 +1344,21 @@ function googleHTML(){
 }
 async function googleSignIn(){
   try {
-    const f = await fbInit(), {U, auth} = f, prov = new U.GoogleAuthProvider();
+    const f = await fbInit(), {U, auth} = f, prov = new U.GoogleAuthProvider(); prov.setCustomParameters({prompt: 'select_account'});   // beta 47: always let you pick the account
     try { await U.linkWithPopup(auth.currentUser, prov); }
     catch(e){
       if (e.code !== 'auth/credential-already-in-use') throw e;
-      await U.signInWithCredential(auth, U.GoogleAuthProvider.credentialFromError(e));   // this Google account was used before (e.g. old phone)
+      const cred = U.GoogleAuthProvider.credentialFromError(e);
+      // beta 47: this device has your circle but the Google account sits on a device without one (Mike signed in on the PC first):
+      // move the Google sign-in over to this device instead of switching away from its circle
+      if (!(db.me && db.me.uid === f.uid && await moveGoogleHere(f, cred)))
+        await U.signInWithCredential(auth, cred);   // this Google account was used before (e.g. old phone)
     }
     const oldUid = f.uid; f.uid = auth.currentUser.uid;
     if (oldUid !== f.uid){ syncStop(); try { await syncNewUid(f); } catch(e){ tlog('sync newuid ' + e.message); } }   // beta 46
     const u = auth.currentUser, gname = (u.displayName || u.providerData[0]?.displayName || '').trim();
     db.google = gname || 'your Google account'; if (!db.myName && gname) db.myName = gname.split(' ')[0];
+    db.googleEmail = u.email || (u.providerData.find(p => p.providerId === 'google.com') || {}).email || '';   // beta 47
     if (db.circle){                                                     // make sure this identity is in the circle
       const {F, fs} = f; await F.setDoc(F.doc(fs, 'circles', db.circle.code, 'members', f.uid), {name: db.circle.name, joined: F.serverTimestamp()});
       const c = await F.getDoc(F.doc(fs, 'circles', db.circle.code)); db.circle.owner = c.data().owner === f.uid;
@@ -1818,7 +1824,56 @@ function syncRefresh(){
 }
 // Mike: sync only when you sign in, open GemStash or come back to it (it fetches), and when you put it away (it sends).
 // Nothing is checked while you use it.
-function syncStart(){ if (syncOn()) syncRun(); }
+function syncStart(){ if (syncOn()) syncCheckGoogle().then(() => { if (syncOn()) syncRun(); }); }
+// beta 47: if your Google sign-in was moved to another device (the one with your circle), this one asks you to sign in again,
+// which then joins it to that device's identity, circle included
+async function syncCheckGoogle(){
+  if (!db.google || syncFake()) return;
+  try {
+    const f = await fbInit(), u = f.auth.currentUser; if (!u) return;
+    await u.reload();
+    const g = u.providerData.find(p => p.providerId === 'google.com');
+    if (g && g.email && db.googleEmail !== g.email){ db.googleEmail = g.email; save(); }   // beta 47: show which account
+    if (!g){
+      tlog('sync: Google sign-in is no longer on this device');
+      db.google = ''; save(); syncStop(); if (currentView === 'more') renderMore();
+      toast('Sign in with Google again (More) to join your other device');
+    }
+  } catch(e){ tlog('sync check ' + (e.code || e.message)); }
+}
+// beta 47 (Mike's PC was signed in to a different Google account than his phone): sign out here and pick another account.
+// Signing in to the account your other device uses makes this device the same person, circle included.
+async function syncSwitchAccount(){
+  const was = db.googleEmail || db.google || 'this Google account';
+  if (!confirm('Sign out of ' + was + ' here and choose the Google account your other device uses? Nothing is deleted.')) return;
+  try {
+    const f = await fbInit(); syncStop(); syncBaseMem = null;
+    await f.U.signOut(f.auth); await f.U.signInAnonymously(f.auth); f.uid = f.auth.currentUser.uid;
+    db.google = ''; delete db.googleEmail; save();
+    await syncTurnOn();
+  } catch(e){ friendErr(e); }
+}
+async function moveGoogleHere(f, cred){
+  const {F, U} = f, A = await import(FB_BASE + 'firebase-app.js');
+  let other = '', unlinked = false;
+  try {
+    const app2 = A.getApps().find(a => a.name === 'gsMove') || A.initializeApp(FB_CONFIG, 'gsMove'), auth2 = U.getAuth(app2);
+    const res = await U.signInWithCredential(auth2, cred); other = res.user.uid;
+    const p = await F.getDoc(F.doc(F.getFirestore(app2), 'people', other));
+    if (p.exists()){ await U.signOut(auth2); return false; }    // that one has a circle of its own: switch to it, as before
+    await U.unlink(res.user, 'google.com'); unlinked = true; await U.signOut(auth2);
+    await U.linkWithCredential(f.auth.currentUser, cred);
+    tlog('sync: Google sign-in moved here from ' + other.slice(0, 6) + ' (this device has the circle)');
+    return true;
+  } catch(e){
+    tlog('sync move ' + (e.code || e.message));
+    if (unlinked){                                             // never fall through to a brand-new identity
+      try { await U.linkWithCredential(f.auth.currentUser, cred); return true; } catch(e2){}
+      throw new Error('Google sign-in couldn’t finish, please try again');
+    }
+    return false;
+  }
+}
 function syncStop(){ if (syncUnsub){ try { syncUnsub(); } catch(e){} } syncUnsub = null; syncRemote = null; syncBE = null; }
 document.addEventListener('visibilitychange', () => { if (syncOn()) syncRun(); });   // back in front: fetch; put away: send
 async function syncTurnOn(){
@@ -1833,8 +1888,9 @@ function syncHTML(){
   const what = `<p style="color:var(--muted);font-size:13px;line-height:1.5">It syncs when you open GemStash or come back to it, and when you leave it. It keeps the same on your phone and PC: ❤️ hearts, 💎 gems and tags, your shelf and how far along you are,
     what you’ve finished and seen, your settings and streak. Your daily scrolling time counts both together.
     Stays on each device: the Daily Text download (pick the file once on each), PDF/EPUB books you added, Today’s lineup, and the parent’s PIN.</p>`;
-  if (syncOn()) return `<div class="row"><span class="t"><b>🔄 Sync is on${db.google ? ' · ' + esc(db.google) : ''}</b>${st}</span></div>
+  if (syncOn()) return `<div class="row"><span class="t"><b>🔄 Sync is on</b>${db.googleEmail || db.google ? `<small>Google account: <b>${esc(db.googleEmail || db.google)}</b>. Use the same one on each device.</small>` : ''}${st}</span></div>
     <button class="btn alt" onclick="syncRun()">🔄 Sync now</button>${what}
+    ${syncFake() ? '' : '<button class="btn alt sm" onclick="syncSwitchAccount()">Use a different Google account</button>'}
     <button class="btn alt sm" onclick="syncTurnOff()">Turn sync off on this device</button>`;
   return `<p style="color:var(--muted);font-size:14px;line-height:1.5;margin-top:0">Use GemStash on more than one device? Sign in with the same Google account on each, and they stay in step.</p>
     <button class="btn" onclick="syncTurnOn()">${db.google ? '🔄 Turn on sync' : '<b>G</b>&nbsp; Sign in with Google and sync'}</button>${what}`;

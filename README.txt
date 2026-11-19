@@ -153,6 +153,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   stay the same on both. Syncs only when you sign in, open GemStash, come back to it, or leave it (Mike asked:
   not every second). Stays per device: Daily Text EPUB, PDF/EPUB books, Today's lineup, parent's PIN.
   Firestore syncb/{uid}/p/{part}; needs the new block in firestore.rules published.
+  Beta 47: sync fixes. More shows which Google account sync uses, "Use a different Google account" switches it,
+  and Google always shows its account chooser. Mike's PC had signed in with a different Google account than his
+  phone, so they synced into two separate spaces. Also: if the PC signs in first, the phone (with the circle) now
+  keeps its circle and the Google sign-in moves to it; the PC then asks to sign in again.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
