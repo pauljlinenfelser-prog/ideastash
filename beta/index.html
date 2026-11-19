@@ -30,6 +30,10 @@ header h1{font-size:20px;margin:0;flex:1;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
 header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:middle;margin:-6px 0}   /* (v48) */
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.pill.bell{position:relative;padding:6px 10px;font-size:15px}.pill.bell b{position:absolute;top:-4px;right:-4px;background:#ff5c7a;color:#fff;border-radius:999px;font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
+.pill.bell b:empty{display:none}
+.alert{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--panel2);margin-bottom:8px;cursor:pointer}
+.alert.new{outline:2px solid var(--accent)}.alert .i{font-size:22px}.alert small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .pill.auto{font-weight:600}
 /* (v19) comments */
 .cmt{position:relative}
@@ -299,6 +303,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash Beta"> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">BETA</small></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
     <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖 Bible</button>   <!-- (v47) -->
     <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
+    <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none">🔔<b id="bellN"></b></button>   <!-- beta 42 -->
     <span class="pill" id="streak">🔥 0</span>
   </header>
   <main>
@@ -374,9 +379,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 41;
+const BETA_NO = 42;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [42, 'A 🔔 at the top tells you when someone joins your circle or asks to, shares photos, or comments on yours. Tap it to see the list; tap an alert to go there.', ''],
   [41, 'Shared photos moved to Treasures: yours are in “My treasures”, everyone else’s in “From my circle”. The Circle tab is now just your people and settings.', ''],
   [40, 'Share several photos with your circle at once (up to 10): they go in as one set you swipe through sideways, like the Illustrated Bible Stories, with a “1 / 5” counter. Pick them in one go, then add more or take some out before sharing.', ''],
   [39, 'The pink B on the beta’s icon moved to the top corner, where Edge’s own little “e” doesn’t cover it.', ''],
@@ -1417,7 +1423,7 @@ function needPin(then, why){                                   // run `then` now
   });
 }
 function parentLock(){ parentUntil = 0; toast('🔒 Circle locked'); refreshParent(); }
-function refreshParent(){ if (currentView === 'circle') renderCircle(); if (currentView === 'more') renderMore(); if (currentView === 'shelf') renderShelf(); if (currentView === 'feed') renderFeed(); }
+function refreshParent(){ bellDraw(); if (currentView === 'circle') renderCircle(); if (currentView === 'more') renderMore(); if (currentView === 'shelf') renderShelf(); if (currentView === 'feed') renderFeed(); }
 function parentSetup(){
   pinSheet('Choose a parent’s PIN', '4 to 8 numbers. You’ll need it to open the circle, share photos and comment on this phone.', pin => {
     if (!/^\d{4,8}$/.test(pin)) return toast('Use 4 to 8 numbers');
@@ -1544,18 +1550,61 @@ const people = () => db.people || (db.people = {});
 const peerIds = () => Object.keys(people());
 let circleOn = false, circleUnsub = [];
 async function circleStart(){                                // listen for requests and circle changes; load posts
-  if (!circleReady() || circleOn) return; circleOn = true;
+  if (!circleReady() || circleOn) return; circleOn = true; bellDraw();   // beta 42
   try {
     const c = await cb(), me = c.uid();
     if (me !== db.me.uid){ db.me.uid = me; save(); }
-    circleUnsub.push(c.watch(`people/${me}/requests`, reqs => { window._circleReqs = reqs; if (currentView === 'circle') renderCircleReqs(); circleBadge(); }));
+    circleUnsub.push(c.watch(`people/${me}/requests`, reqs => { window._circleReqs = reqs;
+      reqs.forEach(r => addAlert('req:' + r.id + ':' + (r.at || ''), '🙋', `${r.name} wants to join your circle`, 'circle', alertQuiet()));   /* beta 42 */ if (currentView === 'circle') renderCircleReqs(); circleBadge(); }));
     circleUnsub.push(c.watch(`people/${me}/circle`, list => {
       const p = {}; list.forEach(x => p[x.id] = {name: x.name, show: x.show !== false, since: x.since});
+      list.forEach(x => addAlert('join:' + x.id + ':' + (x.since || ''), '👥', `${x.name} is now in your circle`, 'circle', alertQuiet() || !!(db.people || {})[x.id]));   // beta 42
       db.people = p; save(); healAud(); if (currentView === 'circle') renderCircle();
     }));
     await loadPosts();
   } catch(e){ circleOn = false; friendErr(e); }
 }
+/* ---- beta 42: alerts ---- */
+function addAlert(key, icon, text, to, quiet){
+  db.alerts ||= []; if (db.alerts.some(a => a.key === key)) return false;
+  db.alerts.unshift({key, icon, text: String(text).slice(0, 140), to: to || '', t: quiet ? 0 : Date.now()});   // t 0 = already seen
+  db.alerts = db.alerts.slice(0, 60); save(); bellDraw(); return true;
+}
+const alertQuiet = () => !db.alertsReady;                       // the first look fills the list without ringing for old things
+const newAlerts = () => (db.alerts || []).filter(a => a.t > (db.alertsSeen || 0));
+function bellDraw(){
+  const b = document.getElementById('bellBtn'); if (!b) return;
+  b.style.display = circleReady() && !parentLocked() ? '' : 'none';
+  const n = newAlerts().length; document.getElementById('bellN').textContent = n ? (n > 9 ? '9+' : n) : '';
+}
+function openAlerts(){
+  if (parentLocked()) return;
+  const seen = db.alertsSeen || 0, list = (db.alerts || []).filter(a => a.t || a.key.startsWith('msg:')).slice(0, 40);
+  openSheet(`<h3>🔔 Alerts</h3>
+    ${list.length ? list.map((a, n) => `<div class="alert ${a.t > seen ? 'new' : ''}" onclick="alertGo(${n})"><span class="i">${a.icon}</span>
+      <span style="flex:1;min-width:0"><b style="font-weight:600">${esc(a.text)}</b><small>${a.t ? ago(new Date(a.t)) : ''}</small></span></div>`).join('')
+      : '<p style="color:var(--muted)">Nothing yet. When someone joins your circle, shares photos or comments on yours, it shows here.</p>'}
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+  window._alertList = list; db.alertsSeen = Date.now(); save(); bellDraw();
+}
+function alertGo(n){
+  const a = (window._alertList || [])[n]; if (!a) return; closeSheet();
+  if (a.to === 'circle') return go('circle');
+  if (a.to.startsWith('post:')){ go('library'); libOpen((db.circlePosts || []).some(p => p.id === a.to.slice(5) && p.uid === db.me.uid) ? 'mine' : 'circ'); return setTimeout(() => openPost(a.to.slice(5)), 100); }
+  if (a.to.startsWith('chat:') && typeof openChat === 'function') return openChat(a.to.slice(5));
+}
+async function commentAlerts(){                                 // comments others left on my photos from the last month
+  try {
+    const c = await cb(), me = c.uid(), month = Date.now() - 30 * 864e5;
+    for (const p of (db.circlePosts || []).filter(x => x.uid === me && (x.at || 0) > month).slice(0, 20)){
+      for (const x of await c.list(`posts/${p.id}/comments`)){
+        if (x.uid !== me) addAlert('cmt:' + x.id, '💬', `${x.name} commented on your photo: “${x.text}”`, 'post:' + p.id, alertQuiet());
+      }
+    }
+  } catch(e){ console.warn(e); }
+}
+setInterval(() => { if (circleReady() && !document.hidden && circleOn) loadPosts(); }, 5 * 60e3);   // new photos every few minutes
+document.addEventListener('visibilitychange', () => { if (!document.hidden && circleReady() && circleOn) loadPosts(); });
 function circleBadge(){
   const b = document.querySelector('nav button[data-v=circle] .ic'), n = (window._circleReqs || []).length;
   if (b) b.dataset.n = n || '';
@@ -1686,6 +1735,11 @@ async function loadPosts(){
     const list = (await c.aud('posts', me)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 200);
     db.circlePosts = list.map(({id, uid, name, caption, kind, url, path, dur, at, aud}) => ({id, uid, name, caption, kind, url, path, dur, at, aud}));
     save(); healAud();
+    for (const p of db.circlePosts.filter(x => x.uid !== me && people()[x.uid] && people()[x.uid].show !== false).slice().reverse()){   // beta 42
+      const n = postPhotoIds(p).length; addAlert('post:' + p.id, '📸', `${p.name} shared ${p.kind === 'video' ? 'a video' : n > 1 ? n + ' photos' : 'a photo'}${p.caption ? ': “' + p.caption + '”' : ''}`, 'post:' + p.id, alertQuiet());
+    }
+    await commentAlerts();
+    if (!db.alertsReady){ db.alertsReady = true; save(); }
     renderCirclePosts();
     if (currentView === 'feed') addCircleToFeed();
   } catch(e){ console.warn(e); }
@@ -3349,7 +3403,7 @@ db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes 
 ensureDailyShelf();
 autoOn = !!db.auto; setAutoButton(); if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
-renderStreak(); renderFeed();
+renderStreak(); renderFeed(); bellDraw();   // beta 42
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
 if (window._joinFromLink){ db.pendingJoin = window._joinFromLink; delete db.pendingJoinName; save(); go('circle'); inviterName(); if (circleReady()) joinPending(); }   // beta 35
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(()=>{});
