@@ -393,9 +393,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 49;
+const BETA_NO = 50;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [50, 'Your Shelf now syncs properly: each source (Daily Text, Questions From Readers, the Bible, a book) is matched by what it is, so its settings and progress carry over. Doubled sources on a second device are tidied up.', ''],
   [49, 'Your profile picture now shows on your other device too (it was only on the one where you added it).', ''],
   [48, 'Sign out of Google: in More, under Sync. Sync stops on that device and it leaves your circle until you sign in again; nothing is deleted.', ''],
   [47, 'Sync fix: if you signed in on the PC first, signing in on the phone (where your circle is) now keeps your circle, and the PC asks you to sign in once more to join it.', ''],
@@ -1691,12 +1692,13 @@ const SYNC_C = [
     out(o){ for (const s of db.stashes) o[s.id] = s; },
     in(k, v){ const n = db.stashes.findIndex(s => s.id === k);
       if (v == null){ if (n >= 0) db.stashes.splice(n, 1); } else if (n >= 0) db.stashes[n] = v; else db.stashes.push(v); }},
-  {n: 'shelf', sh: 2,                                        // your shelf and how far along each source is (PDF/EPUB books stay here)
-    out(o){ for (const it of db.shelf) if (!it.file){ const c = {...it}; delete c.lastPull; delete c.error; o[it.id] = c; } },
-    in(k, v){ const n = db.shelf.findIndex(s => s.id === k), loc = db.shelf[n];
-      if (v == null){ if (loc && !loc.file) db.shelf.splice(n, 1); return; }
-      if (loc && loc.file) return;
-      const c = {...v}; if (loc){ if (loc.lastPull) c.lastPull = loc.lastPull; if (loc.error) c.error = loc.error; db.shelf[n] = c; } else db.shelf.push(c); }},
+  // beta 50 (Mike: "shelf settings didn't sync"): each device made its own shelf sources with its own random ids, so they were
+  // matched by id and never lined up. Now a source is matched by what it is (Daily Text, Questions From Readers, a book's link).
+  {n: 'shelf2', sh: 2,                                       // your shelf and how far along each source is (PDF/EPUB books stay here)
+    out(o){ for (const it of db.shelf) if (!it.file){ const c = {...it}; delete c.id; delete c.lastPull; delete c.error; o[shelfKey(it)] = c; } },
+    in(k, v){ const n = db.shelf.findIndex(s => !s.file && shelfKey(s) === k), loc = db.shelf[n];
+      if (v == null){ if (loc) db.shelf.splice(n, 1); return; }
+      const c = {...v, id: loc ? loc.id : uid()}; if (loc){ if (loc.lastPull) c.lastPull = loc.lastPull; if (loc.error) c.error = loc.error; db.shelf[n] = c; } else db.shelf.push(c); }},
   {n: 'marks', sh: 3, parts: [markColl('rest', 'r'), markColl('done', 'd'), markColl('seen', 's')],
     out(o){ this.parts.forEach(p => p.out(o)); },
     in(k, v){ this.parts.find(p => k.startsWith(p.tag || ''))?.in(k, v); }},
@@ -1728,6 +1730,20 @@ const SYNC_C = [
     in(k, v){ if (k === SYNC_DEV) return; db.usageOther ||= {}; if (v == null) delete db.usageOther[k]; else db.usageOther[k] = v; }}
 ];
 SYNC_C[3].parts[0].tag = 'r|'; SYNC_C[3].parts[1].tag = 'd|'; SYNC_C[3].parts[2].tag = 's|';
+const shelfKey = it => it.kind === 'book' ? 'b:' + (it.textUrl || it.id) : 'k:' + it.kind;
+// beta 50: one source of each kind. The PC had been given the phone's copies next to its own; keep the one sync last changed
+// (else the one furthest along) and point its cards at it.
+function shelfDedupe(oldBase){
+  const groups = {}; db.shelf.forEach(it => { if (!it.file) (groups[shelfKey(it)] ||= []).push(it); });
+  const t = it => (oldBase && oldBase[it.id] ? oldBase[it.id][1] : 0);
+  let n = 0;
+  for (const list of Object.values(groups)) if (list.length > 1){
+    const keep = list.slice().sort((a, b) => (t(b) - t(a)) || ((b.pos || 0) - (a.pos || 0)))[0];
+    for (const it of list) if (it !== keep){ db.shelf.splice(db.shelf.indexOf(it), 1); db.ideas.forEach(i => { if (i.shelfId === it.id) i.shelfId = keep.id; }); n++; }
+  }
+  if (n) tlog('sync: ' + n + ' doubled shelf sources tidied');
+  return n;
+}
 const syncOthersToday = () => Object.values(db.usageOther || {}).reduce((a, u) => a + ((u || {})[today()] || 0), 0);
 const syncPart = (c, k) => c.n + '-' + (syncHash(k) % c.sh);
 
@@ -1774,11 +1790,17 @@ async function syncRun(){
     const bkey = 'syncbase:' + be.uid;                      // one "last synced" copy per Google account
     let base = syncBaseMem && syncBaseMem.uid === be.uid ? syncBaseMem.b : null; if (!base){ try { base = await idb.get(bkey); } catch(e){} }
     const first = !base; base ||= {};
+    if (shelfDedupe(base.shelf) || base.shelf){                // beta 50: move from shelf-by-id to shelf-by-kind
+      if (base.shelf){ const b2 = base.shelf2 ||= {}, o = {}; SYNC_C.find(c => c.n === 'shelf2').out(o);
+        for (const [k, v] of Object.entries(o)) if (!b2[k]) b2[k] = [sj(v), 0];   // as old as can be: the first device to send wins
+        delete base.shelf; }
+      ensureDailyShelf();
+    }
     const now = Date.now(), dirty = new Set(), applied = [];
     for (const c of SYNC_C){                                 // 1. what changed on this device since the last sync
       const b = base[c.n] ||= {}, cur = {}; c.out(cur);
-      for (const [k, v] of Object.entries(cur)){ const j = sj(v); if (!b[k] || b[k][0] !== j){ b[k] = [j, first ? 1 : now]; dirty.add(syncPart(c, k)); } }
-      for (const k of Object.keys(b)) if (!(k in cur) && b[k][0] !== null){ b[k] = [null, first ? 1 : now]; dirty.add(syncPart(c, k)); }
+      for (const [k, v] of Object.entries(cur)){ const j = sj(v); if (!b[k] || b[k][0] !== j){ b[k] = [j, first ? 0 : now]; dirty.add(syncPart(c, k)); } }
+      for (const k of Object.keys(b)) if (!(k in cur) && b[k][0] !== null){ b[k] = [null, first ? 0 : now]; dirty.add(syncPart(c, k)); }
     }
     const remote = syncRemote || await be.list();           // 2. what the other devices changed
     for (const c of SYNC_C){
@@ -1803,7 +1825,7 @@ async function syncRun(){
     }
     for (const part of dirty){                               // 3. send what this device has that the cloud doesn't
       const [n] = part.split('-'), c = SYNC_C.find(x => x.n === n), ent = {};
-      for (const [k, [j, t]] of Object.entries(base[n])) if (syncPart(c, k) === part) ent[k] = [j === null ? null : JSON.parse(j), t];
+      for (const [k, [j, t]] of Object.entries(base[n])) if (syncPart(c, k) === part) ent[k] = [j === null ? null : JSON.parse(j), t || 1];
       const merged = await be.put(part, ent);
       if (syncRemote) syncRemote[part] = merged;
     }

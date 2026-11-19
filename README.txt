@@ -160,6 +160,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 48: "Sign out of Google" in More (under Sync): sync stops there, the device leaves the circle until you
   sign in again; nothing is deleted.
   Beta 49: your own profile picture shows on your other device too (fetched from photos/av_<uid>).
+  Beta 50: Shelf sync fixed: sources are matched by what they are (Daily Text, QFR, Bible, a book's link), not by
+  each device's own random id, so settings and progress carry over; doubled sources on the PC are tidied (the
+  phone's copy is kept). On a device's first sync, what's already in the cloud wins.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
