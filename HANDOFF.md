@@ -213,6 +213,7 @@ Before the Terms-of-Use clean-up, Mike wanted the "ideal" GemStash kept, to show
 | Remove the spare "Mike" profile MIKE·9726 (people/iwGSw5… + codes/MIKE9726, maybe syncb/iwGSw5…) | 🗓 planned for the evening of 2026-11-21 | Mike: "remove the spare mike profile, that's annoying me". Confirm what gets deleted before doing it. |
 | Pay-as-you-go (Blaze) for circle video uploads, budget alert, Storage on, storage.rules published | 🗓 planned for the evening of 2026-11-21 | Mike does the billing himself; Claude guides, tightens storage.rules first (circle members only), then sets CIRCLE_VIDEOS = true in a beta |
 | Apple Daily Text: which device, iOS version, Safari or Home Screen, which step | ⏸ waiting on Mike | Asked 2026-11-21 (Beta 57) |
+| Showcase for Mike's own use (bottom of the list) | 🗓 later | Mike 2026-11-21: put the showcase online privately for himself: Cloudflare Pages + Cloudflare Access locked to his email; he adds the address to Firebase Auth authorized domains and does the Cloudflare steps; signs in with Google (pauljlinenfelser) so it is his circle identity; sync on, sharing his beta data (syncb) |
 
 ## 7. Notes and gotchas
 - jw.org content is © Watch Tower: personal study only, don't republish.
