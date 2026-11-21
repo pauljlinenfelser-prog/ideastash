@@ -191,6 +191,9 @@ Replaces the v19 circle-code design. Mike's decisions:
 
   Mike reviews the batch and deletes duds, then it publishes to the Pages site and the phone app drips the clips out. It can optionally export files for manual posting or Buffer. Copyrighted audiobook clips are fine for personal use; posting them publicly risks takedowns.
 
+### Showcase copy (Mike, 2026-11-21)
+Before the Terms-of-Use clean-up, Mike wanted the "ideal" GemStash kept, to show jw.org's legal department one day and ask for approval. **`C:UsersinspesourceGemStash-showcase`** (outside the repo, NOT online; the repo is public): `app/` = Beta 55 (git tag **`showcase-beta55`** = 68810db, the last with jw.org website pictures: IBS, KIDS, BJF posters, Beta 44 picture sets, banners, thumbnails) + Daily Text read from wol.jw.org when there's no EPUB (`getDailyCardFromWeb_retired`, via r.jina.ai), its own storage (`gemstash.showcase.v1`, IndexedDB `gemstash-showcase`, SW `gemstash-showcase-1`), SHOWCASE badge, sync off. `SHOWCASE.bat` serves it at http://localhost:8770/app/; README.txt explains. Headless: Daily Text came from wol.jw.org by itself. Note: `versions/` (all old copies) is committed, so old picture-server versions are still reachable on the public site; raise with Mike when doing the Terms clean-up.
+
 ## 6b. Mike's outside steps (things only Mike can do): confirmed or not
 **Rule (Mike, 2026-11-21):** for any step Mike must do outside Claude's reach (consoles, billing, sign-ins, installs, phone/PC settings), get his confirmation that it's done and log it here with the date, so "did we do that?" can be answered later. Verify directly where possible. Keep this list current.
 
