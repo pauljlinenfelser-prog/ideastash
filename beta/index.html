@@ -412,9 +412,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 56;
+const BETA_NO = 57;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [57, 'Daily Text on iPhone and iPad: the file picker lets you choose the downloaded file (it could be greyed out), and the card explains where Apple keeps it (Files → Downloads, not Apple Books). Clearer messages if the file is wrong or incomplete.', ''],
   [56, 'Illustrated Bible Stories now come from jw.org’s own PDFs, saved on your phone once (Shelf → Illustrated Bible Stories → Download all, then Add them). No pictures are taken from jw.org’s website any more.', ''],
   [55, 'Auto-scroll moves on after a video even when the phone doesn’t report that the video has finished (it stops in its last few seconds). The problem report also notes what each video did.', ''],
   [54, 'Videos: slide your finger along the bar at the bottom of a video to move back or forward (a bubble shows the time), or tap a spot on the bar to jump there.', ''],
@@ -3097,14 +3098,21 @@ async function dailyTextFromEpub(file){
   save();
   return {year, count};
 }
+// beta 57 (Mike: "Apple devices are having a hard time with the daily text, getting it loaded up and started")
+const isApple = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 async function pickDailyText(file){                       // the file picker on the Daily Text card / shelf sheet
   if (!file) return;
+  tlog(`daily text: picked "${file.name}" ${file.type || '(no type)'} ${Math.round(file.size / 1024)} KB${isApple() ? ' (Apple)' : ''}`);
   toast('Reading the Daily Text…');
   try {
+    if (!file.size) throw new Error('the file is empty, download it again');
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    if (!(head[0] === 0x50 && head[1] === 0x4B)) throw new Error(/\.epub$/i.test(file.name) ? 'that copy isn’t complete, download it again' : 'that isn’t the EPUB file (es' + String(new Date().getFullYear()).slice(2) + '_E.epub)');
     const r = await dailyTextFromEpub(file);
-    if (!r) return toast('That file isn’t Examining the Scriptures Daily');
+    if (!r){ tlog('daily text: not Examining the Scriptures'); return toast('That file isn’t Examining the Scriptures Daily'); }
+    tlog('daily text: ' + r.year + ', ' + r.count + ' days');
     dailyTextAdded(r);
-  } catch(e){ toast('Couldn’t read it: ' + e.message); }
+  } catch(e){ tlog('daily text failed: ' + (e.message || e)); toast('Couldn’t read it: ' + (/zip|central directory|end of data/i.test(e.message || '') ? 'that copy isn’t complete, download it again' : e.message)); }
 }
 function dailyTextAdded(r){
   toast(`Daily Text ${r.year} added: ${r.count} days`);
@@ -3123,7 +3131,10 @@ function dtAddHTML(){
   return `<p style="color:var(--muted);line-height:1.5;margin:6px 0 12px">GemStash shows the Daily Text from jw.org’s own download of <i>Examining the Scriptures Daily—${y}</i>. Once a year:</p>
     <a class="btn" id="dtDl" style="display:block;text-align:center;text-decoration:none" href="https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">1. ⬇️ Download it from jw.org</a>
     <label class="btn alt" style="display:block;text-align:center;margin-top:10px" onclick="event.stopPropagation()">2. 📂 Pick the downloaded file
-      <input type="file" accept=".epub,application/epub+zip" hidden onchange="pickDailyText(this.files[0]); this.value=''"></label>`;
+      <input type="file" ${isApple() ? '' : 'accept=".epub,application/epub+zip"'} hidden onchange="pickDailyText(this.files[0]); this.value=''"></label>
+    ${isApple() ? `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin:10px 2px 0"><b>On iPhone or iPad:</b> after step 1, tap <b>Download</b>
+      (not “Open in Books”: GemStash can’t reach Apple Books). In step 2 tap <b>Browse</b>, then <b>Downloads</b>, then <b>es${String(y).slice(2)}_E.epub</b>.
+      If Safari shows the book instead, tap the share button, then <b>Save to Files</b>.</p>` : ''}`;
 }
 async function getDailyCardFromWeb_retired(){            // BETA 12: retired, read wol.jw.org through r.jina.ai
   const d = new Date();

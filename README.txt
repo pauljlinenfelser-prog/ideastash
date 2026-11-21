@@ -175,6 +175,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   when the phone never says it ended; the problem report notes what each video did.
   Beta 56: Illustrated Bible Stories come from jw.org's own PDFs, saved on the phone once (Shelf > Illustrated
   Bible Stories > Download all, then Add them). No story pictures are taken from jw.org's website any more.
+  Beta 57: Daily Text on iPhone/iPad: picker accepts any file there (the EPUB filter can grey it out), the card
+  says to tap Download (not Open in Books) and pick from Files > Downloads; plain messages for a wrong or
+  incomplete file; the problem report notes each Daily Text step.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
