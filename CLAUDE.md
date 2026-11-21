@@ -3,6 +3,7 @@
 **Read `HANDOFF.md` first.** It has the full project history, how the code works, current status and the agreed roadmap.
 
 ## Mike's rules (always)
+- Steps only Mike can do (Firebase, billing, sign-ins, installs): get his confirmation and log them in HANDOFF section 6b.
 - Mike doesn't code by hand. Explain in plain language and give exact steps.
 - ONE change at a time. Each change is a new version, with a full copy of `app/` in `versions/vN/`. `ROLLBACK.bat` restores any version.
 - Each release: update README.txt VERSIONS, bump `CACHE` in `app/sw.js`, then deploy with `DEPLOY.bat`.

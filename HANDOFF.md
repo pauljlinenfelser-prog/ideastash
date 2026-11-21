@@ -191,6 +191,25 @@ Replaces the v19 circle-code design. Mike's decisions:
 
   Mike reviews the batch and deletes duds, then it publishes to the Pages site and the phone app drips the clips out. It can optionally export files for manual posting or Buffer. Copyrighted audiobook clips are fine for personal use; posting them publicly risks takedowns.
 
+## 6b. Mike's outside steps (things only Mike can do): confirmed or not
+**Rule (Mike, 2026-11-21):** for any step Mike must do outside Claude's reach (consoles, billing, sign-ins, installs, phone/PC settings), get his confirmation that it's done and log it here with the date, so "did we do that?" can be answered later. Verify directly where possible. Keep this list current.
+
+| Step | Status | When / how we know |
+|---|---|---|
+| Firebase project gemstash-10786 (free Spark plan), Firestore in nam5 | ✅ done | 2026-11-17 (v19) |
+| Auth: Anonymous + Google sign-in on, github.io as authorized domain | ✅ done | 2026-11-17 (v19); Google sign-ins seen in Auth on 2026-11-19 |
+| Firestore rules: v19 circles | ✅ published | 2026-11-17 |
+| Firestore rules: Beta 22 personal circles | ✅ published | 2026-11-18 "Today 9:58 AM", with Mike in the built-in browser |
+| Firestore rules: Beta 24 photos | ✅ published | 2026-11-18 "Today 10:24 AM" |
+| Firestore rules: Beta 43 messages | ✅ published | 2026-11-18 9:12 PM |
+| Firestore rules: Beta 46 sync (syncb / sync) | ✅ published | 2026-11-19 8:45 AM, by Claude on Mike's "Yes, publish rules"; live REST check passed (own data 200, someone else's 403) |
+| Firebase Storage + storage.rules (needed for circle videos) | ❌ not done, on purpose | Needs the pay-as-you-go (Blaze) plan; Mike 2026-11-18: not for now (money). storage.rules in the repo is unpublished. |
+| GemStash installed on the PC as an Edge app | ❓ unconfirmed | He was told how on 2026-11-19; his PC did sync on 2026-11-19, so likely done |
+| PC switched to the Google account pauljlinenfelser@gmail.com (same as the phone) | ❓ unconfirmed | Asked 2026-11-19 (Beta 48); the profile picture and shelf reports suggest the PC shows his circle, so likely done |
+| Phone opened first after Beta 50 (so its shelf settings win) | ❓ unconfirmed | Asked 2026-11-19 |
+| Remove the spare "Mike" profile MIKE·9726 (people/iwGSw5…) | ⏸ waiting on Mike's yes | Offered 2026-11-19 |
+| Apple Daily Text: which device, iOS version, Safari or Home Screen, which step | ⏸ waiting on Mike | Asked 2026-11-21 (Beta 57) |
+
 ## 7. Notes and gotchas
 - jw.org content is © Watch Tower: personal study only, don't republish.
 - jw.org's own guidance warns about fake social accounts. Official jw.org sources are the point of the app.
