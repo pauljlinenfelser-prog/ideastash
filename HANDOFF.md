@@ -210,7 +210,8 @@ Before the Terms-of-Use clean-up, Mike wanted the "ideal" GemStash kept, to show
 | GemStash installed on the PC as an Edge app | ❓ unconfirmed | He was told how on 2026-11-19; his PC did sync on 2026-11-19, so likely done |
 | PC switched to the Google account pauljlinenfelser@gmail.com (same as the phone) | ❓ unconfirmed | Asked 2026-11-19 (Beta 48); the profile picture and shelf reports suggest the PC shows his circle, so likely done |
 | Phone opened first after Beta 50 (so its shelf settings win) | ❓ unconfirmed | Asked 2026-11-19 |
-| Remove the spare "Mike" profile MIKE·9726 (people/iwGSw5…) | ⏸ waiting on Mike's yes | Offered 2026-11-19 |
+| Remove the spare "Mike" profile MIKE·9726 (people/iwGSw5… + codes/MIKE9726, maybe syncb/iwGSw5…) | 🗓 planned for the evening of 2026-11-21 | Mike: "remove the spare mike profile, that's annoying me". Confirm what gets deleted before doing it. |
+| Pay-as-you-go (Blaze) for circle video uploads, budget alert, Storage on, storage.rules published | 🗓 planned for the evening of 2026-11-21 | Mike does the billing himself; Claude guides, tightens storage.rules first (circle members only), then sets CIRCLE_VIDEOS = true in a beta |
 | Apple Daily Text: which device, iOS version, Safari or Home Screen, which step | ⏸ waiting on Mike | Asked 2026-11-21 (Beta 57) |
 
 ## 7. Notes and gotchas
