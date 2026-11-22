@@ -86,6 +86,15 @@ nav button.on{color:var(--accent)}
 .tapflash{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:50%;background:#0009;color:#fff;font-size:38px;
   display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4;animation:tapfl .7s ease-out forwards}   /* beta 63 */
 @keyframes tapfl{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}25%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
+/* beta 65: TikTok-style side buttons on text cards; the text keeps clear of them */
+.tcard{position:relative}.tcard .body{padding-right:72px}.tcard .src{padding-right:72px}
+.tsidewrap{position:sticky;bottom:0;height:0;z-index:2}
+.tsidewrap .side{position:absolute;right:10px;bottom:22px;display:flex;flex-direction:column;gap:10px}
+.tsidewrap .side button,.tsidewrap .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.tsidewrap .side .saved{background:var(--accent)}
+.tcard.speaking::after{content:'🔊 Reading · tap to stop';position:absolute;top:10px;right:12px;background:#000b;color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;pointer-events:none;z-index:3}
+.vslide .fsb{position:absolute;top:14px;right:14px;z-index:3;width:40px;height:40px;border-radius:50%;background:#0008;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.vslide:fullscreen .fsb{display:none}
 .card .acts{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid #2c2846}
 .card .acts button{font-size:22px;padding:8px 14px;border-radius:12px}
 .card .acts button.saved{color:var(--accent)}
@@ -417,9 +426,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 64;
+const BETA_NO = 65;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [65, 'Every card has the same side buttons, like TikTok: ❤️ heart, 💬 comments, 💎 save, 📤 share, and ⋯ for the rest (full size, print, open on jw.org, read aloud, delete). Text cards like the Daily Text have them too, instead of the row along the bottom. Videos have a small ⛶ in the corner for full screen.', ''],
   [64, 'The reading voice no longer starts by saying “comma comma comma”. GemStash now wakes the speaker with a moment of silence instead, so the first words still aren’t cut off.', ''],
   [63, 'Tap the Daily Text (or any text card) to hear it read aloud, and tap again to stop. A double-tap still hearts it.', ''],
   [62, '🔄 Refresh Today, at the top of the Shelf: tries again anything that didn’t load, takes out cards from Shelf entries you’ve paused, and starts Today from the first card.', ''],
@@ -691,12 +701,7 @@ function posterHTML(i){
       `<div class="pg"><img class="poster${/#front$/.test(u) ? ' cfront' : /#back$/.test(u) ? ' cback' : ''}" ${picAttr(u)} alt=""${esc(i.title)}" ${n > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>
     ${many ? `<div class="count">1 / ${pics.length}</div><div class="dots">${pics.map((_, n) => `<i class="${n ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <div class="side">
-      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Save to a stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
-      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
-      ${commentBtn(i.url, i.title)}
-      <button title="Full size" onclick="openPic(this)">🔍</button>
-      ${i.pdf ? `<a title="Print it (jw.org PDF)" href="${esc(i.pdf)}" target="_blank" rel="noopener">🖨️</a>` : ''}
+      ${railHTML(i, saved)}
     </div>
     <div class="info"><b>${esc(i.title)}</b><small>${i.kids ? `${esc(i.kids)}${many ? ' · swipe ⟷' : ''} · <a href="${esc(i.pdf)}" target="_blank" rel="noopener" style="color:inherit;pointer-events:auto">🖨️ jw.org PDF to print ↗</a>` : i.ibs ? `Illustrated Bible Story · from your jw.org PDF${many ? ' · swipe ⟷' : ''}` : many ? 'Illustrated Bible Story · swipe ⟷' : 'Become Jehovah’s Friend · poster'}</small></div></div>`;
 }
@@ -705,8 +710,39 @@ function stripMoved(st){
   c.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === n));
   const ct = c.querySelector('.count'); if (ct) ct.textContent = `${n + 1} / ${st.children.length}`;
 }
+// beta 65 (Mike: TikTok style, what people want most, quickest): every card's side buttons are heart, comments, save, share, more, in that order.
+// The rest (full size, print, read on jw.org, read aloud, delete, full screen) is under the more button. Comments only show once a circle is set up.
+function railHTML(i, saved, cmtUrl){
+  return `<button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
+      ${commentBtn(cmtUrl || i.url, i.title)}
+      <button title="Save to a stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
+      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
+      <button title="More" onclick="cardMenu('${i.id}')">⋯</button>`;
+}
+function cardMenu(id){
+  const i = findIdea(id); if (!i) return;
+  const c = document.querySelector(`#feed .card[data-id="${id}"]`) || document.querySelector(`.card[data-id="${id}"]`);
+  const isPoster = c && c.classList.contains('pcard'), isText = c && c.dataset.say, b = [];
+  const link = (href, label) => `<a class="btn alt" style="display:block;text-align:center" href="${esc(href)}" target="_blank" rel="noopener" onclick="closeSheet()">${label}</a>`;
+  if (isText) b.push(`<button class="btn alt" onclick="closeSheet();listen('${id}')">${speakingId === id ? '⏹️ Stop reading' : '🔊 Read it aloud'}</button>`);
+  if (isPoster && c.querySelector('.strip img')) b.push(`<button class="btn alt" onclick="closeSheet();cardPic('${id}')">🔍 See it full size</button>`);
+  if (i.pdf) b.push(link(i.pdf, '🖨️ Print it (jw.org PDF)'));
+  if (i.srcUrl) b.push(link(i.srcUrl, '📥 jw.org’s download of this'));
+  if (i.url && /jw\.org/.test(i.url)) b.push(link(i.url, '📖 Open it on jw.org'));
+  if (isText) b.push(`<button class="btn alt" style="color:var(--danger)" onclick="closeSheet();delIdea('${id}')">🗑️ Delete</button>`);
+  openSheet(`<h3>${esc(i.title || '')}</h3>${b.join('')}<button class="btn" onclick="closeSheet()">Close</button>`);
+}
+function cardPic(id){ const st = document.querySelector(`.pcard[data-id="${id}"] .strip`); if (st) openPic(st); }
+function videoMenu(n){
+  const v = db.watch.daily.items[n]; if (!v) return;
+  openSheet(`<h3>${esc(v.title)}</h3>
+    <button class="btn alt" onclick="closeSheet();videoFullN(${n})">⛶ Full screen (turns sideways)</button>
+    <a class="btn alt" style="display:block;text-align:center" href="${esc(finderUrl(v.lank))}" target="_blank" rel="noopener" onclick="closeSheet()">📺 Watch it on jw.org</a>
+    <button class="btn" onclick="closeSheet()">Close</button>`);
+}
+function videoFullN(n){ const b = document.querySelector(`#feed .vslide[data-n="${n}"] .fsb`); if (b) videoFull(b); }
 function openPic(btn){
-  const st = btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);
+  const st = btn.classList && btn.classList.contains('strip') ? btn : btn.closest('.pcard').querySelector('.strip'), n = Math.round(st.scrollLeft / st.clientWidth);   // beta 65: also from the more menu
   const src = st.children[n].querySelector('img').src.replace(/_md\.jpg$/, '_lg.jpg').replace(/#(front|back)$/, '');
   window.open(src, '_blank', 'noopener');
 }
@@ -840,11 +876,7 @@ function layeredHTML(i){
       <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div>${i.lkind === 'nwt' && i.heard ? `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>` : ''}</div></div>
     <div class="side">
-      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Save to a stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
-      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
-      ${commentBtn(i.url, i.title)}
-      <a title="Read on jw.org" href="${esc(i.url)}" target="_blank" rel="noopener">📖</a>
+      ${railHTML(i, saved)}
     </div></div>`;
 }
 // beta 7: the article picture — try jw.org's square, then wide, then tall version; none at all → the nautilus art shows
@@ -960,20 +992,14 @@ function cardHTML(i){
   const [c1,c2] = topicColors(i.topic);
   const saved = isGem(i);
   const src = i.srcUrl || i.url ? `<a href="${esc(i.srcUrl || i.url)}" target="_blank" rel="noopener">${esc(i.source)}</a>` : esc(i.source||'');   // beta 14: srcUrl = the EPUB
-  return `<div class="card" data-id="${i.id}">
+  return `<div class="card tcard" data-id="${i.id}"${i.video ? '' : ' data-say="1"'}>
     <div class="top" style="background:linear-gradient(135deg,${c1},${c2})">
       <div class="topic">${esc(i.topic||'Other')}</div><h2>${esc(i.title)}</h2></div>
     ${i.video ? `<div class="body" style="padding:0;flex:none"><video controls playsinline preload="none" poster="${esc(i.video.img)}" src="${esc(i.video.src)}"
       style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video></div><div class="body">${esc(i.body)}</div>` : `<div class="body">${i.pic ? `<img class="pic" src="${esc(i.pic)}" alt="" loading="lazy">` : ''}${bodyHTML(i.body)}${i.srcUrl ? `\n\n<a class="more" href="${esc(i.srcUrl)}" target="_blank" rel="noopener">📥 Taken from jw.org’s download of this year’s Examining the Scriptures Daily (EPUB) ↗</a>` : i.url && /jw\.org/.test(i.url) ? `\n\n<a class="more" href="${esc(i.url)}" target="_blank" rel="noopener">${/wol\/h\//.test(i.url) ? 'Open today’s text on wol.jw.org ↗' : 'Read the full article on jw.org ↗'}</a>` : ''}</div>`}
     <div class="src">${src ? '— ' + src : ''}</div>
-    <div class="acts">
-      ${i.video ? '' : `<button title="Listen" class="listen" onclick="listen('${i.id}', this)">${speakingId===i.id?'⏹️':listenIcon(i)}</button>`}
-      <button title="Heart (Favorites)" class="heart" onclick="heartIdea('${i.id}')">${isHearted(i)?'❤️':'🤍'}</button>
-      <button title="Stash" class="${saved?'saved':''}" onclick="gemTap('${i.id}')"><span class="gem">💎</span></button>
-      <button title="Share" onclick="shareIdea('${i.id}')">📤</button>
-      ${commentBtn(i.video ? finderUrl(i.video.lank) : i.url, i.title)}
-      <button title="Delete" onclick="delIdea('${i.id}')">🗑️</button>
-    </div></div>`;
+    <div class="tsidewrap"><div class="side">${railHTML(i, saved, i.video ? finderUrl(i.video.lank) : i.url)}</div></div>
+    </div>`;
 }
 
 /* ================= feed ================= */
@@ -1286,7 +1312,8 @@ async function jwAudioUrl(doc){
   if (!f) throw new Error('no recording');
   return f.file.url;
 }
-function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => {
+function setListenIcons(){ document.querySelectorAll('.card[data-say]').forEach(c => c.classList.toggle('speaking', c.dataset.id === speakingId));   // beta 65
+  document.querySelectorAll('.card[data-id] .listen').forEach(b => {
   const id = b.closest('.card').dataset.id; b.textContent = id === speakingId ? '⏹️' : listenIcon(findIdea(id)); }); }
 function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} if (jwAudio){ jwAudio.pause(); jwAudio = null; } setListenIcons(); }
 // beta 64: wake the speaker (or Bluetooth) with half a second of real silence, so the voice's first words aren't cut off.
@@ -2822,7 +2849,7 @@ document.addEventListener('click', e => {
   } else {
     lastTap = {t:now, id, x:e.clientX, y:e.clientY};
     // beta 63 (Mike): tap a text card (Daily Text and other text cards) to hear it, tap again to stop. Waits a moment so a double-tap can still heart.
-    if (!card.classList.contains('lcard') && !card.classList.contains('pcard') && card.querySelector(':scope > .acts .listen')){
+    if (card.dataset.say){                                       // beta 65: text cards are marked data-say (the bottom row is gone)
       clearTimeout(tapListenT);
       tapListenT = setTimeout(() => { const on = speakingId !== id; tapFlash(card, on); listen(id); }, 360);
     }
@@ -3987,11 +4014,12 @@ function videoSlideHTML(v, n){
     ${db.watch.sound ? '' : '<div class="note">🔇 Tap for sound</div>'}
     <div class="side">
       <button title="Heart (Favorites)" class="heart" onclick="heartVideo(${n})">${videoHearted(v) ? '❤️' : '🤍'}</button>
+      ${commentBtn(finderUrl(v.lank), v.title)}
       <button title="Save to a stash" class="${saved ? 'saved' : ''}" onclick="saveVideo(${n})"><span class="gem">💎</span></button>
       <button title="Share" onclick="shareVideo(${n})">📤</button>
-      ${commentBtn(finderUrl(v.lank), v.title)}
-      <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
+      <button title="More" onclick="videoMenu(${n})">⋯</button>
     </div>
+    <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
     <button class="fsx" title="Back to the feed" onclick="videoFullExit()">✕</button>
     <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="seek"><div class="track"><div class="bar"></div></div><b class="knob"></b><span class="stime"></span></div></div>`;   // beta 54

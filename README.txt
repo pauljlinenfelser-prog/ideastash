@@ -191,6 +191,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 63: tap a text card (the Daily Text and other text cards) to hear it, tap again to stop; a double-tap
   still hearts it. A big play/pause sign flashes on the card.
   Beta 64: the reading voice no longer says "comma comma comma" first; a moment of silence wakes the speaker.
+  Beta 65: TikTok-style side buttons on every card: heart, comments, save, share, and ... for the rest (full size,
+  print, open on jw.org, read aloud, delete). Text cards too (no more bottom row). Videos: small full-screen icon top-right.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
