@@ -185,6 +185,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Family, From Our Archives and Listen to the Bible.
   Beta 60: Bible Character Cards have their own Shelf entry (🃏), apart from Children's Activities, so each
   can be paused on its own.
+  Beta 61: back to the top of Today: tap Today again while in Today, or the Top button (shows from the 3rd card).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

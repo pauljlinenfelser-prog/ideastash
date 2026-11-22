@@ -73,6 +73,7 @@ nav button.on{color:var(--accent)}
 
 /* feed */
 #feed{padding:0;scroll-snap-type:y mandatory}
+.topbtn{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;padding:6px 14px;border-radius:999px;background:#000a;color:#fff;font-size:13px;font-weight:700;box-shadow:0 2px 8px #0006}   /* beta 61 */
 .slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:8px 16px 16px;display:flex}
 .card{flex:1;border-radius:24px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 10px 30px #0006}
@@ -341,6 +342,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
   <div id="volPop" class="volpop" hidden><span>🔈</span><input id="volRange" type="range" min="0" max="100" step="5" oninput="setVol(this.value)" aria-label="Volume"><span>🔊</span><b id="volPct"></b></div>   <!-- beta 53 -->
   <main>
     <section class="view active" id="feed"></section>
+    <button id="topBtn" class="topbtn" hidden onclick="feedTop()" title="Back to the top">⬆ Top</button>   <!-- beta 61 -->
     <section class="view" id="shelf"></section>
     <section class="view" id="circle"></section>   <!-- beta 22 -->
     <section class="view" id="library"></section>
@@ -412,9 +414,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 60;
+const BETA_NO = 61;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [61, 'Back to the top of Today: tap ✨ Today at the bottom while you’re in Today, or tap ⬆ Top, which shows up once you’re a few cards down.', ''],
   [60, 'Bible Character Cards have their own place on the Shelf (🃏), apart from Children’s Activities, so you can switch either one off on its own.', ''],
   [59, 'New series banners at the top of narrated articles, made for GemStash (an open Bible on a desk, a highlighted verse, a family reading together, and a desk of old photos for From Our Archives). They replace the banners taken from jw.org’s website.', ''],
   [58, 'Narrated articles show their one main picture again. The extra pictures that slid along with the narration are gone: GemStash was gathering them from jw.org’s website, which jw.org’s Terms of Use don’t allow. Cards also load a little lighter.', ''],
@@ -571,7 +574,8 @@ const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*(jw\.org|gu
 
 /* ================= navigation ================= */
 let currentView = 'feed';
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => b.dataset.v === 'mine' ? addMine() : go(b.dataset.v));
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => b.dataset.v === 'mine' ? addMine()
+  : b.dataset.v === 'feed' && currentView === 'feed' ? feedTop() : go(b.dataset.v));   // beta 61: Today again = back to the top
 // beta 31 (Mike): ➕ Add in the bottom bar is for your own photos (and later videos); adding books moved into the Shelf
 function addMine(){
   if (parentLocked()) return needPin(addMine, 'Sharing photos is locked by a parent.');   // beta 36
@@ -586,6 +590,7 @@ function go(v){
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === (v === 'add' ? 'shelf' : v)));   // beta 31: adding books is part of the Shelf
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
+  topBtnShow();   // beta 61
   if (v === 'library'){ migrateTreasures(); libFilter = 'home'; }   // beta 32: the chest opens at the top
   gemClose();
   ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
@@ -1021,6 +1026,13 @@ async function renderFeed(){
   observeFeed();
 }
 // (v47) Mike: the home-screen menu doesn't show on his phone, so a 📖 button at the top of Today does the same
+// beta 61 (Mike): back to the top of Today. A jump, not a glide, so the cards in between don't start playing on the way.
+function topBtnShow(){ const b = document.getElementById('topBtn'); if (b) b.hidden = !(currentView === 'feed' && feedIdx(feedCurrent) >= 2); }
+function feedTop(){
+  const f = document.getElementById('feed'); if (!f || !f.firstElementChild) return;
+  f.querySelectorAll('video').forEach(x => x.pause()); if (layer) layerStop();
+  f.scrollTop = 0; tlog('back to the top');
+}
 function openBible(){ goBible(document.getElementById('feed'), true); }
 function goBible(el, now){
   if (!now){
@@ -1138,6 +1150,7 @@ function observeFeed(){
           && (prev.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)) finished(pc.dataset.id, 'read'); }
     window.onSince = performance.now();
     feedCurrent = s; markSpot(s);                   // (v36)
+    topBtnShow();                                   // beta 61
     if (s.dataset.post){ (db.circleSeen ||= {})[s.dataset.post] = today(); save(); }   // beta 22
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
