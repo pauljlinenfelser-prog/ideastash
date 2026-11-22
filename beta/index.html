@@ -83,6 +83,9 @@ nav button.on{color:var(--accent)}
 .card .body{padding:18px 22px;font-size:17px;line-height:1.6;flex:1;overflow-y:auto;color:#e6e3f3;white-space:pre-wrap}
 .card .src{padding:0 22px 6px;font-size:13px;color:var(--muted)}
 .card .src a{color:var(--muted)}
+.tapflash{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:50%;background:#0009;color:#fff;font-size:38px;
+  display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4;animation:tapfl .7s ease-out forwards}   /* beta 63 */
+@keyframes tapfl{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}25%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
 .card .acts{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid #2c2846}
 .card .acts button{font-size:22px;padding:8px 14px;border-radius:12px}
 .card .acts button.saved{color:var(--accent)}
@@ -414,9 +417,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 62;
+const BETA_NO = 63;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [63, 'Tap the Daily Text (or any text card) to hear it read aloud, and tap again to stop. A double-tap still hearts it.', ''],
   [62, '🔄 Refresh Today, at the top of the Shelf: tries again anything that didn’t load, takes out cards from Shelf entries you’ve paused, and starts Today from the first card.', ''],
   [61, 'Back to the top of Today: tap ✨ Today at the bottom while you’re in Today, or tap ⬆ Top, which shows up once you’re a few cards down.', ''],
   [60, 'Bible Character Cards have their own place on the Shelf (🃏), apart from Children’s Activities, so you can switch either one off on its own.', ''],
@@ -2803,8 +2807,22 @@ document.addEventListener('click', e => {
     const host = card.parentElement, h = host.getBoundingClientRect();
     heartBurst(host, e.clientX - h.left, e.clientY - h.top);
     if (!isHearted(findIdea(id))){ ensureFav(); toggleStash(id, 'fav', true); popHeart(`.card[data-id="${id}"] .heart`); }
-  } else lastTap = {t:now, id, x:e.clientX, y:e.clientY};
+    clearTimeout(tapListenT);                                    // beta 63: a double-tap hearts, it doesn't start the voice
+  } else {
+    lastTap = {t:now, id, x:e.clientX, y:e.clientY};
+    // beta 63 (Mike): tap a text card (Daily Text and other text cards) to hear it, tap again to stop. Waits a moment so a double-tap can still heart.
+    if (!card.classList.contains('lcard') && !card.classList.contains('pcard') && card.querySelector(':scope > .acts .listen')){
+      clearTimeout(tapListenT);
+      tapListenT = setTimeout(() => { const on = speakingId !== id; tapFlash(card, on); listen(id); }, 360);
+    }
+  }
 });
+let tapListenT = 0;
+function tapFlash(card, on){                                     // beta 63: a big ▶ / ⏸ that fades, like TikTok's tap to pause
+  if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+  const f = document.createElement('div'); f.className = 'tapflash'; f.textContent = on ? '▶' : '⏸'; card.appendChild(f);
+  setTimeout(() => f.remove(), 700);
+}
 function newStash(id){
   const n = document.getElementById('newStash').value.trim(); if (!n) return;
   const emojis = ['📘','🕊️','💡','🌿','🔥','🧭','🏛️','🎯','🪔','📜'];

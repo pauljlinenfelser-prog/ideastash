@@ -188,6 +188,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 61: back to the top of Today: tap Today again while in Today, or the Top button (shows from the 3rd card).
   Beta 62: Refresh Today at the top of the Shelf (retries what didn't load, drops cards from paused entries,
   starts from the first card). Paused Shelf entries' cards now stay out of Today.
+  Beta 63: tap a text card (the Daily Text and other text cards) to hear it, tap again to stop; a double-tap
+  still hearts it. A big play/pause sign flashes on the card.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
