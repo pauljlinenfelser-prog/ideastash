@@ -183,6 +183,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 59: Mike's own series banners (beta/banners/, originals in art/banners-original/) replace jw.org's
   website banners on Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the
   Family, From Our Archives and Listen to the Bible.
+  Beta 60: Bible Character Cards have their own Shelf entry (🃏), apart from Children's Activities, so each
+  can be paused on its own.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

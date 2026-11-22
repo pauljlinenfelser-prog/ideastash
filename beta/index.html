@@ -412,9 +412,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 59;
+const BETA_NO = 60;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [60, 'Bible Character Cards have their own place on the Shelf (🃏), apart from Children’s Activities, so you can switch either one off on its own.', ''],
   [59, 'New series banners at the top of narrated articles, made for GemStash (an open Bible on a desk, a highlighted verse, a family reading together, and a desk of old photos for From Our Archives). They replace the banners taken from jw.org’s website.', ''],
   [58, 'Narrated articles show their one main picture again. The extra pictures that slid along with the narration are gone: GemStash was gathering them from jw.org’s website, which jw.org’s Terms of Use don’t allow. Cards also load a little lighter.', ''],
   [57, 'Daily Text on iPhone and iPad: the file picker lets you choose the downloaded file (it could be greyed out), and the card explains where Apple keeps it (Files → Downloads, not Apple Books). Clearer messages if the file is wrong or incomplete.', ''],
@@ -609,6 +610,7 @@ function ensureDailyShelf(){
       total: KIND_LIST[kind]().length, lastPull:'', paused:false, added:Date.now()};
     setOrder(s, kind === 'nwt' ? 'seq' : 'random'); db.shelf.push(s);   // (v35) the Bible goes in order
   });
+  db.shelf.forEach(x => { if (x.kind === 'kids' || x.kind === 'cc'){ kidsSplit(x); if (x.kind === 'kids') x.sub = SHELF_KINDS.kids.sub; } });   // beta 60
   // (v5) Watch channels that start on — Morning Worship full length, the rest short clips
   [['VODPgmEvtMorningWorship', 0], ['VODIntExpTransformations', 15], ['VODBiblePrinciples', 5],
    ['VODIntExpBlessings', 15], ['VODIntExpEndurance', 15], ['VODOrgHistory', 15], ['SeriesADayInTheLifeOf', 15], ['CONV_SHORT', 10], ['VODOriginalSongs', 10]].forEach(   // (v30) + A Day in the Life of…; (v31) + short convention videos; (v34) + a music video
@@ -3241,7 +3243,8 @@ const SHELF_KINDS = {
   bjf:   {emoji:'🖼️', title:'Become Jehovah’s Friend Posters', sub:'jw.org · full-screen pictures', unit:'posters'},
   ibs:   {emoji:'🎨', title:'Illustrated Bible Stories', sub:'jw.org PDFs saved on your phone · swipe through the pages', unit:'stories'},
   nwt:   {emoji:'🎧', title:'Listen to the Bible', sub:'jw.org audio · a chapter a day, Genesis to Revelation', unit:'chapters'},   // (v35)
-  kids:  {emoji:'✂️', title:'Children’s Activities', sub:'jw.org · Bible character cards and picture activities to print', unit:'activities'},   // (v33)
+  kids:  {emoji:'✂️', title:'Children’s Activities', sub:'jw.org · picture activities to print', unit:'activities'},   // (v33); beta 60: character cards moved to their own entry
+  cc:    {emoji:'🃏', title:'Bible Character Cards', sub:'jw.org · cards to print and collect', unit:'cards'},   // beta 60 (Mike: so they can be switched off on their own)
   book:  {emoji:'📖'}
 };
 // (v9) every list-based source, in the order they start on the shelf
@@ -3258,7 +3261,16 @@ async function bibleCard(e){
     source:'The Bible (New World Translation) — jw.org audio', image:'', audio:f.file.url, adur:Math.round(f.duration || 0),
     created:Date.now(), stashes:[], full:true};
 }
-const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST, kids:() => KIDS_LIST, nwt:() => NWT_LIST};
+const KIND_LIST = {qfr:() => QFR_LIST, bqa:() => BQA_LIST, wid:() => WID_LIST, bve:() => BVE_LIST, fam:() => FAM_LIST, arch:() => ARCH_LIST, bjf:() => BJF_LIST, ibs:() => IBS_LIST, kids:() => KIDS_ACT(), nwt:() => NWT_LIST, cc:() => KIDS_CC()};
+// beta 60: KIDS_LIST (sources.js) holds both; the Shelf now has Children's Activities (picture activities) and Bible Character Cards apart
+let _kidsAct, _kidsCC;
+const KIDS_ACT = () => _kidsAct ||= KIDS_LIST.filter(x => x.g !== 'Bible Character Card');
+const KIDS_CC = () => _kidsCC ||= KIDS_LIST.filter(x => x.g === 'Bible Character Card');
+function kidsSplit(it){   // beta 60: an older Children's Activities entry counted all 60; fit it to the 30 activities left
+  const n = KIND_LIST[it.kind] && (it.kind === 'kids' || it.kind === 'cc') ? KIND_LIST[it.kind]().length : 0;
+  if (!n || it.total === n) return;
+  it.total = n; it.pos = Math.min(it.pos || 0, n); setOrder(it, it.order || 'random');
+}
 const KIND_INFO = {
   wid:  {topic:'Science',   source:'Was It Designed? — jw.org'},
   bve:  {topic:'Spiritual', source:'Bible Verses Explained — jw.org'},
@@ -3530,7 +3542,7 @@ function posterCard(e){
 }
 // (v33) a printable children's activity from jw.org: its picture, and a link to jw.org's PDF to print
 function kidsCard(e){
-  return {id:uid(), title:e.q, body:`${e.g}: ${e.q} — print it from jw.org’s PDF`, topic:'Spiritual', source:'Children’s Activities — jw.org',
+  return {id:uid(), title:e.q, body:`${e.g}: ${e.q} — print it from jw.org’s PDF`, topic:'Spiritual', source:e.g === 'Bible Character Card' ? 'Bible Character Cards — jw.org' : 'Children’s Activities — jw.org',
     url:e.u, image:e.img, pdf:e.pdf, kids:e.g, created:Date.now(), stashes:[]};
 }
 // (v10) Illustrated Bible Story: pages swiped sideways.
@@ -3686,6 +3698,7 @@ async function doPull(){
           it.pos++;
         }
       } else {
+        kidsSplit(it);   // beta 60
         const list = KIND_LIST[it.kind]();
         it.total = list.length;
         let got = 0, tries = 0; it.wait = false;
@@ -3695,7 +3708,7 @@ async function doPull(){
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
-            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'kids' ? kidsCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : it.kind === 'nwt' ? await bibleCard(we) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
+            const c = it.kind === 'wid' && we.v ? await widVideoCard(we) : it.kind === 'wid' && we.doc ? layeredCard(we) : it.kind === 'bjf' ? posterCard(list[entryIndex(it)]) : it.kind === 'kids' || it.kind === 'cc' ? kidsCard(list[entryIndex(it)]) : it.kind === 'ibs' ? storyCard(list[entryIndex(it)]) : it.kind === 'nwt' ? await bibleCard(we) : LISTEN_SERIES[it.kind] ? listenCard(we, it.kind) : await articleCard(list[entryIndex(it)], it.kind); c.shelfId = it.id; keep(c); got++; }
           catch(e){ if (/fetch|network|abort|timed|Reader returned/i.test(e.message)) throw e; } // unreadable page → skip it
           it.pos++;
         }
