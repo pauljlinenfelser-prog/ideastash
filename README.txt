@@ -180,6 +180,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   incomplete file; the problem report notes each Daily Text step.
   Beta 58: narrated articles show their one main picture again; the extra pictures that slid along (Beta 44)
   are gone, because GemStash gathered them from jw.org's website (jw.org's Terms don't allow that).
+  Beta 59: Mike's own series banners (beta/banners/, originals in art/banners-original/) replace jw.org's
+  website banners on Questions From Readers, Bible Questions Answered, Bible Verses Explained, Help for the
+  Family, From Our Archives and Listen to the Bible.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

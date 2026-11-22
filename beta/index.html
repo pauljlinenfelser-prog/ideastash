@@ -412,9 +412,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 58;
+const BETA_NO = 59;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [59, 'New series banners at the top of narrated articles, made for GemStash (an open Bible on a desk, a highlighted verse, a family reading together, and a desk of old photos for From Our Archives). They replace the banners taken from jw.org’s website.', ''],
   [58, 'Narrated articles show their one main picture again. The extra pictures that slid along with the narration are gone: GemStash was gathering them from jw.org’s website, which jw.org’s Terms of Use don’t allow. Cards also load a little lighter.', ''],
   [57, 'Daily Text on iPhone and iPad: the file picker lets you choose the downloaded file (it could be greyed out), and the card explains where Apple keeps it (Files → Downloads, not Apple Books). Clearer messages if the file is wrong or incomplete.', ''],
   [56, 'Illustrated Bible Stories now come from jw.org’s own PDFs, saved on your phone once (Shelf → Illustrated Bible Stories → Download all, then Add them). No pictures are taken from jw.org’s website any more.', ''],
@@ -720,12 +721,12 @@ function layeredCard(e){
 // own narration. Articles jw.org hasn't narrated show the picture and title with a "Read on jw.org" button.
 const JWIMG = 'https://cms-imgp.jw-cdn.org/img/p/';
 const LISTEN_SERIES = {
-  qfr:  {name:'Questions From Readers',   topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},   // the open Bible (jw.org has no QFR series picture)
-  bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:JWIMG + '1011202/univ/art/1011202_univ_lsr_xl.jpg'},
-  bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'},
-  fam:  {name:'Help for the Family',      topic:'Family',    art:JWIMG + '1011205/univ/art/1011205_univ_lsr_xl.jpg'},
-  arch: {name:'From Our Archives',        topic:'History',   art:JWIMG + '1011720/univ/art/1011720_univ_lsr_xl.jpg'},
-  nwt:  {name:'Listen to the Bible',      topic:'Spiritual', art:JWIMG + '1011703/univ/wpub/1011703_univ_lsr_xl.jpg'}};   // (v35)
+  qfr:  {name:'Questions From Readers',   topic:'Q&A',       art:'banners/bible-desk.webp'},   // beta 59: Mike's own banners (were jw.org website banners)
+  bqa:  {name:'Bible Questions Answered', topic:'Q&A',       art:'banners/bible-desk.webp'},
+  bve:  {name:'Bible Verses Explained',   topic:'Spiritual', art:'banners/bible-verse.webp'},
+  fam:  {name:'Help for the Family',      topic:'Family',    art:'banners/family.webp'},
+  arch: {name:'From Our Archives',        topic:'History',   art:'banners/archives.webp'},
+  nwt:  {name:'Listen to the Bible',      topic:'Spiritual', art:'banners/bible-verse.webp'}};   // (v35)
 function listenCard(e, kind){
   const S = LISTEN_SERIES[kind];
   return {id:uid(), title:e.t || e.q, body:'', topic:S.topic, url:e.u, doc:e.doc || '', layered:true, clip:false, lkind:kind,
