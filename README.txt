@@ -186,6 +186,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 60: Bible Character Cards have their own Shelf entry (🃏), apart from Children's Activities, so each
   can be paused on its own.
   Beta 61: back to the top of Today: tap Today again while in Today, or the Top button (shows from the 3rd card).
+  Beta 62: Refresh Today at the top of the Shelf (retries what didn't load, drops cards from paused entries,
+  starts from the first card). Paused Shelf entries' cards now stay out of Today.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

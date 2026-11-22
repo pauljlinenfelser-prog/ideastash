@@ -414,9 +414,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 61;
+const BETA_NO = 62;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [62, '🔄 Refresh Today, at the top of the Shelf: tries again anything that didn’t load, takes out cards from Shelf entries you’ve paused, and starts Today from the first card.', ''],
   [61, 'Back to the top of Today: tap ✨ Today at the bottom while you’re in Today, or tap ⬆ Top, which shows up once you’re a few cards down.', ''],
   [60, 'Bible Character Cards have their own place on the Shelf (🃏), apart from Children’s Activities, so you can switch either one off on its own.', ''],
   [59, 'New series banners at the top of narrated articles, made for GemStash (an open Bible on a desk, a highlighted verse, a family reading together, and a desk of old photos for From Our Archives). They replace the banners taken from jw.org’s website.', ''],
@@ -629,16 +630,18 @@ function ensureDailyShelf(){
 }
 function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
 function dailyTextUrl(){ const d = new Date(); return `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+// beta 62: a card from a Shelf entry you've paused stays out of Today (it's still in Treasures if you kept it)
+function shelfPaused(i){ if (!i || !i.shelfId) return false; const it = (db.shelf || []).find(x => x.id === i.shelfId); return !!(it && it.paused); }
 function ensureDaily(){
   const t = today();
   if (db.daily.date !== t) db.daily = {date:t, ids:[]};
   const dt = todaysText();
   // slot 1 is always today's text (or its retry card); 4 more ideas fill the rest
-  const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt).map(i => i.id);
-  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id)])].slice(0, Math.max(4, shelfIds.length));
+  const shelfIds = db.ideas.filter(i => i.pulledOn === t && i !== dt && !shelfPaused(i)).map(i => i.id);   // beta 62: not from a paused Shelf entry
+  let ids = [...new Set([...shelfIds, ...db.daily.ids.filter(id => findIdea(id) && id !== dt?.id && !shelfPaused(findIdea(id)))])].slice(0, Math.max(4, shelfIds.length));
   if (ids.length < 4){
-    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !db.seen[i.id] && !(i.url && db.syncU && db.syncU.s[i.url]) && !ids.includes(i.id) && !resting(i));
-    const all = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !ids.includes(i.id));
+    const pool = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !shelfPaused(i) && !db.seen[i.id] && !(i.url && db.syncU && db.syncU.s[i.url]) && !ids.includes(i.id) && !resting(i));
+    const all = db.ideas.filter(i => i !== dt && isJwGem(i) && !i.video && !i.link && !shelfPaused(i) && !ids.includes(i.id));
     const awake = all.filter(i => !resting(i));                                   // beta 25
     const pick = (pool.length >= 4-ids.length ? shuffle(pool) : awake.length >= 4-ids.length ? shuffle(awake) : byRest(all)).slice(0, 4-ids.length);
     ids.push(...pick.map(i=>i.id));
@@ -1016,7 +1019,7 @@ async function renderFeed(){
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
   { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * circEvery()), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
-  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i)));   // beta 25
+  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i) && !shelfPaused(i)));   // beta 25
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -1027,6 +1030,12 @@ async function renderFeed(){
 }
 // (v47) Mike: the home-screen menu doesn't show on his phone, so a 📖 button at the top of Today does the same
 // beta 61 (Mike): back to the top of Today. A jump, not a glide, so the cards in between don't start playing on the way.
+// beta 62 (Mike): 🔄 Refresh Today on the Shelf. Draws Today again: entries that failed are pulled again (a failed pull never
+// marks the day done), paused entries' cards drop out, and it starts from the first card. No extra cards: each entry gives its share once a day.
+function feedRefresh(){
+  if (layer) layerStop(); document.querySelectorAll('#feed video').forEach(x => x.pause());
+  db.feedSpot = null; save(); tlog('refresh Today'); toast('Refreshing Today…'); go('feed');
+}
 function topBtnShow(){ const b = document.getElementById('topBtn'); if (b) b.hidden = !(currentView === 'feed' && feedIdx(feedCurrent) >= 2); }
 function feedTop(){
   const f = document.getElementById('feed'); if (!f || !f.firstElementChild) return;
@@ -3742,6 +3751,8 @@ function renderShelf(){
   const el = document.getElementById('shelf');
   const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
   el.innerHTML = `
+    <button class="btn alt" style="width:100%;margin:4px 0 2px" onclick="feedRefresh()">🔄 Refresh Today</button>   <!-- beta 62 -->
+    <p style="color:var(--muted);font-size:13px;margin:4px 2px 10px">Tries again anything that didn’t load, applies your Shelf changes, and starts Today from the first card.</p>
     <div class="sec">My Shelf</div>
     ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
     ${db.shelf.map(it => `<button class="shelfitem ${it.paused?'paused':''}" onclick="shelfSheet('${it.id}')">
