@@ -190,6 +190,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   starts from the first card). Paused Shelf entries' cards now stay out of Today.
   Beta 63: tap a text card (the Daily Text and other text cards) to hear it, tap again to stop; a double-tap
   still hearts it. A big play/pause sign flashes on the card.
+  Beta 64: the reading voice no longer says "comma comma comma" first; a moment of silence wakes the speaker.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

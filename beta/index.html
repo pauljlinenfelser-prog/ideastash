@@ -417,9 +417,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 63;
+const BETA_NO = 64;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [64, 'The reading voice no longer starts by saying “comma comma comma”. GemStash now wakes the speaker with a moment of silence instead, so the first words still aren’t cut off.', ''],
   [63, 'Tap the Daily Text (or any text card) to hear it read aloud, and tap again to stop. A double-tap still hearts it.', ''],
   [62, '🔄 Refresh Today, at the top of the Shelf: tries again anything that didn’t load, takes out cards from Shelf entries you’ve paused, and starts Today from the first card.', ''],
   [61, 'Back to the top of Today: tap ✨ Today at the bottom while you’re in Today, or tap ⬆ Top, which shows up once you’re a few cards down.', ''],
@@ -1288,6 +1289,16 @@ async function jwAudioUrl(doc){
 function setListenIcons(){ document.querySelectorAll('.card[data-id] .listen').forEach(b => {
   const id = b.closest('.card').dataset.id; b.textContent = id === speakingId ? '⏹️' : listenIcon(findIdea(id)); }); }
 function stopListening(){ speakingId = null; try { speechSynthesis.cancel(); } catch(e){} if (jwAudio){ jwAudio.pause(); jwAudio = null; } setListenIcons(); }
+// beta 64: wake the speaker (or Bluetooth) with half a second of real silence, so the voice's first words aren't cut off.
+// Replaces Beta 29's spoken ', , ,' pause, which Samsung's voice read out as "comma comma comma".
+let wakeCtx = null;
+function wakeSpeaker(ms = 500){
+  try { const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    wakeCtx ||= new C(); if (wakeCtx.state === 'suspended') wakeCtx.resume();
+    const b = wakeCtx.createBuffer(1, Math.ceil(wakeCtx.sampleRate * ms / 1000), wakeCtx.sampleRate), src = wakeCtx.createBufferSource();
+    src.buffer = b; src.connect(wakeCtx.destination); src.start();
+  } catch(e){ tlog('wake speaker: ' + (e.message || e)); }
+}
 async function listen(id){
   if (speakingId === id) return stopListening();
   stopListening();
@@ -1314,11 +1325,11 @@ async function listen(id){
   const parts = [i.title, ...i.body.split(/\n+/).map(x => x.replace(/^(## |• )/, ''))].map(forVoice).filter(Boolean).flatMap(p => sentences(speakable(p))).filter(s => /\w/.test(s));
   const voice = speechSynthesis.getVoices().find(v => /^en[-_]US/i.test(v.lang) && /Google/i.test(v.name)) ||
                 speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
-  speakingId = id; setListenIcons();
+  speakingId = id; setListenIcons(); wakeSpeaker();   // beta 64
   // beta 29 (Mike): the phone's voice always missed the first few words. Android wakes its speaker (or Bluetooth) only
   // when speech starts, and drops speech sent straight after a stop. So wait a moment, then say a short silent pause first.
   setTimeout(() => { if (speakingId !== id) return;
-  const warm = new SpeechSynthesisUtterance(', , ,'); if (voice) warm.voice = voice; warm.volume = 0.05; speechSynthesis.speak(warm);
+  // beta 64 (Mike: it said "comma comma comma"): no spoken warm-up any more; wakeSpeaker() played real silence before this wait
   parts.forEach((p, n) => {
     const u = new SpeechSynthesisUtterance(p);
     if (voice) u.voice = voice;
@@ -1327,7 +1338,7 @@ async function listen(id){
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled' && speakingId === id) stopListening(); };
     speechSynthesis.speak(u);
   });
-  }, 350);
+  }, 500);   // beta 64: half a second, while the silence wakes the speaker
 }
 
 /* ================= volume (beta 53) ================= */
