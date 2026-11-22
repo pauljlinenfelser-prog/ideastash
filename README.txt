@@ -178,6 +178,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 57: Daily Text on iPhone/iPad: picker accepts any file there (the EPUB filter can grey it out), the card
   says to tap Download (not Open in Books) and pick from Files > Downloads; plain messages for a wrong or
   incomplete file; the problem report notes each Daily Text step.
+  Beta 58: narrated articles show their one main picture again; the extra pictures that slid along (Beta 44)
+  are gone, because GemStash gathered them from jw.org's website (jw.org's Terms don't allow that).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

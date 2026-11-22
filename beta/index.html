@@ -412,9 +412,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 57;
+const BETA_NO = 58;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [58, 'Narrated articles show their one main picture again. The extra pictures that slid along with the narration are gone: GemStash was gathering them from jw.org’s website, which jw.org’s Terms of Use don’t allow. Cards also load a little lighter.', ''],
   [57, 'Daily Text on iPhone and iPad: the file picker lets you choose the downloaded file (it could be greyed out), and the card explains where Apple keeps it (Files → Downloads, not Apple Books). Clearer messages if the file is wrong or incomplete.', ''],
   [56, 'Illustrated Bible Stories now come from jw.org’s own PDFs, saved on your phone once (Shelf → Illustrated Bible Stories → Download all, then Add them). No pictures are taken from jw.org’s website any more.', ''],
   [55, 'Auto-scroll moves on after a video even when the phone doesn’t report that the video has finished (it stops in its last few seconds). The problem report also notes what each video did.', ''],
@@ -428,7 +429,7 @@ const BETA_NEWS = [
   [47, 'Sync fix: if you signed in on the PC first, signing in on the phone (where your circle is) now keeps your circle, and the PC asks you to sign in once more to join it.', ''],
   [46, 'Sync between your devices: in More, tap “Sign in with Google and sync” on your phone and on your PC (the same Google account). Hearts, gems and tags, your shelf and how far along you are, what you’ve finished and seen, your settings and streak stay the same on both, and your daily scrolling time counts both. The Daily Text download and PDF/EPUB books stay on each device.', ''],
   [45, 'How-to videos: seven short videos with music, one for each part of GemStash. Find them in More (🎬 How-to videos) and at the top of “How does GemStash work?”.', ''],
-  [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays.', ''],
+  [44, 'Narrated articles that have several pictures on jw.org now show them as a picture set: swipe sideways, or let them move along by themselves while the narration plays. (Removed in Beta 58: jw.org’s Terms.)', ''],
   [43, 'Messages: on the Circle tab, tap someone under 💬 Messages to chat with them (words and photos). Only the two of you can read it. New messages ring the 🔔. A parent’s PIN locks messages too.', ''],
   [42, 'A 🔔 at the top tells you when someone joins your circle or asks to, shares photos, or comments on yours. Tap it to see the list; tap an alert to go there.', ''],
   [41, 'Shared photos moved to Treasures: yours are in “My treasures”, everyone else’s in “From my circle”. The Circle tab is now just your people and settings.', ''],
@@ -752,7 +753,9 @@ async function layerMedia(i){
   i.audio = mp3 ? mp3.file.url : ''; i.adur = mp3 ? Math.round(mp3.duration || 0) : 0; i.clipSrc = clip ? clip.file.url : ''; i.clip = !!clip; save();   // beta 6: flag and address kept apart
   return i;
 }
-async function articlePics(i){
+// BETA 58 (Mike, 2026-11-22): RETIRED. It searched jw.org's picture server for each article's numbered pictures, which jw.org's
+// Terms forbid (tools that collect images from the site). Kept for reference; nothing calls it. Each card shows its one main picture.
+async function articlePics_retired(i){
   if (!i || !i.doc || i.apics !== undefined || i.lkind === 'nwt' || i.link) return i;
   if (i._apicsBusy) return i; i._apicsBusy = true;
   const tryImg = u => new Promise(r => { const im = new Image(); im.onload = () => r(im.naturalWidth > 50 ? u : ''); im.onerror = () => r(''); im.src = u; setTimeout(() => r(''), 12000); });
@@ -776,7 +779,7 @@ async function articlePics(i){
   delete i._apicsBusy; i.apics = keep; save(); tlog(`pictures for ${i.doc}: ${keep.length}${i.apicsMainDup ? ' (main picture is one of them)' : ''}`);
   return i;
 }
-const heroPics = i => [...(i.image && !(i.apicsMainDup && (i.apics || []).length) ? [i.image] : []), ...(i.apics || [])];
+const heroPics = i => i.image ? [i.image] : [];   // beta 58: main picture only (saved i.apics from Beta 44 are ignored)
 function heroHTML(i){
   const pics = heroPics(i);
   if (pics.length < 2) return `<img src="${esc(i.image)}" alt="" onerror="heroFallback(this)">`;
@@ -1136,7 +1139,7 @@ function observeFeed(){
     tlog(`on ${feedIdx(s)}/${el.children.length} ${s.className.replace(/\s+/g, '.')} ${slideKey(s).slice(0, 40)}`);   // (v39)
     const c = s.querySelector('.card[data-id]');
     if (c){ db.seen[c.dataset.id] = 1; save(); upgradeCard(c.dataset.id); }
-    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); articlePics(li).then(heroUpgrade).catch(() => {}); layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
+    if (c && c.classList.contains('lcard')){ const li = findIdea(c.dataset.id); /* beta 58: articlePics retired (jw.org Terms) */ layerMedia(li).then(x => { const d = c.querySelector('.ldur'); if (d && x.adur) d.textContent = '· ' + fmtDur(x.adur); const a = c.querySelector('.lsrc'); if (a && x.audio) a.href = x.audio; /* (v43) */ const v = c.querySelector('video.clip'); if (x.clipSrc && v && !v.src){ v.src = x.clipSrc; v.play().catch(() => {}); } }).catch(() => {}); }   // BETA
     if (circleReady()) s.querySelectorAll('.cmt').forEach(loadCount);   // beta 22 (was v19 circles)
     if (vid){ playSlide(s); const v = db.watch.daily.items[s.dataset.n]; if (v){ db.watch.seen[v.lank] = 1;
       const W = db.watch; W.seenCore = W.seenCore || {}; const k = coreTitle(v.title); if (k.length > 12 && !v.series) W.seenCore[k] = today(); save(); } }
