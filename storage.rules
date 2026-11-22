@@ -1,10 +1,16 @@
-// GemStash Storage rules (beta 22): each person's own photos and videos, under posts/<their id>/.
-// Published by Mike in the Firebase console (Storage → Rules → Publish). Needs Firebase Storage switched on (pay-as-you-go plan).
+// GemStash Storage rules: each person's own videos (and photos), under posts/<their id>/<post id>.<ext>.
+// Beta 58 (2026-11-22): only the poster and the people the post is shared with (the post's aud list in Firestore) can read a file.
+// Published in the Firebase console (Storage → Rules → Publish). Needs Firebase Storage switched on (pay-as-you-go plan).
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /posts/{uid}/{file} {
-      allow read: if request.auth != null;
+      function postId() { return file.split('[.]')[0]; }
+      function inAudience() {
+        return firestore.exists(/databases/(default)/documents/posts/$(postId()))
+            && request.auth.uid in firestore.get(/databases/(default)/documents/posts/$(postId())).data.aud;
+      }
+      allow read: if request.auth != null && (request.auth.uid == uid || inAudience());
       allow create, update: if request.auth != null && request.auth.uid == uid
                             && request.resource.size < 60 * 1024 * 1024
                             && request.resource.contentType.matches('(image|video)/.*');
