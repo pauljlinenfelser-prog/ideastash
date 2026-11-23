@@ -254,6 +254,11 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pcard .info{position:absolute;left:0;right:70px;bottom:0;padding:16px 16px 20px;pointer-events:none;background:linear-gradient(transparent,#000b 40%)}
 .pcard .info b{display:block;font-size:17px}
 .pcard .info small{color:#fffb}
+.pdfmiss>div{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff14}.pdfmiss .btn.sm{flex:none;padding:6px 12px;font-size:13px}
+.pdfall summary{cursor:pointer;color:var(--accent);font-weight:600;margin:12px 0 8px}
+.pdfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pdfgrid .pt{background:#ffffff0d;border-radius:10px;overflow:hidden;font-size:11px;text-align:center}
+.pdfgrid .pt img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#0003}.pdfgrid .pt span{display:block;padding:4px 4px 6px}
+.pdfgrid .pt.miss{border:1px dashed #ff8a8a88}.pdfgrid .pt.miss b{display:flex;align-items:center;justify-content:center;aspect-ratio:4/5;font-size:28px;color:#ff8a8a}.pdfgrid .pt.miss small{display:block;color:#ff8a8a;padding-bottom:6px}   /* beta 75 */
 .ibsbox{background:#ffffff0d;border-radius:12px;padding:12px 14px;margin:8px 0 14px;line-height:1.5}.ibsbox p{margin:0 0 10px}.ibsbox .small{color:var(--muted);font-size:13px;margin-top:8px}.ibsbox details{margin-top:6px;color:var(--muted);font-size:14px}.ibsbox .ibs1{padding-left:20px;margin:8px 0 0}.ibsbox .ibs1 li{margin:4px 0}.ibsbox .ibs1 a{color:var(--accent)}   /* beta 56 */
 
 /* BETA: layered card — series art / video / article picture */
@@ -459,9 +464,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 74;
+const BETA_NO = 75;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [75, 'Shelf → Bible Character Cards or Illustrated Bible Stories now shows which ones are missing on this phone, each with its own Download button, and “See all” shows every card or story that’s already on your phone.', ''],
   [74, 'Bible Character Cards show without jw.org’s dashed cut-out line around them (cards you already added are tidied up by themselves).', ''],
   [73, 'Bible Character Cards now come from jw.org’s own PDFs, saved on your phone once (Shelf → Bible Character Cards → Download all, then Add them), like the Illustrated Bible Stories. Swipe for the back of the card. No card pictures are taken from jw.org’s website any more.', ''],
   [72, 'Starting partway through a Bible reading schedule? In the Bible picker, tap ✏️ Mark what I’ve already read: mark chapters one at a time, or choose “Everything up to it” and tap the last chapter you’ve read (your daily reading then carries on from the next one). You can also mark or clear a whole book.', ''],
@@ -4053,9 +4059,24 @@ function ccSetupHTML(){
     ${have < all ? `<button class="btn" onclick="ccDownloadAll(this)">1. ⬇️ Download all from jw.org</button>
     <label class="btn alt" style="display:block;text-align:center;margin-top:10px">2. 📂 Add them
       <input type="file" accept=".pdf,application/pdf" multiple hidden onchange="ccAddFiles(this.files); this.value=''"></label>
-    <p class="small">In the file picker, open Downloads and select all the card PDFs (names like 502016184_E_cnt_1.pdf). About 200 KB each.</p>
-    <details ontoggle="ccOneList(this)"><summary>Download one at a time instead</summary><ul class="ibs1"></ul></details>`
-    : '<p class="small">All the cards are ready. ✓</p>'}</div>`;
+    <p class="small">In the file picker, open Downloads and select all the card PDFs (names like 502016184_E_cnt_1.pdf). About 200 KB each.</p>`
+    : '<p class="small">All the cards are ready. ✓</p>'}${pdfSetHTML('cc')}</div>`;
+}
+// beta 75 (Mike: "29 of 30, how can I tell what's missing? open those folders on the Shelf and see"): the Shelf sheet for a PDF set
+// lists what's missing (each with its own download button) and can show everything that's on this phone.
+function pdfSetHTML(kind){
+  const L = kind === 'cc' ? KIDS_CC().map(e => ({id: e.doc, q: e.q, pdf: e.pdf})) : IBS_LIST.map(e => ({id: e.id, q: e.q, pdf: ''}));
+  const miss = L.filter(e => !ibsHave()[e.id]), have = L.length - miss.length, word = kind === 'cc' ? 'cards' : 'stories';
+  if (miss.some(e => !e.pdf)) setTimeout(pdfMissFill, 0);
+  return `${miss.length && miss.length < L.length ? `<div class="sec" style="margin-top:12px">Missing on this phone (${miss.length})</div>
+    <div class="pdfmiss">${miss.map(e => `<div><span>${esc(e.q)}</span><a class="btn sm" data-pdf="${esc(e.id)}" href="${esc(e.pdf || '#')}" target="_blank" rel="noopener">⬇️ Download</a></div>`).join('')}</div>
+    <p class="small">Then tap “Add them” above and pick ${miss.length === 1 ? 'it' : 'them'}.</p>` : ''}
+    ${have ? `<details class="pdfall"><summary>See all ${L.length} ${word} (${have} on this phone)</summary><div class="pdfgrid">${L.map(e => ibsHave()[e.id]
+      ? `<div class="pt"><img ${picAttr(`ibs:${e.id}:0`)} alt=""><span>${esc(e.q)}</span></div>`
+      : `<div class="pt miss"><b>?</b><span>${esc(e.q)}</span><small>not on this phone</small></div>`).join('')}</div></details>` : ''}`;
+}
+async function pdfMissFill(){   // stories: look up each missing story's PDF link
+  for (const a of document.querySelectorAll('.pdfmiss a[href="#"]')){ try { const u = await ibsPdfUrl(a.dataset.pdf); if (u) a.href = u; } catch(e){} }
 }
 function ibsSetupHTML(){
   const have = ibsCount(), all = IBS_LIST.length;
@@ -4065,8 +4086,8 @@ function ibsSetupHTML(){
     <label class="btn alt" style="display:block;text-align:center;margin-top:10px">2. 📂 Add them
       <input type="file" accept=".pdf,application/pdf" multiple hidden onchange="ibsAddFiles(this.files); this.value=''"></label>
     <p class="small">In the file picker, open Downloads and select all the story PDFs (names like 502016218_E_cnt_1.pdf). About 3 MB each.</p>
-    <details ontoggle="ibsOneList(this)"><summary>Download one at a time instead</summary><ul class="ibs1"></ul></details>`
-    : '<p class="small">All the stories are ready. ✓</p>'}</div>`;
+`
+    : '<p class="small">All the stories are ready. ✓</p>'}${pdfSetHTML('ibs')}</div>`;
 }
 function p0(s){ return s.replace(/^Questions From Readers\s*/i,'').replace(/^[◼■▪•]\s*/,'').trim(); }
 
