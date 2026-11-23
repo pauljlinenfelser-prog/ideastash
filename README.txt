@@ -194,6 +194,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 65: TikTok-style side buttons on every card: heart, comments, save, share, and ... for the rest (full size,
   print, open on jw.org, read aloud, delete). Text cards too (no more bottom row). Videos: small full-screen icon top-right.
   Beta 66: pull down at the top of Today to refresh it (same as Refresh Today).
+  Beta 67: bottom bar = Circle, the GemStash chest (Treasures), Add. Shelf, Refresh Today and Settings are in each card's
+  ... menu (Shelf and Settings also at the top of Treasures). Back to Today: <- Today, the phone's back gesture, or the chest again.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

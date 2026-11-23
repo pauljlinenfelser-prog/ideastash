@@ -70,6 +70,8 @@ nav{display:flex;background:var(--panel);padding:6px 6px calc(var(--safe-b) + 6p
 nav button{flex:1;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);border-radius:12px}
 nav button .ic{font-size:21px;line-height:1}
 nav button.on{color:var(--accent)}
+nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;margin:-22px 0 -2px;filter:drop-shadow(0 3px 6px #000a)}   /* beta 67: the chest sits a bit higher and bigger */
+#homeBtn{white-space:nowrap}
 
 /* feed */
 #feed{padding:0;scroll-snap-type:y mandatory;overscroll-behavior-y:contain}
@@ -348,6 +350,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
 <body>
 <div id="app">
   <header>
+    <button class="pill" id="homeBtn" onclick="go('feed')" title="Back to Today" hidden>← Today</button>   <!-- beta 67 -->
     <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash Beta"> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">BETA</small></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
     <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖<span class="lbl"> Bible</span></button>   <!-- (v47) -->
     <button class="pill vol" id="volBtn" onclick="volPanel()" title="Volume">🔊</button>   <!-- beta 53 -->
@@ -367,12 +370,9 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <section class="view" id="more"></section>
   </main>
   <nav>
-    <button data-v="feed" class="on"><span class="ic">✨</span>Today</button>
-    <button data-v="shelf"><span class="ic">📚</span>Shelf</button>
-    <button data-v="circle"><span class="ic">👥</span>Circle</button>
-    <button data-v="library"><span class="ic"><svg viewBox="0 0 140 112" width="27" height="22"><use href="#chest"/></svg></span>Treasures</button>
+    <button data-v="circle"><span class="ic">👥</span>Circle</button>   <!-- beta 67 (Mike): Circle · GemStash chest (Treasures) · Add -->
+    <button data-v="library" class="chestnav" title="Treasures (tap again for Today)"><img src="logo-chest-128.png" alt=""><span>Treasures</span></button>
     <button data-v="mine"><span class="ic">➕</span>Add</button>
-    <button data-v="more"><span class="ic">⚙️</span>More</button>
   </nav>
 </div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -431,9 +431,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 66;
+const BETA_NO = 67;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [67, 'New bottom bar: 👥 Circle, the GemStash chest for your Treasures, and ➕ Add. Shelf, Refresh Today and Settings are in the ⋯ on any card (and Shelf and Settings at the top of Treasures). To get back to Today: ← Today at the top, your phone’s back gesture, or tap the chest again.', ''],
   [66, 'Pull down to refresh: at the top of Today, pull down and let go when the circle turns orange. It does the same as Refresh Today.', ''],
   [65, 'Every card has the same side buttons, like TikTok: ❤️ heart, 💬 comments, 💎 save, 📤 share, and ⋯ for the rest (full size, print, open on jw.org, read aloud, delete). Text cards like the Daily Text have them too, instead of the row along the bottom. Videos have a small ⛶ in the corner for full screen.', ''],
   [64, 'The reading voice no longer starts by saying “comma comma comma”. GemStash now wakes the speaker with a moment of silence instead, so the first words still aren’t cut off.', ''],
@@ -597,19 +598,24 @@ const isJwGem = i => !!(i && (i.video || /^https?:\/\/([a-z0-9-]+\.)*(jw\.org|gu
 /* ================= navigation ================= */
 let currentView = 'feed';
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => b.dataset.v === 'mine' ? addMine()
-  : b.dataset.v === 'feed' && currentView === 'feed' ? feedTop() : go(b.dataset.v));   // beta 61: Today again = back to the top
+  : b.dataset.v === 'library' && currentView === 'library' ? go('feed') : go(b.dataset.v));   // beta 67: the chest again = back to Today
+// beta 67: the phone's back gesture from Treasures, Circle, Shelf, settings… goes back to Today (one history step while you're away)
+window.addEventListener('popstate', () => { if (currentView !== 'feed') go('feed', 'pop'); });
 // beta 31 (Mike): ➕ Add in the bottom bar is for your own photos (and later videos); adding books moved into the Shelf
 function addMine(){
   if (parentLocked()) return needPin(addMine, 'Sharing photos is locked by a parent.');   // beta 36
   if (circleReady()) return postSheet();
   go('circle'); toast('Set up your circle first, then ➕ Add shares your photos with it');
 }
-function go(v){
+function go(v, how){
+  if (v === 'feed' && how !== 'pop' && currentView !== 'feed' && history.state && history.state.gsAway){ history.back(); return; }   // beta 67: popstate draws Today
+  if (v !== 'feed' && currentView === 'feed') try { history.pushState({gsAway: 1}, ''); } catch(e){}
   currentView = v;
+  { const h = document.getElementById('homeBtn'); if (h) h.hidden = v === 'feed'; }   // beta 67
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
   document.getElementById('volBtn').style.display = v === 'feed' ? '' : 'none'; document.getElementById('volPop').hidden = true;   // beta 53
   document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === (v === 'add' ? 'shelf' : v)));   // beta 31: adding books is part of the Shelf
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));   // beta 67: only Circle and Treasures light up
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
   topBtnShow();   // beta 61
@@ -736,7 +742,14 @@ function cardMenu(id){
   if (i.srcUrl) b.push(link(i.srcUrl, '📥 jw.org’s download of this'));
   if (i.url && /jw\.org/.test(i.url)) b.push(link(i.url, '📖 Open it on jw.org'));
   if (isText) b.push(`<button class="btn alt" style="color:var(--danger)" onclick="closeSheet();delIdea('${id}')">🗑️ Delete</button>`);
-  openSheet(`<h3>${esc(i.title || '')}</h3>${b.join('')}<button class="btn" onclick="closeSheet()">Close</button>`);
+  openSheet(`<h3>${esc(i.title || '')}</h3>${b.join('')}${appMenuHTML()}<button class="btn" onclick="closeSheet()">Close</button>`);
+}
+// beta 67 (Mike): the ⋯ on every card is also the app menu: Shelf, Refresh Today, Settings (the bottom bar lost Today, Shelf and More)
+function appMenuHTML(){
+  return `<div class="sec" style="margin-top:14px">GemStash</div>
+    <button class="btn alt" onclick="closeSheet();go('shelf')">📚 Shelf</button>
+    <button class="btn alt" onclick="closeSheet();feedRefresh()">🔄 Refresh Today</button>
+    <button class="btn alt" onclick="closeSheet();go('more')">⚙️ Settings and help</button>`;
 }
 function cardPic(id){ const st = document.querySelector(`.pcard[data-id="${id}"] .strip`); if (st) openPic(st); }
 function videoMenu(n){
@@ -744,7 +757,7 @@ function videoMenu(n){
   openSheet(`<h3>${esc(v.title)}</h3>
     <button class="btn alt" onclick="closeSheet();videoFullN(${n})">⛶ Full screen (turns sideways)</button>
     <a class="btn alt" style="display:block;text-align:center" href="${esc(finderUrl(v.lank))}" target="_blank" rel="noopener" onclick="closeSheet()">📺 Watch it on jw.org</a>
-    <button class="btn" onclick="closeSheet()">Close</button>`);
+    ${appMenuHTML()}<button class="btn" onclick="closeSheet()">Close</button>`);
 }
 function videoFullN(n){ const b = document.querySelector(`#feed .vslide[data-n="${n}"] .fsb`); if (b) videoFull(b); }
 function openPic(btn){
@@ -2392,7 +2405,7 @@ function cpMenu(id){
     ${mine ? `<button class="btn alt" style="color:var(--danger)" onclick="deletePost('${esc(id)}')">🗑️ Delete it for everyone</button>`
            : `<button class="btn alt" onclick="toggleShow('${esc(p.uid)}');closeSheet()">🙈 Hide ${esc(p.name)}’s photos and videos</button>
               <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(p.uid)}')">Remove ${esc(p.name)} from my circle</button>`}
-    <button class="btn" onclick="closeSheet()">Close</button>`);
+    ${appMenuHTML()}<button class="btn" onclick="closeSheet()">Close</button>`);
 }
 async function deletePost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
@@ -2920,8 +2933,9 @@ function renderLibrary(){
     el.innerHTML = `<div class="sec">Treasures</div>${search}<div class="sec">${l.length} found</div><div class="thumbs">${l.slice(0, 300).map(thumbHTML).join('')}</div>`; return;
   }
   if (libFilter === 'home'){
-    el.innerHTML = `<div class="chestbig"><svg viewBox="0 0 200 120"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#chGlow)"/><use href="#chest" x="40" y="6" width="120" height="110"/>
+    el.innerHTML = `<div class="chestbig"><svg viewBox="0 0 200 120"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#chGlow)"/><image href="logo-chest-320.webp" x="44" y="2" width="112" height="114"/>
         <g fill="#fff4c2"><path d="M34 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><path d="M160 84 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" opacity=".7"/></g></svg></div>
+      <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
       <div class="sec">Your treasures</div>
       <div class="comps">
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
@@ -3840,8 +3854,6 @@ function renderShelf(){
   const el = document.getElementById('shelf');
   const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
   el.innerHTML = `
-    <button class="btn alt" style="width:100%;margin:4px 0 2px" onclick="feedRefresh()">🔄 Refresh Today</button>   <!-- beta 62 -->
-    <p style="color:var(--muted);font-size:13px;margin:4px 2px 10px">Tries again anything that didn’t load, applies your Shelf changes, and starts Today from the first card.</p>
     <div class="sec">My Shelf</div>
     ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
     ${db.shelf.map(it => `<button class="shelfitem ${it.paused?'paused':''}" onclick="shelfSheet('${it.id}')">
