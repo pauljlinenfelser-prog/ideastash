@@ -201,6 +201,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 69: top bar = BETA, alerts, streak in the middle, small Auto on the right; it fades while scrolling or playing
   and comes back on a touch. Volume slider in Settings. A tap during auto-scroll stops it and asks "Continue auto-scroll?".
   Beta 70: slide along the bar of a narrated article or Bible chapter to move back or forward; a tap jumps there.
+  Beta 71: Bible picker shows progress: chapters heard to the end green, books started blue (with a count), finished green.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

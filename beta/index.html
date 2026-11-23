@@ -83,7 +83,13 @@ nav button.on{color:var(--accent)}
 .bnav button{width:36px;height:36px;border-radius:50%;background:#0007;color:#fff;font-size:15px;flex:none}
 .bnav .bname{width:auto;height:auto;border-radius:10px;padding:4px 10px;font-size:17px;font-weight:700;background:#0005;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.bgrid.ch{grid-template-columns:repeat(6,1fr)}
-.bgrid button{padding:10px 4px;border-radius:10px;background:#ffffff10;border:1px solid #ffffff22;color:#eee;font-size:14px}.bgrid button.on{background:var(--accent);color:#000}
+.bgrid button{padding:10px 4px;border-radius:10px;background:#ffffff10;border:1px solid #ffffff22;color:#eee;font-size:14px}
+/* beta 71: started = blue, finished / heard = green, where you are = an orange ring */
+.bgrid button small{display:block;font-size:10px;opacity:.85;margin-top:2px}
+.bgrid button.part{background:#2b4f8a;border-color:#4f86d9;color:#fff}.bgrid button.fin{background:#24704a;border-color:#45b37a;color:#fff}
+.bgrid button.on{outline:3px solid var(--accent);outline-offset:1px}
+.blegend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:0 0 10px}
+.blegend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-left:6px}.blegend i.part{background:#2b4f8a}.blegend i.fin{background:#24704a}.blegend i.on{outline:3px solid var(--accent);outline-offset:-3px}
 nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;margin:-22px 0 -2px;filter:drop-shadow(0 3px 6px #000a)}   /* beta 67: the chest sits a bit higher and bigger */
 #homeBtn{white-space:nowrap}
 
@@ -450,9 +456,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 70;
+const BETA_NO = 71;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [71, 'The Bible book and chapter picker shows how far you’ve come: chapters you’ve heard to the end are green, books you’ve started are blue (with how many chapters), finished books are green, and an orange ring shows where you are.', ''],
   [70, 'Narrated articles and Bible chapters: slide your finger along the bar under the title to move back or forward (a bubble shows the time), or tap a spot to jump there.', ''],
   [69, 'A cleaner top bar: BETA, 🔔 and 🔥 in the middle and a small ▶ Auto on the right. It fades away once you scroll or something plays, and comes back when you touch the screen. 📖 Bible is in Treasures now, and the volume slider is in Settings. During auto-scroll, a tap stops it and asks “Continue auto-scroll?”, tap that to carry on.', ''],
   [68, 'Bible reading: the day’s chapter is always the 3rd item in Today. On the card, ◀ and ▶ go to the previous and next chapter, and tapping the chapter name lets you pick a book and chapter. Also from 📖 Bible reading at the top of Treasures. The reading carries on from wherever you pick.', ''],
@@ -1027,7 +1034,7 @@ async function layerToggle(id){
       if (a.currentTime > 1 && Math.abs(a.currentTime - (i.lpos || 0)) >= 5){ i.lpos = Math.floor(a.currentTime); save(); } };   // (v49)
     const done = (heard, why) => {                          // beta 51: the end, whether the browser noticed it or not
       if (me.over) return; me.over = true; clearInterval(me.dog); if (why) tlog('narration ' + why + ' ' + (i.title || '').slice(0, 30) + ' @' + Math.round(a.currentTime) + '/' + Math.round(i.adur || a.duration || 0));
-      if (heard){ i.lpos = 0; i.heard = true; save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard'); }   // (v49); beta 25
+      if (heard){ i.lpos = 0; i.heard = true; if (i.lkind === 'nwt') bibleHeardMark(i.url); save(); if (i.lkind === 'nwt') addNextBtn(c); else finished(i.id, 'heard'); }   // (v49); beta 25; beta 71
       c.dataset.ended = '1'; if (me.v){ me.v.pause(); } me.stopping = true; if (!a.ended) a.pause(); if (layer === me) layer = null;
       const b = c.querySelector('.lplay'); if (b) b.textContent = heard ? '↻' : '▶'; };
     a.onended = () => done(true);
@@ -2000,6 +2007,7 @@ const SYNC_C = [
       for (const [k, v] of Object.entries(W.seen || {})) o['w|' + k] = v;
       for (const [k, v] of Object.entries(W.seenCore || {})) o['c|' + k] = v;
       for (const k of Object.keys(db.cpHearts || {})) o['h|' + k] = 1;
+      for (const k of Object.keys(db.bibleHeard || {})) o['b|' + k] = 1;   // beta 71: Bible chapters heard
       for (const i of db.ideas) if (i.url && (i.lpos > 0 || i.heard)){ const k = 'l|' + i.url, v = {p: i.lpos || 0, h: !!i.heard}; if (!o[k] || v.h || v.p > o[k].p) o[k] = v; }
     },
     in(k, v){
@@ -2010,6 +2018,7 @@ const SYNC_C = [
         else if (v == null) delete db[key]; else db[key] = v;
       }
       else if (t === 'w|'){ W.seen ||= {}; if (v == null) delete W.seen[key]; else W.seen[key] = v; }
+      else if (t === 'b|'){ db.bibleHeard ||= {}; if (v == null) delete db.bibleHeard[key]; else db.bibleHeard[key] = 1; }   // beta 71
       else if (t === 'c|'){ W.seenCore ||= {}; if (v == null) delete W.seenCore[key]; else W.seenCore[key] = v; }
       else if (t === 'h|'){ db.cpHearts ||= {}; if (v == null) delete db.cpHearts[key]; else db.cpHearts[key] = 1; }
       else if (t === 'l|' && v) db.ideas.filter(i => i.url === key).forEach(i => { i.lpos = v.p; i.heard = v.h; });
@@ -3457,6 +3466,10 @@ const NWT_BOOKS = [['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],
 // beta 68 (Mike): ◀ ▶ on the Bible card, tap the name to pick a book and chapter; also from 📖 Bible reading in Treasures.
 // The reading carries on from wherever you pick (the Shelf entry's place moves with it).
 const nwtIndex = url => NWT_LIST.findIndex(e => e.u === url);
+// beta 71 (Mike): the picker shows your progress. db.bibleHeard = {chapter number in NWT_LIST: 1} for chapters heard to the end (synced).
+function bibleHeardMark(url){ const k = nwtIndex(url); if (k < 0) return; (db.bibleHeard ||= {})[k] = 1; }
+function bibleHeardInit(){ if (db.bibleHeardV) return; db.bibleHeardV = 1; db.bibleHeard ||= {};   // once: chapters already heard before Beta 71
+  db.ideas.forEach(i => { if (i.lkind === 'nwt' && i.heard) bibleHeardMark(i.url); }); save(); }
 async function bibleJump(idx, fromId){
   const it = db.shelf.find(x => x.kind === 'nwt');
   if (!it) return toast('Turn on “Listen to the Bible” on the Shelf first');
@@ -3480,16 +3493,21 @@ function bibleStep(id, d){ const i = findIdea(id); if (!i) return; const k = nwt
 function biblePicker(book, fromId){
   const cur = fromId ? nwtIndex((findIdea(fromId) || {}).url) : -1, curE = cur >= 0 ? NWT_LIST[cur] : null, f = fromId ? `'${fromId}'` : 'null';
   if (!book){
-    const btn = ([name], k) => `<button class="${curE && curE.b === k + 1 ? 'on' : ''}" onclick="biblePicker(${k + 1}, ${f})">${esc(name)}</button>`;
+    bibleHeardInit(); const H = db.bibleHeard || {};
+    const btn = ([name, n], k) => { const st = NWT_LIST.findIndex(e => e.b === k + 1); let got = 0; for (let c = 0; c < n; c++) if (H[st + c]) got++;
+      const cls = (got === n ? 'fin' : got ? 'part' : '') + (curE && curE.b === k + 1 ? ' on' : '');
+      return `<button class="${cls}" onclick="biblePicker(${k + 1}, ${f})">${esc(name)}${got && got < n ? `<small>${got} of ${n}</small>` : got === n ? '<small>✓ done</small>' : ''}</button>`; };
     openSheet(`<h3>📖 Pick a book</h3>
+      <p class="blegend"><i class="part"></i> started <i class="fin"></i> finished <i class="on"></i> where you are</p>
       <div class="sec">Hebrew-Aramaic Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(0, 39).map((x, k) => btn(x, k)).join('')}</div>
       <div class="sec">Christian Greek Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(39).map((x, k) => btn(x, k + 39)).join('')}</div>
       <button class="btn" onclick="closeSheet()">Close</button>`);
     return;
   }
-  const [name, n] = NWT_BOOKS[book - 1], start = NWT_LIST.findIndex(e => e.b === book);
+  bibleHeardInit(); const [name, n] = NWT_BOOKS[book - 1], start = NWT_LIST.findIndex(e => e.b === book);
   openSheet(`<h3>📖 ${esc(name)}</h3><p style="color:var(--muted);margin:0 0 10px">Pick a chapter. It starts playing, and the reading carries on from there each day.</p>
-    <div class="bgrid ch">${Array.from({length: n}, (_, c) => `<button class="${curE && curE.b === book && curE.c === c + 1 ? 'on' : ''}" onclick="closeSheet();bibleJump(${start + c}, ${f})">${c + 1}</button>`).join('')}</div>
+    <p class="blegend"><i class="fin"></i> heard to the end <i class="on"></i> where you are</p>
+    <div class="bgrid ch">${Array.from({length: n}, (_, c) => `<button class="${((db.bibleHeard || {})[start + c] ? 'fin' : '') + (curE && curE.b === book && curE.c === c + 1 ? ' on' : '')}" onclick="closeSheet();bibleJump(${start + c}, ${f})">${c + 1}</button>`).join('')}</div>
     <button class="btn alt" onclick="biblePicker(0, ${f})">← All books</button><button class="btn" onclick="closeSheet()">Close</button>`);
 }
 const NWT_LIST = NWT_BOOKS.flatMap(([name, n], k) => Array.from({length: n}, (_, c) => ({q: `${name} ${c + 1}`, b: k + 1, c: c + 1,
