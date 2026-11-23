@@ -193,6 +193,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 64: the reading voice no longer says "comma comma comma" first; a moment of silence wakes the speaker.
   Beta 65: TikTok-style side buttons on every card: heart, comments, save, share, and ... for the rest (full size,
   print, open on jw.org, read aloud, delete). Text cards too (no more bottom row). Videos: small full-screen icon top-right.
+  Beta 66: pull down at the top of Today to refresh it (same as Refresh Today).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

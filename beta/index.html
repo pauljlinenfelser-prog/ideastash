@@ -72,7 +72,11 @@ nav button .ic{font-size:21px;line-height:1}
 nav button.on{color:var(--accent)}
 
 /* feed */
-#feed{padding:0;scroll-snap-type:y mandatory}
+#feed{padding:0;scroll-snap-type:y mandatory;overscroll-behavior-y:contain}
+.ptr{position:absolute;top:-56px;left:50%;width:44px;height:44px;margin-left:-22px;border-radius:50%;background:var(--panel);box-shadow:0 4px 14px #0008;
+  display:flex;align-items:center;justify-content:center;z-index:6;pointer-events:none;opacity:0;color:#fff;font-size:24px}   /* beta 66 */
+.ptr.ready span{color:var(--accent)}.ptr.spin span{animation:ptrspin .8s linear infinite}
+@keyframes ptrspin{to{transform:rotate(360deg)}}
 .topbtn{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;padding:6px 14px;border-radius:999px;background:#000a;color:#fff;font-size:13px;font-weight:700;box-shadow:0 2px 8px #0006}   /* beta 61 */
 .slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:8px 16px 16px;display:flex}
 .card{flex:1;border-radius:24px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
@@ -355,6 +359,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
   <main>
     <section class="view active" id="feed"></section>
     <button id="topBtn" class="topbtn" hidden onclick="feedTop()" title="Back to the top">⬆ Top</button>   <!-- beta 61 -->
+    <div id="ptr" class="ptr"><span>⟳</span></div>   <!-- beta 66: pull down to refresh -->
     <section class="view" id="shelf"></section>
     <section class="view" id="circle"></section>   <!-- beta 22 -->
     <section class="view" id="library"></section>
@@ -426,9 +431,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 65;
+const BETA_NO = 66;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [66, 'Pull down to refresh: at the top of Today, pull down and let go when the circle turns orange. It does the same as Refresh Today.', ''],
   [65, 'Every card has the same side buttons, like TikTok: ❤️ heart, 💬 comments, 💎 save, 📤 share, and ⋯ for the rest (full size, print, open on jw.org, read aloud, delete). Text cards like the Daily Text have them too, instead of the row along the bottom. Videos have a small ⛶ in the corner for full screen.', ''],
   [64, 'The reading voice no longer starts by saying “comma comma comma”. GemStash now wakes the speaker with a moment of silence instead, so the first words still aren’t cut off.', ''],
   [63, 'Tap the Daily Text (or any text card) to hear it read aloud, and tap again to stop. A double-tap still hearts it.', ''],
@@ -1067,6 +1073,33 @@ function feedRefresh(){
   if (layer) layerStop(); document.querySelectorAll('#feed video').forEach(x => x.pause());
   db.feedSpot = null; save(); tlog('refresh Today'); toast('Refreshing Today…'); go('feed');
 }
+// beta 66 (Mike tried it by instinct): pull down at the top of Today to refresh it (same as Refresh Today).
+// Only when the feed is already at the very top; a circle follows your finger and turns orange when letting go will refresh.
+const PTR_GO = 80;
+(function(){
+  let y0 = null, d = 0;
+  const f = () => document.getElementById('feed'), ind = () => document.getElementById('ptr');
+  const show = () => { const p = ind(); if (!p) return; const k = Math.min(d, 120); p.style.transform = `translateY(${k + 56}px) rotate(${k * 3}deg)`;
+    p.style.opacity = Math.min(1, d / 40); p.classList.toggle('ready', d >= PTR_GO); };
+  const reset = () => { const p = ind(); if (p){ p.style.transition = 'transform .25s, opacity .25s'; p.style.transform = ''; p.style.opacity = 0; p.classList.remove('ready'); setTimeout(() => { p.style.transition = ''; p.classList.remove('spin'); }, 260); } };
+  document.addEventListener('touchstart', e => {
+    const el = f(); y0 = null; d = 0;
+    if (currentView !== 'feed' || !el || el.scrollTop > 2 || fsSlide || e.touches.length !== 1 || !el.contains(e.target)) return;
+    if (e.target.closest('.strip,.hstrip,.seek,input,textarea')) return;
+    y0 = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if (y0 === null) return; const el = f();
+    if (el.scrollTop > 2){ y0 = null; d = 0; reset(); return; }
+    d = Math.max(0, (e.touches[0].clientY - y0) * 0.6); show();
+  }, {passive: true});
+  document.addEventListener('touchend', () => {
+    if (y0 === null) return; y0 = null;
+    if (d >= PTR_GO){ const p = ind(); if (p) p.classList.add('spin'); tlog('pull to refresh'); setTimeout(() => { feedRefresh(); setTimeout(reset, 900); }, 150); }
+    else reset();
+    d = 0;
+  }, {passive: true});
+})();
 function topBtnShow(){ const b = document.getElementById('topBtn'); if (b) b.hidden = !(currentView === 'feed' && feedIdx(feedCurrent) >= 2); }
 function feedTop(){
   const f = document.getElementById('feed'); if (!f || !f.firstElementChild) return;
