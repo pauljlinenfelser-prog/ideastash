@@ -464,9 +464,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 75;
+const BETA_NO = 76;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [76, 'Fixed: 13 of the Bible Character Cards (the older ones, like Paul, Peter, Noah and Samuel) showed only a strip from the middle. Their PDFs are laid out differently. Those cards need adding once more: Shelf → Bible Character Cards shows which ones (their PDFs are still in your Downloads).', ''],
   [75, 'Shelf → Bible Character Cards or Illustrated Bible Stories now shows which ones are missing on this phone, each with its own Download button, and “See all” shows every card or story that’s already on your phone.', ''],
   [74, 'Bible Character Cards show without jw.org’s dashed cut-out line around them (cards you already added are tidied up by themselves).', ''],
   [73, 'Bible Character Cards now come from jw.org’s own PDFs, saved on your phone once (Shelf → Bible Character Cards → Download all, then Add them), like the Illustrated Bible Stories. Swipe for the back of the card. No card pictures are taken from jw.org’s website any more.', ''],
@@ -1123,7 +1124,7 @@ async function renderFeed(){
   }
   toListenCards();                                       // (v26)
   ibsCards();                                            // beta 56
-  ccCards(); ccTrimOld();                                // beta 73; beta 74
+  ccCards(); ccWideFix().then(ccTrimOld);                // beta 73; beta 74; beta 76
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
@@ -3972,7 +3973,18 @@ const ibsCount = () => IBS_LIST.filter(e => ibsHave()[e.id]).length;
 // (IndexedDB 'ibs:<docid>' = [front, back], db.ibsHave[docid] = 2). Not shared or synced; nothing from jw.org's picture server.
 const CC_WAIT = 'This card shows from jw.org’s own PDF, saved on your phone. Add the card PDFs once: Shelf → Bible Character Cards.';
 const ccCount = () => KIDS_CC().filter(e => ibsHave()[e.doc]).length;
-const CC_BOX = {x0: 0.0305, x1: 0.9745, y0: 0.2085, y1: 0.6245};   // beta 74: just inside jw.org's dashed cut-out line (Beta 73 included it)
+const CC_BOX = {x0: 0.0305, x1: 0.9745, y0: 0.2085, y1: 0.6245};
+// beta 76 (Mike: Paul, Timothy, Peter, Samuel, Job, Noah… showed only a middle strip): the 13 older cards (2012, docs 5020124xx) are a wide page
+// that the card nearly fills (under a "Collect and Learn" strip), not a tall page with the card in the middle. Measured on all 30 PDFs.
+const CC_BOX_WIDE = {x0: 0.039, x1: 0.997, y0: 0.113, y1: 0.957};
+const ccWideDoc = d => /^5020124/.test(d);
+async function ccWideFix(){   // once: cards of the wide kind added before Beta 76 were cut wrongly; mark them missing so they can be added again
+  if (db.ccWideFixed) return; db.ccWideFixed = 1;
+  const bad = KIDS_CC().filter(e => ccWideDoc(e.doc) && ibsHave()[e.doc]);
+  for (const e of bad){ try { await idb.del(IBS_KEY(e.doc)); } catch(err){} delete ibsHave()[e.doc]; if (db.ccTrim) delete db.ccTrim[e.doc];
+    Object.keys(IBS_URL).filter(x => x.startsWith(`ibs:${e.doc}:`)).forEach(x => { URL.revokeObjectURL(IBS_URL[x]); delete IBS_URL[x]; }); delete ibsLoading[e.doc]; }
+  save(); if (bad.length){ ccCards(); tlog('cards to add again (wide kind): ' + bad.length); toast(`${bad.length} Bible Character Cards need adding again (they were cut wrongly). Shelf → Bible Character Cards shows which.`); }
+}   // beta 74: just inside jw.org's dashed cut-out line (Beta 73 included it)
 // beta 74 (Mike: no cut-out marks): cards added with Beta 73 kept the dashed line; trim it off them once (pixels at the 2400-wide page size)
 async function ccTrimOld(){
   const done = db.ccTrim || (db.ccTrim = {}), todo = KIDS_CC().filter(e => ibsHave()[e.doc] === 2 && !done[e.doc]);
@@ -4035,7 +4047,8 @@ async function ccAddFiles(files){
       const v1 = page.getViewport({scale: 1}), scale = 2400 / v1.width, vp = page.getViewport({scale});
       const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
       await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
-      const X0 = Math.round(c.width * CC_BOX.x0), X1 = Math.round(c.width * CC_BOX.x1), Y0 = Math.round(c.height * CC_BOX.y0), Y1 = Math.round(c.height * CC_BOX.y1), mid = Math.round((X0 + X1) / 2);
+      const B = v1.width > v1.height ? CC_BOX_WIDE : CC_BOX;   // beta 76: two layouts
+      const X0 = Math.round(c.width * B.x0), X1 = Math.round(c.width * B.x1), Y0 = Math.round(c.height * B.y0), Y1 = Math.round(c.height * B.y1), mid = Math.round((X0 + X1) / 2);
       const half = async (x, w) => { const h = document.createElement('canvas'); h.width = w; h.height = Y1 - Y0;
         h.getContext('2d').drawImage(c, x, Y0, w, Y1 - Y0, 0, 0, w, Y1 - Y0); return new Promise(r => h.toBlob(r, 'image/jpeg', 0.88)); };
       const blobs = [await half(X0, mid - X0), await half(mid, X1 - mid)];

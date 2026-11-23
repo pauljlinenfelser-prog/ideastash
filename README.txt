@@ -208,6 +208,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 74: Bible Character Cards without jw.org's dashed cut-out line (cards already added are trimmed once).
   Beta 75: Shelf > Bible Character Cards / Illustrated Bible Stories lists what's missing on this phone (each with a
   Download button) and "See all" shows everything that's on the phone.
+  Beta 76: the 13 older Bible Character Cards (2012, wide PDF page) are cut out right; ones added before need adding again.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
