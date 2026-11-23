@@ -88,6 +88,9 @@ nav button.on{color:var(--accent)}
 .bgrid button small{display:block;font-size:10px;opacity:.85;margin-top:2px}
 .bgrid button.part{background:#2b4f8a;border-color:#4f86d9;color:#fff}.bgrid button.fin{background:#24704a;border-color:#45b37a;color:#fff}
 .bgrid button.on{outline:3px solid var(--accent);outline-offset:1px}
+.bmark{background:#ffffff0d;border:1px solid var(--accent);border-radius:14px;padding:12px;margin:0 0 12px}.bmark small{display:block;color:var(--muted);margin:8px 0}
+.bmark .seg{display:flex;gap:6px;margin-top:8px}.bmark .seg button{flex:1;padding:8px 6px;border-radius:10px;background:#ffffff10;border:1px solid #ffffff22;color:#eee;font-size:13px}
+.bmark .seg button.on{background:var(--accent);color:#000;font-weight:700}.bgrid.marking button{border-style:dashed}   /* beta 72 */
 .blegend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:0 0 10px}
 .blegend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-left:6px}.blegend i.part{background:#2b4f8a}.blegend i.fin{background:#24704a}.blegend i.on{outline:3px solid var(--accent);outline-offset:-3px}
 nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;margin:-22px 0 -2px;filter:drop-shadow(0 3px 6px #000a)}   /* beta 67: the chest sits a bit higher and bigger */
@@ -456,9 +459,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 71;
+const BETA_NO = 72;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [72, 'Starting partway through a Bible reading schedule? In the Bible picker, tap ✏️ Mark what I’ve already read: mark chapters one at a time, or choose “Everything up to it” and tap the last chapter you’ve read (your daily reading then carries on from the next one). You can also mark or clear a whole book.', ''],
   [71, 'The Bible book and chapter picker shows how far you’ve come: chapters you’ve heard to the end are green, books you’ve started are blue (with how many chapters), finished books are green, and an orange ring shows where you are.', ''],
   [70, 'Narrated articles and Bible chapters: slide your finger along the bar under the title to move back or forward (a bubble shows the time), or tap a spot to jump there.', ''],
   [69, 'A cleaner top bar: BETA, 🔔 and 🔥 in the middle and a small ▶ Auto on the right. It fades away once you scroll or something plays, and comes back when you touch the screen. 📖 Bible is in Treasures now, and the volume slider is in Settings. During auto-scroll, a tap stops it and asks “Continue auto-scroll?”, tap that to carry on.', ''],
@@ -920,7 +924,7 @@ function layeredHTML(i){
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
     <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? heroHTML(i) : ''}<div class="ht">${esc(i.title)}</div>
-      <div class="lmeta">${i.lkind === 'nwt' ? `<span class="bnav"><button title="Previous chapter" onclick="bibleStep('${i.id}', -1)">◀</button><button class="bname" title="Pick a book and chapter" onclick="biblePicker(0, '${i.id}')">${esc(i.title)} ▾</button><button title="Next chapter" onclick="bibleStep('${i.id}', 1)">▶</button></span>` : `<b>${esc(i.title)}</b>`}<small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+      <div class="lmeta">${i.lkind === 'nwt' ? `<span class="bnav"><button title="Previous chapter" onclick="bibleStep('${i.id}', -1)">◀</button><button class="bname" title="Pick a book and chapter" onclick="bibleMark=null;biblePicker(0, '${i.id}')">${esc(i.title)} ▾</button><button title="Next chapter" onclick="bibleStep('${i.id}', 1)">▶</button></span>` : `<b>${esc(i.title)}</b>`}<small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
         <div class="lseek"><div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div><b class="lknob"></b><span class="ltime"></span></div></div></div>
     <div class="side">
       ${railHTML(i, saved)}
@@ -3023,7 +3027,7 @@ function renderLibrary(){
   if (libFilter === 'home'){
     el.innerHTML = `<div class="chestbig"><svg viewBox="0 0 200 120"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#chGlow)"/><image href="logo-chest-320.webp" x="44" y="2" width="112" height="114"/>
         <g fill="#fff4c2"><path d="M34 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><path d="M160 84 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" opacity=".7"/></g></svg></div>
-      <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="biblePicker()">📖 Bible reading</button><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
+      <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="bibleMark=null;biblePicker()">📖 Bible reading</button><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
       <div class="sec">Your treasures</div>
       <div class="comps">
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
@@ -3490,6 +3494,34 @@ async function bibleJump(idx, fromId){
   } else { window._bibleGo = c.id; go('feed'); }                 // from Treasures: Today puts it 3rd and starts it
 }
 function bibleStep(id, d){ const i = findIdea(id); if (!i) return; const k = nwtIndex(i.url); if (k < 0) return; bibleJump(k + d, id); }
+// beta 72 (Mike): for someone who starts partway through a Bible reading schedule, a way to mark chapters as already read.
+// "✏️ Mark what I've read" in the picker: tap chapters one by one, or "Everything up to it" marks Genesis 1 up to the chapter you tap
+// (and the daily reading carries on with the next one). Whole book / clear book buttons too.
+let bibleMark = null;   // null = picking to listen; 'one' = tap marks one chapter; 'upto' = tap marks everything up to it
+function bibleMarkMode(m, book, fromId){ bibleMark = m; biblePicker(book, fromId); }
+function bibleMarkHTML(book, f){
+  if (!bibleMark) return `<button class="btn alt" onclick="bibleMarkMode('one', ${book}, ${f})">✏️ Mark what I’ve already read</button>`;
+  return `<div class="bmark"><b>✏️ Marking what you’ve read</b>
+    <div class="seg"><button class="${bibleMark === 'one' ? 'on' : ''}" onclick="bibleMarkMode('one', ${book}, ${f})">One chapter at a time</button><button class="${bibleMark === 'upto' ? 'on' : ''}" onclick="bibleMarkMode('upto', ${book}, ${f})">Everything up to it</button></div>
+    <small>${bibleMark === 'one' ? 'Tap a chapter to mark it read, or tap again to unmark it.' : 'Tap the last chapter you’ve read: it and everything before it, from Genesis 1, is marked read, and your daily reading carries on from the next one.'}</small>
+    <button class="btn" onclick="bibleMarkMode(null, ${book}, ${f})">✓ Done marking</button></div>`;
+}
+function bibleMarkTap(idx, book, fromId){
+  const H = db.bibleHeard ||= {};
+  if (bibleMark === 'upto'){
+    for (let k = 0; k <= idx; k++) H[k] = 1;
+    const it = db.shelf.find(x => x.kind === 'nwt');
+    if (it && idx + 1 < NWT_LIST.length){ it.order = 'seq'; it.pos = idx + 1; }
+    save(); toast(`Marked up to ${NWT_LIST[idx].q} as read` + (it && idx + 1 < NWT_LIST.length ? `. Your daily reading carries on with ${NWT_LIST[idx + 1].q}` : ''));
+    tlog('bible: marked up to ' + NWT_LIST[idx].q);
+  } else { if (H[idx]) delete H[idx]; else H[idx] = 1; save(); }
+  biblePicker(book, fromId);
+}
+function bibleMarkBook(book, on, fromId){
+  const [, n] = NWT_BOOKS[book - 1], st = NWT_LIST.findIndex(e => e.b === book), H = db.bibleHeard ||= {};
+  for (let c = 0; c < n; c++){ if (on) H[st + c] = 1; else delete H[st + c]; }
+  save(); biblePicker(book, fromId);
+}
 function biblePicker(book, fromId){
   const cur = fromId ? nwtIndex((findIdea(fromId) || {}).url) : -1, curE = cur >= 0 ? NWT_LIST[cur] : null, f = fromId ? `'${fromId}'` : 'null';
   if (!book){
@@ -3497,18 +3529,23 @@ function biblePicker(book, fromId){
     const btn = ([name, n], k) => { const st = NWT_LIST.findIndex(e => e.b === k + 1); let got = 0; for (let c = 0; c < n; c++) if (H[st + c]) got++;
       const cls = (got === n ? 'fin' : got ? 'part' : '') + (curE && curE.b === k + 1 ? ' on' : '');
       return `<button class="${cls}" onclick="biblePicker(${k + 1}, ${f})">${esc(name)}${got && got < n ? `<small>${got} of ${n}</small>` : got === n ? '<small>✓ done</small>' : ''}</button>`; };
-    openSheet(`<h3>📖 Pick a book</h3>
+    openSheet(`<h3>📖 ${bibleMark ? 'Pick a book to mark' : 'Pick a book'}</h3>
       <p class="blegend"><i class="part"></i> started <i class="fin"></i> finished <i class="on"></i> where you are</p>
+      ${bibleMarkHTML(0, f)}
       <div class="sec">Hebrew-Aramaic Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(0, 39).map((x, k) => btn(x, k)).join('')}</div>
       <div class="sec">Christian Greek Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(39).map((x, k) => btn(x, k + 39)).join('')}</div>
-      <button class="btn" onclick="closeSheet()">Close</button>`);
+      <button class="btn" onclick="bibleMark=null;closeSheet()">Close</button>`);
     return;
   }
-  bibleHeardInit(); const [name, n] = NWT_BOOKS[book - 1], start = NWT_LIST.findIndex(e => e.b === book);
-  openSheet(`<h3>📖 ${esc(name)}</h3><p style="color:var(--muted);margin:0 0 10px">Pick a chapter. It starts playing, and the reading carries on from there each day.</p>
-    <p class="blegend"><i class="fin"></i> heard to the end <i class="on"></i> where you are</p>
-    <div class="bgrid ch">${Array.from({length: n}, (_, c) => `<button class="${((db.bibleHeard || {})[start + c] ? 'fin' : '') + (curE && curE.b === book && curE.c === c + 1 ? ' on' : '')}" onclick="closeSheet();bibleJump(${start + c}, ${f})">${c + 1}</button>`).join('')}</div>
-    <button class="btn alt" onclick="biblePicker(0, ${f})">← All books</button><button class="btn" onclick="closeSheet()">Close</button>`);
+  bibleHeardInit(); const [name, n] = NWT_BOOKS[book - 1], start = NWT_LIST.findIndex(e => e.b === book), H = db.bibleHeard || {};
+  const tap = c => bibleMark ? `bibleMarkTap(${start + c}, ${book}, ${f})` : `bibleMark=null;closeSheet();bibleJump(${start + c}, ${f})`;
+  openSheet(`<h3>📖 ${esc(name)}</h3>
+    ${bibleMark ? '' : '<p style="color:var(--muted);margin:0 0 10px">Pick a chapter. It starts playing, and the reading carries on from there each day.</p>'}
+    <p class="blegend"><i class="fin"></i> read <i class="on"></i> where you are</p>
+    ${bibleMarkHTML(book, f)}
+    <div class="bgrid ch${bibleMark ? ' marking' : ''}">${Array.from({length: n}, (_, c) => `<button class="${(H[start + c] ? 'fin' : '') + (curE && curE.b === book && curE.c === c + 1 ? ' on' : '')}" onclick="${tap(c)}">${c + 1}</button>`).join('')}</div>
+    ${bibleMark ? `<div style="display:flex;gap:8px"><button class="btn alt" style="flex:1" onclick="bibleMarkBook(${book}, true, ${f})">✓ All of ${esc(name)} read</button><button class="btn alt" style="flex:1" onclick="bibleMarkBook(${book}, false, ${f})">✕ Clear ${esc(name)}</button></div>` : ''}
+    <button class="btn alt" onclick="biblePicker(0, ${f})">← All books</button><button class="btn" onclick="bibleMark=null;closeSheet()">Close</button>`);
 }
 const NWT_LIST = NWT_BOOKS.flatMap(([name, n], k) => Array.from({length: n}, (_, c) => ({q: `${name} ${c + 1}`, b: k + 1, c: c + 1,
   u: `https://www.jw.org/en/library/bible/study-bible/books/${name.toLowerCase().replace(/ /g, '-')}/${c + 1}/`})));
