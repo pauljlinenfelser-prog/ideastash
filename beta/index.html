@@ -459,9 +459,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 73;
+const BETA_NO = 74;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [74, 'Bible Character Cards show without jw.org’s dashed cut-out line around them (cards you already added are tidied up by themselves).', ''],
   [73, 'Bible Character Cards now come from jw.org’s own PDFs, saved on your phone once (Shelf → Bible Character Cards → Download all, then Add them), like the Illustrated Bible Stories. Swipe for the back of the card. No card pictures are taken from jw.org’s website any more.', ''],
   [72, 'Starting partway through a Bible reading schedule? In the Bible picker, tap ✏️ Mark what I’ve already read: mark chapters one at a time, or choose “Everything up to it” and tap the last chapter you’ve read (your daily reading then carries on from the next one). You can also mark or clear a whole book.', ''],
   [71, 'The Bible book and chapter picker shows how far you’ve come: chapters you’ve heard to the end are green, books you’ve started are blue (with how many chapters), finished books are green, and an orange ring shows where you are.', ''],
@@ -1116,7 +1117,7 @@ async function renderFeed(){
   }
   toListenCards();                                       // (v26)
   ibsCards();                                            // beta 56
-  ccCards();                                             // beta 73
+  ccCards(); ccTrimOld();                                // beta 73; beta 74
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
@@ -3965,7 +3966,23 @@ const ibsCount = () => IBS_LIST.filter(e => ibsHave()[e.id]).length;
 // (IndexedDB 'ibs:<docid>' = [front, back], db.ibsHave[docid] = 2). Not shared or synced; nothing from jw.org's picture server.
 const CC_WAIT = 'This card shows from jw.org’s own PDF, saved on your phone. Add the card PDFs once: Shelf → Bible Character Cards.';
 const ccCount = () => KIDS_CC().filter(e => ibsHave()[e.doc]).length;
-const CC_BOX = {x0: 0.027, x1: 0.979, y0: 0.204, y1: 0.628};   // where the card sits on jw.org's page (the dashed cut-out line)
+const CC_BOX = {x0: 0.0305, x1: 0.9745, y0: 0.2085, y1: 0.6245};   // beta 74: just inside jw.org's dashed cut-out line (Beta 73 included it)
+// beta 74 (Mike: no cut-out marks): cards added with Beta 73 kept the dashed line; trim it off them once (pixels at the 2400-wide page size)
+async function ccTrimOld(){
+  const done = db.ccTrim || (db.ccTrim = {}), todo = KIDS_CC().filter(e => ibsHave()[e.doc] === 2 && !done[e.doc]);
+  for (const e of todo){
+    try {
+      const b = await idb.get(IBS_KEY(e.doc)); if (!b || b.length !== 2){ done[e.doc] = 1; continue; }
+      const cut = async (blob, l, r, t, btm) => { const im = await createImageBitmap(blob), c = document.createElement('canvas');
+        c.width = im.width - l - r; c.height = im.height - t - btm; c.getContext('2d').drawImage(im, l, t, c.width, c.height, 0, 0, c.width, c.height);
+        return new Promise(res => c.toBlob(res, 'image/jpeg', 0.88)); };
+      await idb.set(IBS_KEY(e.doc), [await cut(b[0], 9, 0, 15, 12), await cut(b[1], 0, 11, 15, 12)]);
+      Object.keys(IBS_URL).filter(x => x.startsWith(`ibs:${e.doc}:`)).forEach(x => { URL.revokeObjectURL(IBS_URL[x]); delete IBS_URL[x]; });
+      delete ibsLoading[e.doc]; done[e.doc] = 1;
+    } catch(err){ tlog('card trim failed ' + e.doc); }
+  }
+  if (todo.length){ save(); document.querySelectorAll('img[data-ibs][data-done]').forEach(m => { if (todo.some(e => m.dataset.ibs.startsWith(`ibs:${e.doc}:`))) delete m.dataset.done; }); ibsFill(); }
+}
 function ccCards(){
   let changed = false;
   for (const i of db.ideas){
@@ -4019,7 +4036,7 @@ async function ccAddFiles(files){
       await idb.set(IBS_KEY(e.doc), blobs);
       Object.keys(IBS_URL).filter(x => x.startsWith(`ibs:${e.doc}:`)).forEach(x => { URL.revokeObjectURL(IBS_URL[x]); delete IBS_URL[x]; });
       delete ibsLoading[e.doc];
-      ibsHave()[e.doc] = 2; added++;
+      ibsHave()[e.doc] = 2; (db.ccTrim ||= {})[e.doc] = 1; added++;   // beta 74: already without the cut line
     } catch(err){ other++; tlog('card PDF unreadable ' + f.name); }
   }
   const it = db.shelf.find(x => x.kind === 'cc'); if (it){ it.lastPull = ''; it.error = ''; it.wait = false; }
