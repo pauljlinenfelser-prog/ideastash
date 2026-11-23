@@ -278,6 +278,12 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lcard .lmeta .lsrc{color:#fffb;text-decoration:underline;text-underline-offset:2px}   /* beta 16 */
 .lcard .lbar{height:5px;background:#ffffff33;border-radius:9px;margin-top:10px;overflow:hidden}
 .lcard .lbar i{display:block;height:100%;width:0;background:var(--accent)}
+/* beta 70: slide along a narration's bar (like the videos' bar) */
+.lcard .lseek{position:relative;padding:10px 0 8px;touch-action:none;cursor:pointer}
+.lcard .lseek .lbar{margin-top:0;transition:height .15s}.lcard .lseek.on .lbar{height:9px}
+.lcard .lknob{display:none;position:absolute;top:12px;width:18px;height:18px;margin:-4px 0 0 -9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px #0007;pointer-events:none}
+.lcard .ltime{display:none;position:absolute;bottom:30px;transform:translateX(-50%);background:#000c;color:#fff;font-size:15px;font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap;pointer-events:none}
+.lcard .lseek.on .lknob,.lcard .lseek.on .ltime{display:block}
 .lcard .lnext{margin-top:12px;background:var(--accent);color:#14121f;border:0;border-radius:999px;padding:9px 16px;font-weight:700;font-size:15px;pointer-events:auto;cursor:pointer}   /* (v49) */
 .lcard .side{position:absolute;right:10px;bottom:24px;display:flex;flex-direction:column;gap:10px;z-index:2}
 .lcard .side button,.lcard .side a{width:46px;height:46px;border-radius:50%;background:#0009;font-size:20px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
@@ -444,9 +450,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 69;
+const BETA_NO = 70;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [70, 'Narrated articles and Bible chapters: slide your finger along the bar under the title to move back or forward (a bubble shows the time), or tap a spot to jump there.', ''],
   [69, 'A cleaner top bar: BETA, 🔔 and 🔥 in the middle and a small ▶ Auto on the right. It fades away once you scroll or something plays, and comes back when you touch the screen. 📖 Bible is in Treasures now, and the volume slider is in Settings. During auto-scroll, a tap stops it and asks “Continue auto-scroll?”, tap that to carry on.', ''],
   [68, 'Bible reading: the day’s chapter is always the 3rd item in Today. On the card, ◀ and ▶ go to the previous and next chapter, and tapping the chapter name lets you pick a book and chapter. Also from 📖 Bible reading at the top of Treasures. The reading carries on from wherever you pick.', ''],
   [67, 'New bottom bar: 👥 Circle, the GemStash chest for your Treasures, and ➕ Add. Shelf, Refresh Today and Settings are in the ⋯ on any card (and Shelf and Settings at the top of Treasures). To get back to Today: ← Today at the top, your phone’s back gesture, or tap the chest again.', ''],
@@ -907,7 +914,7 @@ function layeredHTML(i){
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
     <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? heroHTML(i) : ''}<div class="ht">${esc(i.title)}</div>
       <div class="lmeta">${i.lkind === 'nwt' ? `<span class="bnav"><button title="Previous chapter" onclick="bibleStep('${i.id}', -1)">◀</button><button class="bname" title="Pick a book and chapter" onclick="biblePicker(0, '${i.id}')">${esc(i.title)} ▾</button><button title="Next chapter" onclick="bibleStep('${i.id}', 1)">▶</button></span>` : `<b>${esc(i.title)}</b>`}<small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
-        <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div></div></div>
+        <div class="lseek"><div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div><b class="lknob"></b><span class="ltime"></span></div></div></div>
     <div class="side">
       ${railHTML(i, saved)}
     </div></div>`;
@@ -972,6 +979,34 @@ async function nextChapter(btn){
   } catch(e){ btn.disabled = false; btn.textContent = 'Next chapter ▶'; toast('Couldn’t load the next chapter'); }
 }
 // beta 30 (Mike): a card opened from Stashes wouldn't play: ▶ found the hidden copy in Today. The open one comes first now.
+// beta 70 (Mike): slide your finger along a narration's bar (articles and Bible chapters) to move back or forward; a tap jumps.
+// Playing: it moves the narration. Not playing: it starts from that spot.
+(function(){
+  let drag = null;
+  const dur = id => { const i = findIdea(id); return (layer && layer.id === id && layer.a.duration && isFinite(layer.a.duration) ? layer.a.duration : 0) || (i && i.adur) || 0; };
+  const at = (e, sk) => { const r = sk.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
+  const show = (sk, p, d) => { const pc = 100 * p + '%'; sk.querySelector('.lbar i').style.width = pc; sk.querySelector('.lknob').style.left = pc;
+    const t = sk.querySelector('.ltime'); t.style.left = Math.min(85, Math.max(15, 100 * p)) + '%'; t.textContent = fmtDur(p * d) + ' / ' + fmtDur(d); };
+  document.addEventListener('pointerdown', e => {
+    const sk = e.target.closest && e.target.closest('.lcard .lseek'); if (!sk) return;
+    const id = sk.closest('.lcard').dataset.id, d = dur(id);
+    e.preventDefault(); e.stopPropagation();
+    if (!d){ toast('Play it first, then you can slide along it'); return; }
+    try { sk.setPointerCapture(e.pointerId); } catch(err){}
+    drag = {sk, id, d, p: at(e, sk)}; sk.classList.add('on'); show(sk, drag.p, d);
+  }, true);
+  document.addEventListener('pointermove', e => { if (!drag) return; drag.p = at(e, drag.sk); show(drag.sk, drag.p, drag.d); }, true);
+  const end = e => {
+    if (!drag) return; const {sk, id, d} = drag, p = e && e.type === 'pointerup' ? at(e, sk) : drag.p; drag = null; sk.classList.remove('on');
+    const t = Math.min(p * d, Math.max(0, d - 2)), i = findIdea(id); if (!i) return;
+    if (layer && layer.id === id){ layer.a.currentTime = t; i.lpos = Math.floor(t); save(); tlog('narration moved to ' + fmtDur(t)); return; }
+    i.lpos = Math.floor(t) + 3; i.heard = false; save(); delete sk.closest('.lcard').dataset.ended;   // layerToggle starts 3 s before lpos
+    tlog('narration starts at ' + fmtDur(t));
+    Promise.resolve(layerToggle(id)).then(() => { if (layer && layer.id === id && Math.abs(layer.a.currentTime - t) > 4) layer.a.currentTime = t; });   // also near the very end
+  };
+  document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', end, true);
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.lcard .lseek')) e.stopPropagation(); }, true);
+})();
 const lcardEl = id => document.querySelector(`#sheet.on .lcard[data-id="${id}"]`) || document.querySelector(`.lcard[data-id="${id}"]`);
 async function layerToggle(id){
   const c = lcardEl(id); if (!c) return;
