@@ -37,6 +37,14 @@ header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:mi
 .pill.auto{font-weight:600}
 .pill.vol{padding:6px 9px}   /* beta 53 */
 header .pill{white-space:nowrap;flex:none}   /* beta 53: one line, even with 🔊 and 🔔 */
+/* beta 69: three parts; the whole bar fades in Today once you scroll or something plays, and comes back when you touch the screen */
+header{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;padding-top:calc(var(--safe-t) + 8px);padding-bottom:8px;transition:opacity .35s}
+header .hl{justify-self:start;min-width:0}header .hc{justify-self:center;display:flex;align-items:center;gap:8px}header .hr{justify-self:end}
+header.faded{opacity:0;pointer-events:none}
+.betab{font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
+header .pill.auto{padding:4px 10px;font-size:12px}
+.autoask{position:fixed;left:50%;bottom:calc(var(--safe-b) + 96px);transform:translateX(-50%);z-index:25;background:var(--accent);color:#000;font-weight:700;font-size:15px;
+  padding:12px 20px;border-radius:999px;box-shadow:0 6px 20px #000a;white-space:nowrap}.autoask[hidden]{display:none}
 header h1{min-width:0;white-space:nowrap}
 @media (max-width:440px){ header{gap:6px;padding-left:12px;padding-right:12px} header .pill{padding:6px 10px} header .pill.vol{padding:6px 8px} #bibleBtn .lbl{display:none} }
 .volpop{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 62px);z-index:30;display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--accent);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px #0008}
@@ -356,15 +364,14 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
 <body>
 <div id="app">
   <header>
-    <button class="pill" id="homeBtn" onclick="go('feed')" title="Back to Today" hidden>← Today</button>   <!-- beta 67 -->
-    <h1><img class="logo" src="logo-chest-128.png" alt="GemStash" title="GemStash Beta"> <small style="font-size:11px;background:#ff6b8b;color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">BETA</small></h1>   <!-- (v48) Mike's treasure chest instead of the word -->
-    <button class="pill" id="bibleBtn" onclick="openBible()" title="Today’s Bible reading">📖<span class="lbl"> Bible</span></button>   <!-- (v47) -->
-    <button class="pill vol" id="volBtn" onclick="volPanel()" title="Volume">🔊</button>   <!-- beta 53 -->
-    <button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button>   <!-- (v18) -->
-    <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none">🔔<b id="bellN"></b></button>   <!-- beta 42 -->
-    <span class="pill" id="streak">🔥 0</span>
+    <!-- beta 69 (Mike): ← Today on the left (other screens), BETA 🔔 🔥 in the middle, a small Auto on the right; the chest, 📖 and 🔊 are gone -->
+    <div class="hl"><button class="pill" id="homeBtn" onclick="go('feed')" title="Back to Today" hidden>← Today</button></div>
+    <div class="hc"><small class="betab">BETA</small>
+      <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none">🔔<b id="bellN"></b></button>
+      <span class="pill" id="streak">🔥 0</span></div>
+    <div class="hr"><button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button></div>
   </header>
-  <div id="volPop" class="volpop" hidden><span>🔈</span><input id="volRange" type="range" min="0" max="100" step="5" oninput="setVol(this.value)" aria-label="Volume"><span>🔊</span><b id="volPct"></b></div>   <!-- beta 53 -->
+  <button id="autoAsk" class="autoask" hidden onclick="autoAskGo()">▶ Continue auto-scroll?</button>   <!-- beta 69 -->
   <main>
     <section class="view active" id="feed"></section>
     <button id="topBtn" class="topbtn" hidden onclick="feedTop()" title="Back to the top">⬆ Top</button>   <!-- beta 61 -->
@@ -437,9 +444,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 68;
+const BETA_NO = 69;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [69, 'A cleaner top bar: BETA, 🔔 and 🔥 in the middle and a small ▶ Auto on the right. It fades away once you scroll or something plays, and comes back when you touch the screen. 📖 Bible is in Treasures now, and the volume slider is in Settings. During auto-scroll, a tap stops it and asks “Continue auto-scroll?”, tap that to carry on.', ''],
   [68, 'Bible reading: the day’s chapter is always the 3rd item in Today. On the card, ◀ and ▶ go to the previous and next chapter, and tapping the chapter name lets you pick a book and chapter. Also from 📖 Bible reading at the top of Treasures. The reading carries on from wherever you pick.', ''],
   [67, 'New bottom bar: 👥 Circle, the GemStash chest for your Treasures, and ➕ Add. Shelf, Refresh Today and Settings are in the ⋯ on any card (and Shelf and Settings at the top of Treasures). To get back to Today: ← Today at the top, your phone’s back gesture, or tap the chest again.', ''],
   [66, 'Pull down to refresh: at the top of Today, pull down and let go when the circle turns orange. It does the same as Refresh Today.', ''],
@@ -620,8 +628,7 @@ function go(v, how){
   currentView = v;
   { const h = document.getElementById('homeBtn'); if (h) h.hidden = v === 'feed'; }   // beta 67
   document.getElementById('autoBtn').style.display = v === 'feed' ? '' : 'none';   // (v18) only in Today
-  document.getElementById('volBtn').style.display = v === 'feed' ? '' : 'none'; document.getElementById('volPop').hidden = true;   // beta 53
-  document.getElementById('bibleBtn').style.display = v === 'feed' ? '' : 'none';  // (v47)
+  { const a = document.getElementById('autoAsk'); if (a && v !== 'feed') a.hidden = true; }   // beta 69 (📖 and 🔊 left the top bar)
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));   // beta 67: only Circle and Treasures light up
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id===v));
   if (v !== 'feed') document.querySelectorAll('#feed video').forEach(x => x.pause());   // (v8) videos live in Today now
@@ -1127,6 +1134,18 @@ const PTR_GO = 80;
     d = 0;
   }, {passive: true});
 })();
+// beta 69: the top bar fades in Today once you're past the first card or something plays (or auto-scroll runs);
+// touching the screen brings it back for a few seconds. Other screens and open sheets always show it.
+let hdrUntil = 0;
+const hdrPlaying = () => !!(layer || speakingId || [...document.querySelectorAll('#feed video:not(.clip):not(.art)')].some(v => !v.paused));
+function hdrTick(){
+  const h = document.querySelector('header'); if (!h) return;
+  const sheet = document.getElementById('sheet'), show = currentView !== 'feed' || (sheet && sheet.classList.contains('on')) || performance.now() < hdrUntil
+    || (feedIdx(feedCurrent) <= 0 && !hdrPlaying() && !autoOn);
+  h.classList.toggle('faded', !show);
+}
+setInterval(hdrTick, 400);
+['touchstart', 'mousedown'].forEach(ev => document.addEventListener(ev, () => { hdrUntil = performance.now() + 3500; hdrTick(); }, {passive: true, capture: true}));
 function topBtnShow(){ const b = document.getElementById('topBtn'); if (b) b.hidden = !(currentView === 'feed' && feedIdx(feedCurrent) >= 2); }
 function feedTop(){
   const f = document.getElementById('feed'); if (!f || !f.firstElementChild) return;
@@ -1438,9 +1457,9 @@ function applyVol(){
   if (typeof jwAudio !== 'undefined' && jwAudio) jwAudio.volume = v;
   const b = document.getElementById('volBtn'); if (b) b.textContent = v === 0 ? '🔇' : v < 0.5 ? '🔉' : '🔊';
 }
-function setVol(p){ db.vol = Math.max(0, Math.min(100, +p)) / 100; document.getElementById('volPct').textContent = Math.round(db.vol * 100) + '%'; applyVol(); clearTimeout(setVol.t); setVol.t = setTimeout(save, 400); }
-function volPanel(){
-  const p = document.getElementById('volPop'); p.hidden = !p.hidden; if (p.hidden) return;
+function setVol(p){ db.vol = Math.max(0, Math.min(100, +p)) / 100; { const t = document.getElementById('volPct'); if (t) t.textContent = Math.round(db.vol * 100) + '%'; } applyVol(); clearTimeout(setVol.t); setVol.t = setTimeout(save, 400); }
+function volPanel(){   // beta 69: retired (the slider is in Settings); kept so old calls do nothing harmful
+  const p = document.getElementById('volPop'); if (!p) return; p.hidden = !p.hidden; if (p.hidden) return;
   document.getElementById('volRange').value = Math.round(vol() * 100); document.getElementById('volPct').textContent = Math.round(vol() * 100) + '%';
 }
 document.addEventListener('play', e => { if (e.target && 'volume' in e.target) e.target.volume = vol(); }, true);   // every video as it starts
@@ -1469,13 +1488,24 @@ let autoOn = false, autoState = null, autoHold = 0, autoLast = 0;
 function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn); b.textContent = autoOn ? '⏸ Auto' : '▶ Auto'; }
 function toggleAuto(){
   autoOn = !autoOn; db.auto = autoOn; save(); setAutoButton(); autoState = null; autoHold = 0;
-  toast(autoOn ? 'Auto-scroll on: touch the screen to pause' : 'Auto-scroll off');
+  toast(autoOn ? 'Auto-scroll on: touch the screen to stop' : 'Auto-scroll off'); { const a = document.getElementById('autoAsk'); if (a) a.hidden = true; }   // beta 69
   if (autoOn){ autoLast = performance.now(); requestAnimationFrame(autoTick); }
 }
+// beta 69 (Mike): touching the screen during auto-scroll stops it ("you most likely want it to stop") and asks
+// "Continue auto-scroll?"; one more tap on that starts it again. The touch that stops it doesn't also press what's under it.
+let autoStopAt = 0;
 ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(ev => document.addEventListener(ev, e => {
-  if (!autoOn || e.target.closest && e.target.closest('#autoBtn')) return;
-  autoHold = performance.now() + TOUCH_PAUSE_MS; autoState = null;            // you're in charge for a moment
-}, {passive: true}));
+  if (!autoOn || e.target.closest && e.target.closest('#autoBtn,#autoAsk')) return;
+  autoOn = false; db.auto = false; save(); setAutoButton(); autoState = null; autoHold = 0; autoStopAt = performance.now();
+  tlog('auto: stopped by a touch'); autoAskShow();
+}, {passive: true, capture: true}));
+document.addEventListener('click', e => {
+  if (performance.now() - autoStopAt < 700 && !(e.target.closest && e.target.closest('#autoBtn,#autoAsk'))){ e.stopPropagation(); e.preventDefault(); }
+}, true);
+function autoAskShow(){ const a = document.getElementById('autoAsk'); if (!a || currentView !== 'feed') return; a.hidden = false;
+  { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); }   // no message bubble on top of it
+  clearTimeout(autoAskShow.t); autoAskShow.t = setTimeout(() => { a.hidden = true; }, 10000); }
+function autoAskGo(){ const a = document.getElementById('autoAsk'); if (a) a.hidden = true; if (!autoOn) toggleAuto(); }
 function autoNext(s){
   const f = document.getElementById('feed'), nx = s.nextElementSibling;
   if (!nx){ if (!s._noNext){ s._noNext = 1; tlog('auto: nothing after this one yet'); } return; }   // beta 55: say so in the report
@@ -4299,6 +4329,9 @@ function renderMore(){
     <div class="seg">${LIMITS.map(m => `<button class="${db.limitMin === m ? 'on' : ''}" onclick="setLimitMin(${m})">${m ? m + 'm' : 'None'}</button>`).join('')}</div>
     <p style="color:var(--muted);font-size:13px;line-height:1.5">Used today: ${Math.floor(usedSecs()/60)} min${db.limitMin ? ' of ' + db.limitMin : ''}.
       When it's up, Today ends with a "that's your time" screen. A video you're watching isn't cut off; the limit starts at your next swipe.</p>
+    <div class="sec">🔊 Volume on this device</div>
+    <div class="row" style="display:flex;align-items:center;gap:10px"><span>🔈</span><input id="volRange" type="range" min="0" max="100" step="5" value="${Math.round(vol() * 100)}" oninput="setVol(this.value)" aria-label="Volume" style="flex:1;accent-color:var(--accent)"><span>🔊</span><b id="volPct" style="min-width:42px;text-align:right">${Math.round(vol() * 100)}%</b></div>
+    <p style="color:var(--muted);font-size:13px;margin:4px 2px 12px">How loud GemStash is, under the device’s own volume. Handy on a shared computer; on a phone, leave it at 100% and use the phone’s buttons.</p>   <!-- beta 69 -->
     <div class="sec">Auto-scroll</div>${autoHTML()}
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>

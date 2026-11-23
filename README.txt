@@ -198,6 +198,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   ... menu (Shelf and Settings also at the top of Treasures). Back to Today: <- Today, the phone's back gesture, or the chest again.
   Beta 68: Bible chapter always 3rd in Today; on the card < and > for the previous/next chapter, tap the name to pick a
   book and chapter (also Bible reading in Treasures); the reading carries on from the picked chapter.
+  Beta 69: top bar = BETA, alerts, streak in the middle, small Auto on the right; it fades while scrolling or playing
+  and comes back on a touch. Volume slider in Settings. A tap during auto-scroll stops it and asks "Continue auto-scroll?".
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
