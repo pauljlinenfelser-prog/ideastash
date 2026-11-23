@@ -203,6 +203,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 70: slide along the bar of a narrated article or Bible chapter to move back or forward; a tap jumps there.
   Beta 71: Bible picker shows progress: chapters heard to the end green, books started blue (with a count), finished green.
   Beta 72: mark Bible chapters as already read (one at a time, everything up to a chapter, or a whole book).
+  Beta 73: Bible Character Cards come from jw.org's own PDFs, saved on the phone once (Shelf > Bible Character Cards >
+  Download all, then Add them); front and back from the card in the PDF. Also fixed: PDF cards were seen as repeats.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

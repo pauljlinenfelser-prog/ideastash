@@ -459,9 +459,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 72;
+const BETA_NO = 73;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [73, 'Bible Character Cards now come from jw.org’s own PDFs, saved on your phone once (Shelf → Bible Character Cards → Download all, then Add them), like the Illustrated Bible Stories. Swipe for the back of the card. No card pictures are taken from jw.org’s website any more.', ''],
   [72, 'Starting partway through a Bible reading schedule? In the Bible picker, tap ✏️ Mark what I’ve already read: mark chapters one at a time, or choose “Everything up to it” and tap the last chapter you’ve read (your daily reading then carries on from the next one). You can also mark or clear a whole book.', ''],
   [71, 'The Bible book and chapter picker shows how far you’ve come: chapters you’ve heard to the end are green, books you’ve started are blue (with how many chapters), finished books are green, and an orange ring shows where you are.', ''],
   [70, 'Narrated articles and Bible chapters: slide your finger along the bar under the title to move back or forward (a bubble shows the time), or tap a spot to jump there.', ''],
@@ -735,7 +736,8 @@ function renderStreak(){ document.getElementById('streak').textContent = '🔥 '
 
 /* ================= card ================= */
 // (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
-const ccPics = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) return null;
+const ccPics = i => null;   // beta 73: RETIRED (card front/back came from jw.org's picture server); cards now come from their PDFs
+const ccPics_retired = i => { const m = (i.image || '').match(/\/p\/(\d+)\//); if (!m) return null;
   const u = `https://cms-imgp.jw-cdn.org/img/p/${m[1]}/E/art/${m[1]}_E_cnt_1_xl.jpg`; return [u + '#front', u + '#back']; };   // (v37)
 function posterHTML(i){
   const pics = i.pics || (i.kids === 'Bible Character Card' && ccPics(i)) || [i.image], saved = isGem(i), many = pics.length > 1;
@@ -1114,6 +1116,7 @@ async function renderFeed(){
   }
   toListenCards();                                       // (v26)
   ibsCards();                                            // beta 56
+  ccCards();                                             // beta 73
   ensureDaily();
   const el = document.getElementById('feed');
   const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
@@ -3590,7 +3593,7 @@ function addSourceToShelf(kind){
   const it = {id:uid(), kind, title:SHELF_KINDS[kind].title, sub:SHELF_KINDS[kind].sub, perDay:1, pos:0, total, lastPull:'', paused:false, added:Date.now()};
   setOrder(it, kind==='daily' ? 'seq' : 'random');
   db.shelf.push(it); save(); toast('Added to your shelf'); renderShelf();
-  if (kind === 'ibs') shelfSheet(it.id);   // beta 56: the PDF note and buttons right away
+  if (kind === 'ibs' || kind === 'cc') shelfSheet(it.id);   // beta 56 / 73: the PDF note and buttons right away
 }
 async function addBookToShelf(ix){
   const bk = window._books[ix];
@@ -3839,6 +3842,8 @@ function posterCard(e){
 }
 // (v33) a printable children's activity from jw.org: its picture, and a link to jw.org's PDF to print
 function kidsCard(e){
+  if (e.g === 'Bible Character Card'){ const pics = ibsPics(e.doc);   // beta 73: from jw.org's PDF, saved on this phone
+    return {id:uid(), title:e.q, body: pics ? '' : CC_WAIT, topic:'Spiritual', source:'Bible Character Cards — your jw.org PDF', url:e.u, image:'', pics, pdf:e.pdf, kids:e.g, ccdoc:e.doc, created:Date.now(), stashes:[]}; }
   return {id:uid(), title:e.q, body:`${e.g}: ${e.q} — print it from jw.org’s PDF`, topic:'Spiritual', source:e.g === 'Bible Character Card' ? 'Bible Character Cards — jw.org' : 'Children’s Activities — jw.org',
     url:e.u, image:e.img, pdf:e.pdf, kids:e.g, created:Date.now(), stashes:[]};
 }
@@ -3948,14 +3953,95 @@ async function ibsAddFiles(files){
   }
   const it = db.shelf.find(x => x.kind === 'ibs'); if (it){ it.lastPull = ''; it.error = ''; it.wait = false; }
   save(); ibsCards();
-  const have = Object.keys(ibsHave()).length;
+  const have = ibsCount();
   say(`${have} of ${IBS_LIST.length} stories on this phone.`);
   toast(added ? `${added} ${added === 1 ? 'story' : 'stories'} added${other ? ` (${other} other files skipped)` : ''}` : 'Those weren’t Illustrated Bible Stories PDFs');
   if (it && document.getElementById('sheet').classList.contains('on')) shelfSheet(it.id);
   renderShelf();
 }
+const ibsCount = () => IBS_LIST.filter(e => ibsHave()[e.id]).length;
+// beta 73 (Mike, jw.org Terms clean-up): Bible Character Cards from jw.org's own PDFs, the same way as the Bible stories (Beta 56).
+// Each card's PDF is one page with the card in the middle; GemStash cuts out the card and keeps its front and back halves on this phone
+// (IndexedDB 'ibs:<docid>' = [front, back], db.ibsHave[docid] = 2). Not shared or synced; nothing from jw.org's picture server.
+const CC_WAIT = 'This card shows from jw.org’s own PDF, saved on your phone. Add the card PDFs once: Shelf → Bible Character Cards.';
+const ccCount = () => KIDS_CC().filter(e => ibsHave()[e.doc]).length;
+const CC_BOX = {x0: 0.027, x1: 0.979, y0: 0.204, y1: 0.628};   // where the card sits on jw.org's page (the dashed cut-out line)
+function ccCards(){
+  let changed = false;
+  for (const i of db.ideas){
+    if (i.kids !== 'Bible Character Card') continue;
+    if (!i.ccdoc){ const e = KIDS_CC().find(x => x.u === i.url); if (!e) continue; i.ccdoc = e.doc; }
+    const pics = ibsPics(i.ccdoc), body = pics ? '' : CC_WAIT, src = 'Bible Character Cards — your jw.org PDF';
+    if (i.image || JSON.stringify(i.pics || null) !== JSON.stringify(pics) || i.body !== body || i.source !== src){ i.image = ''; i.pics = pics; i.body = body; i.source = src; changed = true; }
+  }
+  if (changed) save();
+}
+async function ccDownloadAll(btn){
+  const need = KIDS_CC().filter(e => !ibsHave()[e.doc] && e.pdf);
+  if (!need.length) return toast('All the cards are already on this phone');
+  if (btn) btn.disabled = true;
+  let n = 0;
+  for (const e of need){
+    if (btn) btn.textContent = `⬇️ Downloading ${n + 1} of ${need.length}…`;
+    const a = document.createElement('a'); a.href = e.pdf; a.download = ''; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove(); n++;
+    await new Promise(r => setTimeout(r, 900));
+  }
+  if (btn){ btn.disabled = false; btn.textContent = '1. ⬇️ Download all from jw.org'; }
+  toast(`${n} downloads started. When they finish, tap “Add them”.`);
+}
+function ccOneList(det){
+  if (!det.open || det.dataset.ok) return; det.dataset.ok = '1';
+  det.querySelector('.ibs1').innerHTML = KIDS_CC().map(e => ibsHave()[e.doc] ? `<li>✓ ${esc(e.q)}</li>` : `<li><a href="${esc(e.pdf)}" target="_blank" rel="noopener">${esc(e.q)}</a></li>`).join('');
+}
+async function ccAddFiles(files){
+  files = [...(files || [])]; if (!files.length) return;
+  const st = document.getElementById('ccSt'), say = t => { if (st) st.textContent = t; };
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  } catch(e){ return toast('Couldn’t load the PDF reader. Check your connection.'); }
+  let added = 0, other = 0, k = 0;
+  for (const f of files){
+    k++;
+    const m = (f.name || '').match(/(\d{9})/), e = m && KIDS_CC().find(x => x.doc === m[1]);
+    if (!e){ other++; continue; }
+    say(`Adding ${k} of ${files.length}: ${e.q}…`);
+    try {
+      const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise, page = await pdf.getPage(1);
+      const v1 = page.getViewport({scale: 1}), scale = 2400 / v1.width, vp = page.getViewport({scale});
+      const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+      const X0 = Math.round(c.width * CC_BOX.x0), X1 = Math.round(c.width * CC_BOX.x1), Y0 = Math.round(c.height * CC_BOX.y0), Y1 = Math.round(c.height * CC_BOX.y1), mid = Math.round((X0 + X1) / 2);
+      const half = async (x, w) => { const h = document.createElement('canvas'); h.width = w; h.height = Y1 - Y0;
+        h.getContext('2d').drawImage(c, x, Y0, w, Y1 - Y0, 0, 0, w, Y1 - Y0); return new Promise(r => h.toBlob(r, 'image/jpeg', 0.88)); };
+      const blobs = [await half(X0, mid - X0), await half(mid, X1 - mid)];
+      await idb.set(IBS_KEY(e.doc), blobs);
+      Object.keys(IBS_URL).filter(x => x.startsWith(`ibs:${e.doc}:`)).forEach(x => { URL.revokeObjectURL(IBS_URL[x]); delete IBS_URL[x]; });
+      delete ibsLoading[e.doc];
+      ibsHave()[e.doc] = 2; added++;
+    } catch(err){ other++; tlog('card PDF unreadable ' + f.name); }
+  }
+  const it = db.shelf.find(x => x.kind === 'cc'); if (it){ it.lastPull = ''; it.error = ''; it.wait = false; }
+  save(); ccCards();
+  say(`${ccCount()} of ${KIDS_CC().length} cards on this phone.`);
+  toast(added ? `${added} ${added === 1 ? 'card' : 'cards'} added${other ? ` (${other} other files skipped)` : ''}` : 'Those weren’t Bible Character Card PDFs');
+  if (it && document.getElementById('sheet').classList.contains('on')) shelfSheet(it.id);
+  renderShelf();
+}
+function ccSetupHTML(){
+  const have = ccCount(), all = KIDS_CC().length;
+  return `<div class="ibsbox"><p>📄 ${IBS_NOTE.replace('these stories', 'these cards')}</p>
+    <p id="ccSt"><b>${have} of ${all} cards on this phone.</b></p>
+    ${have < all ? `<button class="btn" onclick="ccDownloadAll(this)">1. ⬇️ Download all from jw.org</button>
+    <label class="btn alt" style="display:block;text-align:center;margin-top:10px">2. 📂 Add them
+      <input type="file" accept=".pdf,application/pdf" multiple hidden onchange="ccAddFiles(this.files); this.value=''"></label>
+    <p class="small">In the file picker, open Downloads and select all the card PDFs (names like 502016184_E_cnt_1.pdf). About 200 KB each.</p>
+    <details ontoggle="ccOneList(this)"><summary>Download one at a time instead</summary><ul class="ibs1"></ul></details>`
+    : '<p class="small">All the cards are ready. ✓</p>'}</div>`;
+}
 function ibsSetupHTML(){
-  const have = Object.keys(ibsHave()).length, all = IBS_LIST.length;
+  const have = ibsCount(), all = IBS_LIST.length;
   return `<div class="ibsbox"><p>📄 ${IBS_NOTE}</p>
     <p id="ibsSt"><b>${have} of ${all} stories on this phone.</b></p>
     ${have < all ? `<button class="btn" onclick="ibsDownloadAll(this)">1. ⬇️ Download all from jw.org</button>
@@ -3971,7 +4057,8 @@ let pulling = null;
 function pullShelf(){ return pulling ||= doPull().finally(() => pulling = null); }
 async function doPull(){
   const t = today(); let added = 0;
-  const key = c => c.layered || c.video || c.image ? c.url : c.body;   // (v33) picture cards too   // (v26): listen / video cards have no text, so tell them apart by their jw.org link
+  const key = c => (c.layered || c.video || c.image || c.pics || c.ibs || c.kids || !c.body) && c.url ? c.url : c.body;   // (v33) picture cards too   // (v26): listen / video cards have no text, so tell them apart by their jw.org link
+  // beta 73: PDF cards (stories, character cards) have no text and no website picture: they were all seen as the same card after the first
   const have = new Set(db.ideas.map(key));
   const keep = card => { if (have.has(key(card))) return; have.add(key(card)); card.pulledOn = t; db.ideas.push(card); added++; };
   for (const it of db.shelf){
@@ -4002,6 +4089,7 @@ async function doPull(){
         while (got < it.perDay && it.pos < it.total && tries < it.perDay + 3){
           if (LISTEN_SERIES[it.kind] && it.kind !== 'nwt' && !list[entryIndex(it)].doc){ it.pos++; continue; }   // (v26) narrated articles only
           if (it.kind === 'ibs' && !ibsHave()[list[entryIndex(it)].id]){ it.wait = true; break; }   // beta 56: wait for its PDF
+          if (it.kind === 'cc' && !ibsHave()[list[entryIndex(it)].doc]){ it.wait = true; break; }   // beta 73: same for character cards
           tries++;
           try { const we = list[entryIndex(it)];
             if (it.kind === 'wid' && we.m === 'none') throw new Error('no media');   // BETA 5: nothing to show
@@ -4018,7 +4106,8 @@ async function doPull(){
 }
 function shelfSub(it){
   if (it.kind === 'daily') return 'Always on · first card in Today every day';
-  if (it.kind === 'ibs' && (it.wait || !Object.keys(ibsHave()).length)) return `${Object.keys(ibsHave()).length} of ${IBS_LIST.length} stories on this phone · tap to add the PDFs`;   // beta 56
+  if (it.kind === 'ibs' && (it.wait || !ibsCount())) return `${ibsCount()} of ${IBS_LIST.length} stories on this phone · tap to add the PDFs`;   // beta 56
+  if (it.kind === 'cc' && (it.wait || !ccCount())) return `${ccCount()} of ${KIDS_CC().length} cards on this phone · tap to add the PDFs`;   // beta 73
   const pct = it.total ? Math.round(100 * it.pos / it.total) : 0;
   return `${it.pos} of ${it.total || '…'} · ${it.perDay}/day · ${it.order === 'random' ? 'Random' : 'In order'}${it.total && it.pos >= it.total ? ' · Finished ✓' : ''}`;
 }
@@ -4076,7 +4165,7 @@ function shelfSheet(id){
       <p style="color:var(--muted);font-size:13px">${it.pos} of ${it.total} served. Random never repeats until the end.</p>` : ''}
     ${it.kind === 'daily' ? `<p style="color:var(--muted);font-size:14px;line-height:1.5">Always on. Today's text is the first card in Today every day.
       ${(db.dtYears || []).length ? 'On this phone: ' + db.dtYears.join(', ') + '.' : 'No Daily Text added yet.'}</p>${dtAddHTML()}` : `
-    ${it.kind === 'ibs' ? ibsSetupHTML() : ''}
+    ${it.kind === 'ibs' ? ibsSetupHTML() : it.kind === 'cc' ? ccSetupHTML() : ''}
     <button class="btn alt" onclick="shelfPause('${id}')">${it.paused ? '▶️ Resume' : '⏸️ Pause'}</button>
     ${canOrder ? `<button class="btn alt" onclick="shelfRestart('${id}')">⏮️ Start over</button>` : ''}
     <button class="btn alt" style="color:var(--danger)" onclick="shelfRemove('${id}')">Remove from shelf</button>
