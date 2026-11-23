@@ -67,9 +67,12 @@ service cloud.firestore {
       allow read: if signedIn() && me() in resource.data.aud;
       allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
                     && request.resource.data.aud.size() <= 51 && request.resource.data.kind in ['photo', 'video']
-                    && request.resource.data.keys().hasOnly(['uid', 'name', 'caption', 'kind', 'url', 'path', 'dur', 'at', 'aud']);
-      allow update: if signedIn() && resource.data.uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aud', 'caption'])
-                    && request.resource.data.aud.size() <= 51;
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'caption', 'kind', 'url', 'path', 'dur', 'at', 'aud', 'share'])
+                    && (!('share' in request.resource.data) || request.resource.data.share in ['all', 'some', 'me']);
+      // beta 78: 'share' = who sees it (all = whole circle, some = people picked, me = just me); the owner can change it and aud
+      allow update: if signedIn() && resource.data.uid == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aud', 'caption', 'share'])
+                    && request.resource.data.aud.size() <= 51 && me() in request.resource.data.aud
+                    && (!('share' in request.resource.data) || request.resource.data.share in ['all', 'some', 'me']);
       allow delete: if signedIn() && resource.data.uid == me();
       match /hearts/{hid} {
         allow read: if canSee();

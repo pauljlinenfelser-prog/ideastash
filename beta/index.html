@@ -152,6 +152,10 @@ nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;marg
 .thumb .tt{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:11px;line-height:1.25;color:#fff;font-weight:600;
   background:linear-gradient(transparent,rgba(0,0,0,.85));display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .thumb .tk{position:absolute;top:5px;right:6px;font-size:13px;text-shadow:0 1px 3px #000}
+.thumb .tl{position:absolute;top:5px;left:6px;font-size:12px;background:#000a;border-radius:999px;padding:2px 7px}   /* beta 78: who sees my post */
+#audSeg button{padding:9px 4px;font-size:13px}.audlist{max-height:30vh;overflow:auto;margin:8px 0;background:var(--panel2);border-radius:12px;padding:4px 10px}
+.audlist label{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #ffffff12;font-size:15px}.audlist label:last-child{border:0}.audlist input{width:20px;height:20px;margin:0}
+.audnote{color:var(--muted);font-size:13px;margin:8px 2px}
 .thumb .te{display:grid;place-items:center;height:100%;font-size:34px}
 .mini{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:10px}
 .mini b{display:block;margin-bottom:6px}
@@ -464,7 +468,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 77;
+const BETA_NO = 78;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -2438,18 +2442,65 @@ async function healAud(){                                    // my posts reach e
       const a = await c.get('photos/av_' + me).catch(() => null), miss = a ? ids.filter(u => !(a.aud || []).includes(u)) : [];
       if (miss.length) await c.upd('photos/av_' + me, {aud: c.union(miss)});
     }
-    for (const x of (db.circlePosts || []).filter(x => x.uid === me)){
+    for (const x of (db.circlePosts || []).filter(x => x.uid === me && postShare(x) === 'all')){   // beta 78: not 'some people' or 'just me' posts
       const miss = ids.filter(u => !(x.aud || []).includes(u));
       if (miss.length){ await c.upd('posts/' + x.id, {aud: c.union(miss)}); for (const f of postPhotoIds(x)) await c.upd('photos/' + f, {aud: c.union(miss)}); x.aud = [...(x.aud || []), ...miss]; }   // beta 40: every photo of a set
     }
   } catch(e){ console.warn(e); }
+}
+// ---- beta 78: who sees my own post ----
+// share 'all' = my whole circle, and anyone who joins later (old posts have no share) · 'some' = only the people I ticked · 'me' = just me (kept in My treasures)
+const postShare = p => p && (p.share === 'me' || p.share === 'some') ? p.share : 'all';
+function shareLabel(p){
+  const s = postShare(p), n = (p.aud || []).filter(u => u !== p.uid).length;
+  return s === 'me' ? '🔒 just you' : s === 'some' ? `👤 ${n} ${n === 1 ? 'person' : 'people'}` : 'your circle';
+}
+let audPick = null;                                          // {share, ids: Set, btn: id of the button to relabel}
+const audIds = () => [...audPick.ids].filter(u => people()[u]);
+function audList(me){ return audPick.share === 'me' ? [me] : audPick.share === 'some' ? [me, ...audIds()] : [me, ...peerIds()]; }
+function audBtnLabel(post){
+  const n = audIds().length;
+  if (audPick.share === 'me') return post ? '🔒 Keep it just for me' : 'Save: just me';
+  if (audPick.share === 'some') return n ? `${post ? 'Share' : 'Save'}: ${n} ${n === 1 ? 'person' : 'people'}` : 'Tick who sees it';
+  return post ? 'Share with my circle' : 'Save: whole circle';
+}
+function audDraw(){
+  const box = document.getElementById('audBox'); if (!box || !audPick) return;
+  const ps = Object.entries(people()).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '')), n = peerIds().length;
+  box.innerHTML = `<div class="seg" id="audSeg">${[['all', '👥 Whole circle'], ['some', '👤 Some people'], ['me', '🔒 Just me']].map(([k, l]) => `<button class="${audPick.share === k ? 'on' : ''}" onclick="audSet('${k}')">${l}</button>`).join('')}</div>
+    ${audPick.share === 'some' ? `<div class="audlist">${ps.length ? ps.map(([u, p]) => `<label><input type="checkbox" ${audPick.ids.has(u) ? 'checked' : ''} onchange="audTick('${esc(u)}', this.checked)">${avHTML(u, p.name, 26)} ${esc(p.name)}</label>`).join('') : '<p class="audnote">No one in your circle yet.</p>'}</div>` : ''}
+    <p class="audnote">${audPick.share === 'me' ? 'Only you see it, in Treasures → 📸 My treasures. Share it when you’re ready: ⋯ → Who sees this.'
+      : audPick.share === 'some' ? 'Only the people you tick see it. You can change this later (⋯ → Who sees this).'
+      : `Everyone in your circle (${n} ${n === 1 ? 'person' : 'people'}), and anyone who joins later.`}</p>`;
+  fillAvatars(box);
+  const b = document.getElementById(audPick.btn); if (b && !b.disabled) b.textContent = audBtnLabel(audPick.btn === 'cpGo');
+}
+function audSet(k){ audPick.share = k; audDraw(); }
+function audTick(u, on){ if (on) audPick.ids.add(u); else audPick.ids.delete(u); audDraw(); }
+function audSheet(id){                                       // change who sees one of my posts
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p || p.uid !== db.me.uid) return;
+  audPick = {share: postShare(p), ids: new Set(postShare(p) === 'some' ? (p.aud || []).filter(u => u !== p.uid) : []), btn: 'audGo'};
+  openSheet(`<h3>Who sees this?</h3><div id="audBox"></div>
+    <button class="btn" id="audGo" onclick="saveAud('${esc(id)}')">Save</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+  audDraw();
+}
+async function saveAud(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
+  if (audPick.share === 'some' && !audIds().length) return toast('Tick at least one person, or pick 🔒 Just me');
+  const go = document.getElementById('audGo'); if (go){ go.disabled = true; go.textContent = 'Saving…'; }
+  try {
+    const c = await cb(), aud = audList(c.uid()), share = audPick.share;
+    await c.batch([['upd', 'posts/' + id, {aud, share}], ...postPhotoIds(p).map(f => ['upd', 'photos/' + f, {aud}])]);   // all in one go, so nobody sees a post without its photos
+    p.aud = aud; p.share = share; save(); closeSheet(); renderCirclePosts();
+    toast(share === 'me' ? '🔒 Now just for you' : share === 'some' ? `Shared with ${aud.length - 1} ${aud.length === 2 ? 'person' : 'people'}` : 'Shared with your whole circle');
+  } catch(e){ if (go){ go.disabled = false; go.textContent = audBtnLabel(false); } friendErr(e); }
 }
 // ---- posts ----
 async function loadPosts(){
   try {
     const c = await cb(), me = c.uid();
     const list = (await c.aud('posts', me)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 200);
-    db.circlePosts = list.map(({id, uid, name, caption, kind, url, path, dur, at, aud}) => ({id, uid, name, caption, kind, url, path, dur, at, aud}));
+    db.circlePosts = list.map(({id, uid, name, caption, kind, url, path, dur, at, aud, share}) => ({id, uid, name, caption, kind, url, path, dur, at, aud, share}));   // beta 78: share
     save(); healAud();
     for (const p of db.circlePosts.filter(x => x.uid !== me && people()[x.uid] && people()[x.uid].show !== false).slice().reverse()){   // beta 42
       const n = postPhotoIds(p).length; addAlert('post:' + p.id, '📸', `${p.name} shared ${p.kind === 'video' ? 'a video' : n > 1 ? n + ' photos' : 'a photo'}${p.caption ? ': “' + p.caption + '”' : ''}`, 'post:' + p.id, alertQuiet());
@@ -2491,7 +2542,7 @@ function circlePostHTML(p){
     ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
     : postPhotoIds(p).length > 1 ? setStripHTML(postPhotoIds(p))   // beta 40: a set you swipe sideways
     : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
-  return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours' : 'From ' + who} · your circle</div>
+  return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours · ' + shareLabel(p) : 'From ' + who + ' · your circle'}</div>
     <div class="side" ${parentLocked() ? 'style="display:none"' : ''}><button title="Heart" onclick="cpHeart('${esc(p.id)}', this)">${(db.cpHearts || {})[p.id] ? '❤️' : '🤍'}</button>
       ${commentBtn('post:' + p.id, p.caption || (p.kind === 'video' ? 'Video' : postPhotoIds(p).length > 1 ? 'Photos' : 'Photo'))}
       <button title="More" onclick="cpMenu('${esc(p.id)}')">⋯</button></div>
@@ -2506,7 +2557,8 @@ function cpMenu(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
   const mine = p.uid === db.me.uid;
   openSheet(`<h3>${mine ? 'Your post' : esc(p.name) + '’s post'}</h3>
-    ${mine ? `<button class="btn alt" style="color:var(--danger)" onclick="deletePost('${esc(id)}')">🗑️ Delete it for everyone</button>`
+    ${mine ? `<button class="btn alt" onclick="audSheet('${esc(id)}')">👥 Who sees this: ${shareLabel(p).replace('your circle', 'whole circle')}</button>
+             <button class="btn alt" style="color:var(--danger)" onclick="deletePost('${esc(id)}')">🗑️ Delete it${postShare(p) === 'me' ? '' : ' for everyone'}</button>`
            : `<button class="btn alt" onclick="toggleShow('${esc(p.uid)}');closeSheet()">🙈 Hide ${esc(p.name)}’s photos and videos</button>
               <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(p.uid)}')">Remove ${esc(p.name)} from my circle</button>`}
     ${appMenuHTML()}<button class="btn" onclick="closeSheet()">Close</button>`);
@@ -2544,16 +2596,20 @@ async function photoDataURL(file){                          // shrink until it f
 let pending = null;
 function postSheet(cap){
   pending = null;
-  openSheet(`<h3>Share with my circle</h3>
+  const keep = typeof cap === 'string' && audPick && audPick.btn === 'cpGo' ? audPick : null;   // beta 78: keep the choice when the sheet redraws
+  audPick = keep || {share: 'all', ids: new Set(), btn: 'cpGo'};
+  openSheet(`<h3>Add photos</h3>
     <div id="cpPrev" class="cpprev"><label class="btn" style="display:block;text-align:center">📷 Pick ${CIRCLE_VIDEOS ? 'photos or a video' : 'photos'}
       <input type="file" accept="${CIRCLE_VIDEOS ? 'image/*,video/*' : 'image/*'}" multiple hidden onchange="pickMedia(this.files);this.value=''"></label>
       <p style="color:var(--muted);font-size:13px;margin:6px 2px 0;text-align:center">Pick up to ${PHOTO_SET_MAX} at once: they go in as one set you swipe through.</p></div>
     <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px">${typeof cap === 'string' ? esc(cap) : ''}</textarea>
     <div class="cwarn">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
-    <p style="color:var(--muted);font-size:13px;margin:8px 2px">Seen by the ${peerIds().length} people in your circle who show your posts. Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos can be up to 1 minute.' : 'Photos for now; videos are coming later.'}</p>
+    <p style="color:var(--muted);font-size:13px;margin:8px 2px 2px"><b style="color:#fff">Who sees it?</b> Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos can be up to 1 minute.' : 'Photos for now; videos are coming later.'}</p>
+    <div id="audBox"></div>
     <div id="cpProg" style="display:none" class="cpbar"><i></i></div>
     <button class="btn" id="cpGo" onclick="doPost()">Share with my circle</button>
     <button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+  audDraw();
 }
 async function pickMedia(files){                             // beta 40: one photo, several photos (a set), or one video
   files = files instanceof File ? [files] : [...(files || [])]; if (!files.length) return;
@@ -2606,6 +2662,9 @@ async function shrinkVideo(file, onProg){                    // big phone videos
 }
 async function doPost(){
   if (!pending) return toast('Pick a photo or video first');
+  if (audPick.share === 'some' && !audIds().length) return toast('Tick who sees it, or pick 🔒 Just me');
+  const share = audPick.share, nPick = audIds().length;   // beta 78
+  const done1 = n => share === 'me' ? (n > 1 ? `Saved ${n} photos, just for you` : 'Saved, just for you') : share === 'some' ? `Shared with ${nPick} ${nPick === 1 ? 'person' : 'people'}` : n > 1 ? `Shared ${n} photos with your circle` : 'Shared with your circle';
   const go = document.getElementById('cpGo'), bar = document.getElementById('cpProg'), prog = (p, label) => { bar.style.display = 'block'; bar.firstElementChild.style.width = Math.round(p * 100) + '%'; go.textContent = label; };
   go.disabled = true;
   try {
@@ -2614,8 +2673,8 @@ async function doPost(){
       // beta 40: several photos = one post; each photo is its own photos/ doc (first: the post's id, then <id>_2, _3…)
       const files = pending.files, n = files.length, ids = files.map((_, k) => k ? id + '_' + (k + 1) : id), datas = [];
       for (let k = 0; k < n; k++){ prog(0.05 + 0.35 * k / n, n > 1 ? `Getting photo ${k + 1} of ${n} ready…` : 'Getting it ready…'); datas.push(await photoDataURL(files[k].file)); }
-      const aud = [me, ...peerIds()], caption = (document.getElementById('cpCap').value || '').trim().slice(0, 200);
-      const post = {uid: me, name: db.me.name, caption, kind: 'photo', url: 'fs:' + id, path: n > 1 ? 'set:' + ids.slice(1).join(',') : '', dur: 0, at: c.now(), aud};
+      const aud = audList(me), caption = (document.getElementById('cpCap').value || '').trim().slice(0, 200);
+      const post = {uid: me, name: db.me.name, caption, kind: 'photo', url: 'fs:' + id, path: n > 1 ? 'set:' + ids.slice(1).join(',') : '', dur: 0, at: c.now(), aud, ...(share !== 'all' ? {share} : {})};   // beta 78
       prog(0.4, 'Sending…');
       if (n === 1) await c.batch([['set', 'photos/' + id, {uid: me, aud, data: datas[0]}], ['set', 'posts/' + id, post]]);
       else {
@@ -2628,7 +2687,7 @@ async function doPost(){
       for (let k = 0; k < n; k++){ photoMem[ids[k]] = datas[k]; try { await idb.set('cphoto:' + ids[k], datas[k]); } catch(e){} }
       files.forEach(x => URL.revokeObjectURL(x.url));
       db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
-      closeSheet(); toast(n > 1 ? `Shared ${n} photos with your circle` : 'Shared with your circle'); renderCirclePosts(); return;
+      closeSheet(); toast(done1(n)); audPick = null; renderCirclePosts(); return;
     }
     let blob = pending.kind === 'photo' ? pending.files[0].file : pending.file;
     if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
@@ -2636,12 +2695,12 @@ async function doPost(){
     const ext = pending.kind === 'photo' ? 'jpg' : /webm/.test(blob.type) ? 'webm' : 'mp4', path = `posts/${me}/${id}.${ext}`;
     const url = await c.upload(path, blob, p => prog(pending.kind === 'video' ? 0.5 + p * 0.5 : p, 'Sending…'));
     const post = {uid: me, name: db.me.name, caption: (document.getElementById('cpCap').value || '').trim().slice(0, 200), kind: pending.kind,
-      url, path, dur: pending.dur || 0, at: c.now(), aud: [me, ...peerIds()]};
+      url, path, dur: pending.dur || 0, at: c.now(), aud: audList(me), ...(share !== 'all' ? {share} : {})};
     await c.set('posts/' + id, post);
     db.circlePosts = [{...post, id, at: Date.now()}, ...(db.circlePosts || [])]; save();
-    closeSheet(); toast('Shared with your circle'); renderCirclePosts();
+    closeSheet(); toast(done1(1)); audPick = null; renderCirclePosts();
   } catch(e){
-    go.disabled = false; go.textContent = 'Share with my circle';
+    go.disabled = false; go.textContent = audBtnLabel(true);
     if (/storage|bucket|unauthorized|403|404/i.test(e.code || e.message || '')) toast('Photos and videos aren’t switched on yet: Mike needs to turn on Firebase Storage');
     else friendErr(e);
   }
@@ -3087,7 +3146,8 @@ function postImg(p){ return p.kind === 'video' ? `<video src="${esc(p.url)}#t=0.
 const postPeek = list => list.slice(0, 2).map(postImg).join('');
 function postThumbHTML(p){
   const n = postPhotoIds(p).length, mine = db.me && p.uid === db.me.uid;
-  return `<div class="thumb" onclick="openPost('${esc(p.id)}')">${postImg(p)}${p.kind === 'video' ? '<span class="tk">▶️</span>' : n > 1 ? `<span class="tk">🖼️${n}</span>` : ''}
+  const sh = mine && postShare(p) !== 'all' ? `<span class="tl">${shareLabel(p).replace(/ (just you|people|person)$/, '')}</span>` : '';   // beta 78
+  return `<div class="thumb" onclick="openPost('${esc(p.id)}')">${postImg(p)}${sh}${p.kind === 'video' ? '<span class="tk">▶️</span>' : n > 1 ? `<span class="tk">🖼️${n}</span>` : ''}
     <div class="tt">${esc(p.caption || '')}${mine ? '' : `<small style="display:block;opacity:.8">${esc(p.name || '')}</small>`}</div></div>`;
 }
 function openPost(id){

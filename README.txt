@@ -210,6 +210,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Download button) and "See all" shows everything that's on the phone.
   Beta 76: the 13 older Bible Character Cards (2012, wide PDF page) are cut out right; ones added before need adding again.
   Beta 77: tap a card or story in "See all" to open it (Back to the list returns).
+  Beta 78: who sees my own photos: whole circle, some people, or just me (change it later with ⋯ → Who sees this).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
