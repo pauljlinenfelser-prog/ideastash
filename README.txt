@@ -214,6 +214,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 79: share videos (up to 1 minute) with your circle, some people, or just you.
   Beta 80: edit your own comments (Edit next to Delete); edited ones say "edited".
   Beta 81: edit the words on your own photo or video post (⋯ → ✏️ Edit what it says).
+  Beta 82: on your own post you can Remove anyone's comment.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS

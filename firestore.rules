@@ -85,7 +85,8 @@ service cloud.firestore {
                       && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
         allow update: if signedIn() && resource.data.uid == me() && okText(request.resource.data.text)   // beta 80: edit my comment
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
-        allow delete: if signedIn() && resource.data.uid == me();
+        // beta 82: the writer, or the person who made the post, can delete a comment
+        allow delete: if signedIn() && (resource.data.uid == me() || get(/databases/$(database)/documents/posts/$(pid)).data.uid == me());
       }
     }
     // beta 24: a shared photo kept in Firestore (free plan), readable by the same people as its post

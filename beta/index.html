@@ -470,7 +470,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 81;
+const BETA_NO = 82;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -1892,7 +1892,9 @@ async function openComments(btn){
       const list = all.filter(fromMyCircle).sort((a, b) => (a.at || 0) - (b.at || 0));
       countCache[url] = list.length; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = list.length || ''; });
       cmShown = list;
-      el.innerHTML = list.length ? list.map(x => `<div class="cm${x.id === cmEditing ? ' editing' : ''}">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button><button class="del" onclick="editComment('${esc(x.id)}')">Edit</button>` : ''}
+      const myPost = url.startsWith('post:') && ((db.circlePosts || []).find(p => p.id === url.slice(5)) || {}).uid === me;   // beta 82: I can remove anyone's comment on my own post
+      el.innerHTML = list.length ? list.map(x => `<div class="cm${x.id === cmEditing ? ' editing' : ''}">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button><button class="del" onclick="editComment('${esc(x.id)}')">Edit</button>`
+          : myPost ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}', true)">Remove</button>` : ''}
           <div class="who">${avHTML(x.uid, x.name, 22)} ${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span>${x.edited ? '<span class="ed">· edited</span>' : ''}</div><div class="txt">${esc(x.text)}</div></div>`).join('')
         : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
       el.scrollTop = el.scrollHeight; fillAvatars(el);
@@ -1928,7 +1930,7 @@ async function postComment(url, title){
     t.value = '';
   } catch(e){ friendErr(e); }
 }
-async function delComment(url, id){ if (id === cmEditing){ cmEditing = null; const t = document.getElementById('cmText'); if (t) t.value = ''; cmEditMode(false); } try { const c = await cb(), q = await cmtSrc(url); await c.del(q.col + '/' + id); } catch(e){ friendErr(e); } }
+async function delComment(url, id, theirs){ if (theirs && !confirm('Remove this comment from your post? Everyone will stop seeing it.')) return; if (id === cmEditing){ cmEditing = null; const t = document.getElementById('cmText'); if (t) t.value = ''; cmEditMode(false); } try { const c = await cb(), q = await cmtSrc(url); await c.del(q.col + '/' + id); } catch(e){ friendErr(e); } }
 
 /* ================= Circles (beta 22, Mike 2026-11-18) =================
  Everyone has a personal code. Typing someone's code sends them a request; they Accept or Decline, and then you're in
