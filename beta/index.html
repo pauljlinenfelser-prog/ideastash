@@ -470,7 +470,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 80;
+const BETA_NO = 81;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -2582,11 +2582,32 @@ function cpMenu(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
   const mine = p.uid === db.me.uid;
   openSheet(`<h3>${mine ? 'Your post' : esc(p.name) + '’s post'}</h3>
-    ${mine ? `<button class="btn alt" onclick="audSheet('${esc(id)}')">👥 Who sees this: ${shareLabel(p).replace('your circle', 'whole circle')}</button>
+    ${mine ? `<button class="btn alt" onclick="captionSheet('${esc(id)}')">✏️ ${p.caption ? 'Edit what it says' : 'Add words to it'}</button>
+             <button class="btn alt" onclick="audSheet('${esc(id)}')">👥 Who sees this: ${shareLabel(p).replace('your circle', 'whole circle')}</button>
              <button class="btn alt" style="color:var(--danger)" onclick="deletePost('${esc(id)}')">🗑️ Delete it${postShare(p) === 'me' ? '' : ' for everyone'}</button>`
            : `<button class="btn alt" onclick="toggleShow('${esc(p.uid)}');closeSheet()">🙈 Hide ${esc(p.name)}’s photos and videos</button>
               <button class="btn alt" style="color:var(--danger)" onclick="removePerson('${esc(p.uid)}')">Remove ${esc(p.name)} from my circle</button>`}
     ${appMenuHTML()}<button class="btn" onclick="closeSheet()">Close</button>`);
+}
+// beta 81 (Mike): edit the words on my own post (the caption). The rules already allow the owner to change 'caption'.
+function captionSheet(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p || p.uid !== db.me.uid) return;
+  openSheet(`<h3>✏️ What it says</h3>
+    <textarea id="capText" maxlength="200" placeholder="Say something about it (optional)" style="min-height:90px">${esc(p.caption || '')}</textarea>
+    <button class="btn" id="capGo" onclick="saveCaption('${esc(id)}')">Save</button><button class="btn alt" onclick="closeSheet()">Cancel</button>`);
+  const t = document.getElementById('capText'); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
+}
+async function saveCaption(id){
+  const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
+  const caption = (document.getElementById('capText').value || '').trim().slice(0, 200);
+  if (caption === (p.caption || '')) return closeSheet();
+  const go = document.getElementById('capGo'); go.disabled = true; go.textContent = 'Saving…';
+  try {
+    const c = await cb(); await c.upd('posts/' + id, {caption});
+    p.caption = caption; save(); closeSheet();
+    document.querySelectorAll(`.ccard[data-id="cp_${id}"] .info b`).forEach(b => b.textContent = caption);
+    renderCirclePosts(); toast('Saved');
+  } catch(e){ go.disabled = false; go.textContent = 'Save'; friendErr(e); }
 }
 async function deletePost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p || !confirm('Delete this for everyone in your circle?')) return;
