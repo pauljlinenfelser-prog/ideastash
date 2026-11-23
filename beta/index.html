@@ -70,6 +70,8 @@ header h1{min-width:0;white-space:nowrap}
 .cm .when{font-size:12px;color:var(--muted);margin-left:6px;font-weight:400}
 .cm .txt{white-space:pre-wrap;margin-top:4px;line-height:1.45}
 .cm .del{float:right;font-size:13px;color:var(--muted)}
+.cm .del + .del{margin-right:12px}.cm .ed{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}.cm.editing{outline:2px solid var(--accent)}   /* beta 80: edit my comment */
+#cmNote{color:var(--accent);font-size:13px;margin:0 2px 6px;display:none}
 .pill.auto.on{background:var(--accent);color:#1b1408}   /* (v18) auto-scroll is running */
 main{flex:1;overflow:hidden;position:relative}
 .view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
@@ -468,7 +470,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 79;
+const BETA_NO = 80;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -1878,8 +1880,10 @@ async function openComments(btn){
   document.querySelectorAll('#feed video').forEach(v => v.pause());
   openSheet(`<h3>💬 ${esc(title)}</h3>
     <div class="cmts" id="cmList"><small style="color:var(--muted)">Loading…</small></div>
+    <p id="cmNote">✏️ Editing your comment</p>
     <textarea id="cmText" maxlength="500" placeholder="Share a thought with your circle…" style="min-height:80px"></textarea>
-    <button class="btn" id="cmPost">Post</button><button class="btn alt" onclick="closeSheet()">Close</button>`);
+    <button class="btn" id="cmPost">Post</button><button class="btn alt" id="cmClose" onclick="closeSheet()">Close</button>`);
+  cmEditing = null; cmShown = [];
   document.getElementById('cmPost').onclick = () => postComment(url, title);
   try {
     const c = await cb(), me = c.uid(), q = await cmtSrc(url);
@@ -1887,23 +1891,44 @@ async function openComments(btn){
       const el = document.getElementById('cmList'); if (!el) return;
       const list = all.filter(fromMyCircle).sort((a, b) => (a.at || 0) - (b.at || 0));
       countCache[url] = list.length; document.querySelectorAll('.cmt').forEach(b => { if (b.dataset.url === url) b.querySelector('.cc').textContent = list.length || ''; });
-      el.innerHTML = list.length ? list.map(x => `<div class="cm">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button>` : ''}
-          <div class="who">${avHTML(x.uid, x.name, 22)} ${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span></div><div class="txt">${esc(x.text)}</div></div>`).join('')
+      cmShown = list;
+      el.innerHTML = list.length ? list.map(x => `<div class="cm${x.id === cmEditing ? ' editing' : ''}">${x.uid === me ? `<button class="del" onclick="delComment('${esc(url)}','${esc(x.id)}')">Delete</button><button class="del" onclick="editComment('${esc(x.id)}')">Edit</button>` : ''}
+          <div class="who">${avHTML(x.uid, x.name, 22)} ${esc(x.uid === me ? 'You' : x.name)}<span class="when">${ago(new Date(x.at || Date.now()))}</span>${x.edited ? '<span class="ed">· edited</span>' : ''}</div><div class="txt">${esc(x.text)}</div></div>`).join('')
         : '<p style="color:var(--muted)">No comments yet. Be the first!</p>';
       el.scrollTop = el.scrollHeight; fillAvatars(el);
     }, q.aud ? me : null);
   } catch(e){ friendErr(e); }
+}
+// beta 80 (Mike): edit my own comment. Edit puts it back in the box; Save changes writes only the text (and when it was edited).
+let cmEditing = null, cmShown = [];
+function cmEditMode(on){
+  const n = document.getElementById('cmNote'), b = document.getElementById('cmPost'), x = document.getElementById('cmClose');
+  if (n) n.style.display = on ? 'block' : 'none';
+  if (b) b.textContent = on ? 'Save changes' : 'Post';
+  if (x){ x.textContent = on ? 'Cancel edit' : 'Close'; x.onclick = on ? () => { const t = document.getElementById('cmText'); if (t) t.value = ''; cmEditing = null; cmEditMode(false); document.querySelectorAll('.cm.editing').forEach(e => e.classList.remove('editing')); } : closeSheet; }
+}
+function editComment(id){
+  const x = cmShown.find(y => y.id === id), t = document.getElementById('cmText'); if (!x || !t) return;
+  cmEditing = id; t.value = x.text || ''; cmEditMode(true);
+  document.querySelectorAll('.cm').forEach((e, i) => e.classList.toggle('editing', cmShown[i] && cmShown[i].id === id));
+  t.focus(); t.setSelectionRange(t.value.length, t.value.length);
 }
 async function postComment(url, title){
   const t = document.getElementById('cmText'), text = t.value.trim().slice(0, 500);
   if (!text) return;
   try {
     const c = await cb(), me = c.uid(), q = await cmtSrc(url);
+    if (cmEditing){
+      const id = cmEditing, old = cmShown.find(y => y.id === id);
+      if (old && old.text !== text) await c.upd(q.col + '/' + id, {text, edited: c.now()});
+      cmEditing = null; t.value = ''; cmEditMode(false); document.querySelectorAll('.cm.editing').forEach(e => e.classList.remove('editing'));
+      return toast('Comment updated');
+    }
     await c.add(q.col, {uid: me, name: db.me.name, text, at: c.now(), title: (title || '').slice(0, 200), url, aud: [me, ...peerIds()]});
     t.value = '';
   } catch(e){ friendErr(e); }
 }
-async function delComment(url, id){ try { const c = await cb(), q = await cmtSrc(url); await c.del(q.col + '/' + id); } catch(e){ friendErr(e); } }
+async function delComment(url, id){ if (id === cmEditing){ cmEditing = null; const t = document.getElementById('cmText'); if (t) t.value = ''; cmEditMode(false); } try { const c = await cb(), q = await cmtSrc(url); await c.del(q.col + '/' + id); } catch(e){ friendErr(e); } }
 
 /* ================= Circles (beta 22, Mike 2026-11-18) =================
  Everyone has a personal code. Typing someone's code sends them a request; they Accept or Decline, and then you're in

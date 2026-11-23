@@ -83,6 +83,8 @@ service cloud.firestore {
         allow read: if canSee();
         allow create: if canSee() && request.resource.data.uid == me() && okText(request.resource.data.text)
                       && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
+        allow update: if signedIn() && resource.data.uid == me() && okText(request.resource.data.text)   // beta 80: edit my comment
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
         allow delete: if signedIn() && resource.data.uid == me();
       }
     }
@@ -120,6 +122,8 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.uid == me() && me() in request.resource.data.aud
                     && request.resource.data.aud.size() <= 51 && okText(request.resource.data.text)
                     && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at', 'title', 'url', 'aud']);
+      allow update: if signedIn() && resource.data.uid == me() && okText(request.resource.data.text)   // beta 80: edit my comment
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
       allow delete: if signedIn() && resource.data.uid == me();
     }
     // beta 46: your own data, synced between your devices (same Google sign-in = same uid). Only you can read or write it.
