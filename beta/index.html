@@ -70,6 +70,12 @@ nav{display:flex;background:var(--panel);padding:6px 6px calc(var(--safe-b) + 6p
 nav button{flex:1;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);border-radius:12px}
 nav button .ic{font-size:21px;line-height:1}
 nav button.on{color:var(--accent)}
+/* beta 68: Bible card ◀ name ▶, and the book / chapter picker */
+.bnav{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.bnav button{width:36px;height:36px;border-radius:50%;background:#0007;color:#fff;font-size:15px;flex:none}
+.bnav .bname{width:auto;height:auto;border-radius:10px;padding:4px 10px;font-size:17px;font-weight:700;background:#0005;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.bgrid.ch{grid-template-columns:repeat(6,1fr)}
+.bgrid button{padding:10px 4px;border-radius:10px;background:#ffffff10;border:1px solid #ffffff22;color:#eee;font-size:14px}.bgrid button.on{background:var(--accent);color:#000}
 nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;margin:-22px 0 -2px;filter:drop-shadow(0 3px 6px #000a)}   /* beta 67: the chest sits a bit higher and bigger */
 #homeBtn{white-space:nowrap}
 
@@ -431,9 +437,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 67;
+const BETA_NO = 68;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [68, 'Bible reading: the day’s chapter is always the 3rd item in Today. On the card, ◀ and ▶ go to the previous and next chapter, and tapping the chapter name lets you pick a book and chapter. Also from 📖 Bible reading at the top of Treasures. The reading carries on from wherever you pick.', ''],
   [67, 'New bottom bar: 👥 Circle, the GemStash chest for your Treasures, and ➕ Add. Shelf, Refresh Today and Settings are in the ⋯ on any card (and Shelf and Settings at the top of Treasures). To get back to Today: ← Today at the top, your phone’s back gesture, or tap the chest again.', ''],
   [66, 'Pull down to refresh: at the top of Today, pull down and let go when the circle turns orange. It does the same as Refresh Today.', ''],
   [65, 'Every card has the same side buttons, like TikTok: ❤️ heart, 💬 comments, 💎 save, 📤 share, and ⋯ for the rest (full size, print, open on jw.org, read aloud, delete). Text cards like the Daily Text have them too, instead of the row along the bottom. Videos have a small ⛶ in the corner for full screen.', ''],
@@ -892,8 +899,8 @@ function layeredHTML(i){
     ${i.link ? `<a class="lplay lread" href="${esc(i.url)}" target="_blank" rel="noopener">📖<small>Read on jw.org</small></a>`
              : `<button class="lplay" onclick="layerToggle('${i.id}')">▶</button>`}
     <div class="hero" style="${art ? `background:url('${art}') center/cover` : ''}">${i.image || !S ? heroHTML(i) : ''}<div class="ht">${esc(i.title)}</div>
-      <div class="lmeta"><b>${esc(i.title)}</b><small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
-        <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div>${i.lkind === 'nwt' && i.heard ? `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>` : ''}</div></div>
+      <div class="lmeta">${i.lkind === 'nwt' ? `<span class="bnav"><button title="Previous chapter" onclick="bibleStep('${i.id}', -1)">◀</button><button class="bname" title="Pick a book and chapter" onclick="biblePicker(0, '${i.id}')">${esc(i.title)} ▾</button><button title="Next chapter" onclick="bibleStep('${i.id}', 1)">▶</button></span>` : `<b>${esc(i.title)}</b>`}<small>${i.link ? 'from jw.org' : `<a class="lsrc" target="_blank" rel="noopener"${i.audio ? ` href="${esc(i.audio)}"` : ''}>🎧 from jw.org’s MP3 download ↗</a>`} <span class="ldur">${i.adur ? '· ' + fmtDur(i.adur) : ''}</span></small>
+        <div class="lbar"><i style="width:${i.lpos && i.adur ? Math.min(100, 100 * i.lpos / i.adur) : 0}%"></i></div></div></div>
     <div class="side">
       ${railHTML(i, saved)}
     </div></div>`;
@@ -938,6 +945,7 @@ function layerStop(){
 }
 // (v49) at the end of a Bible chapter: go straight on to the next one
 function addNextBtn(c){
+  return;   // beta 68: the card's ▶ arrow does this now
   if (c.querySelector('.lnext')) return;
   c.querySelector('.lmeta').insertAdjacentHTML('beforeend', `<button class="lnext" onclick="nextChapter(this)">Next chapter ▶</button>`);
 }
@@ -1068,6 +1076,10 @@ async function renderFeed(){
   bqa.forEach(i => seq.push(C(i)));
   feedCore = seq.length - 1;                      // reaching here keeps the streak going
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
+  // beta 68 (Mike): today's Bible chapter is always the 3rd item (the newest one, if you picked another chapter today)
+  { const bib = seq.filter(x => x.card && x.card.lkind === 'nwt'), coreObj = seq[feedCore];
+    if (bib.length){ const keep = bib.sort((a, b) => (b.card.bibleAt || b.card.created || 0) - (a.card.bibleAt || a.card.created || 0))[0];
+      bib.forEach(x => seq.splice(seq.indexOf(x), 1)); seq.splice(Math.min(2, seq.length), 0, keep); feedCore = Math.max(0, seq.indexOf(coreObj)); } }
   { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * circEvery()), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
   exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i) && !shelfPaused(i)));   // beta 25
   feedCurrent = null;
@@ -1076,6 +1088,8 @@ async function renderFeed(){
   if (circleReady()) fillPhotos(el);              // beta 24
   el.scrollTop = 0; restoreSpot(el);              // (v36) same day: back where you were
   goBible(el);                                    // (v44)
+  if (window._bibleGo){ const id = window._bibleGo; window._bibleGo = null;   // beta 68: picked in Treasures
+    const s = el.querySelector(`.lcard[data-id="${id}"]`); if (s){ el.scrollTop = s.closest('.vslide').offsetTop; setTimeout(() => layerToggle(id), 300); } }
   observeFeed();
 }
 // (v47) Mike: the home-screen menu doesn't show on his phone, so a 📖 button at the top of Today does the same
@@ -2935,7 +2949,7 @@ function renderLibrary(){
   if (libFilter === 'home'){
     el.innerHTML = `<div class="chestbig"><svg viewBox="0 0 200 120"><ellipse cx="100" cy="62" rx="90" ry="56" fill="url(#chGlow)"/><image href="logo-chest-320.webp" x="44" y="2" width="112" height="114"/>
         <g fill="#fff4c2"><path d="M34 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><path d="M160 84 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" opacity=".7"/></g></svg></div>
-      <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
+      <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="biblePicker()">📖 Bible reading</button><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
       <div class="sec">Your treasures</div>
       <div class="comps">
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
@@ -3375,6 +3389,44 @@ const SHELF_KINDS = {
 // (v9) every list-based source, in the order they start on the shelf
 // (v35) Listen to the Bible: jw.org's own audio recording of the New World Translation, one chapter a day, in order
 const NWT_BOOKS = [['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],['Deuteronomy',34],['Joshua',24],['Judges',21],['Ruth',4],['1 Samuel',31],['2 Samuel',24],['1 Kings',22],['2 Kings',25],['1 Chronicles',29],['2 Chronicles',36],['Ezra',10],['Nehemiah',13],['Esther',10],['Job',42],['Psalms',150],['Proverbs',31],['Ecclesiastes',12],['Song of Solomon',8],['Isaiah',66],['Jeremiah',52],['Lamentations',5],['Ezekiel',48],['Daniel',12],['Hosea',14],['Joel',3],['Amos',9],['Obadiah',1],['Jonah',4],['Micah',7],['Nahum',3],['Habakkuk',3],['Zephaniah',3],['Haggai',2],['Zechariah',14],['Malachi',4],['Matthew',28],['Mark',16],['Luke',24],['John',21],['Acts',28],['Romans',16],['1 Corinthians',16],['2 Corinthians',13],['Galatians',6],['Ephesians',6],['Philippians',4],['Colossians',4],['1 Thessalonians',5],['2 Thessalonians',3],['1 Timothy',6],['2 Timothy',4],['Titus',3],['Philemon',1],['Hebrews',13],['James',5],['1 Peter',5],['2 Peter',3],['1 John',5],['2 John',1],['3 John',1],['Jude',1],['Revelation',22]];
+// beta 68 (Mike): ◀ ▶ on the Bible card, tap the name to pick a book and chapter; also from 📖 Bible reading in Treasures.
+// The reading carries on from wherever you pick (the Shelf entry's place moves with it).
+const nwtIndex = url => NWT_LIST.findIndex(e => e.u === url);
+async function bibleJump(idx, fromId){
+  const it = db.shelf.find(x => x.kind === 'nwt');
+  if (!it) return toast('Turn on “Listen to the Bible” on the Shelf first');
+  if (idx < 0) return toast('That’s the first chapter of the Bible');
+  if (idx >= NWT_LIST.length) return toast('That was the last chapter of the Bible!');
+  let c;
+  try { c = db.ideas.find(i => i.url === NWT_LIST[idx].u && i.lkind === 'nwt');
+    if (!c){ c = await bibleCard(NWT_LIST[idx]); c.shelfId = it.id; db.ideas.push(c); }
+  } catch(e){ return toast('Couldn’t load that chapter. Check the connection and try again.'); }
+  c.pulledOn = today(); c.heard = false; c.lpos = 0; c.bibleAt = Date.now(); it.order = 'seq'; it.pos = idx + 1; it.lastPull = today(); save();
+  if (db.daily && !db.daily.ids.includes(c.id)) db.daily.ids.push(c.id);
+  tlog('bible: ' + c.title);
+  const old = fromId && document.querySelector(`#feed .lcard[data-id="${fromId}"]`), s = old && old.closest('.vslide');
+  if (s && currentView === 'feed'){                              // on the card in Today: swap it in place and play
+    if (layer) layerStop();
+    s.insertAdjacentHTML('afterend', slideHTML({card: c}, -1)); const n = s.nextElementSibling; s.remove();
+    feedObs.observe(n); document.getElementById('feed').scrollTop = n.offsetTop; feedCurrent = n; layerToggle(c.id);
+  } else { window._bibleGo = c.id; go('feed'); }                 // from Treasures: Today puts it 3rd and starts it
+}
+function bibleStep(id, d){ const i = findIdea(id); if (!i) return; const k = nwtIndex(i.url); if (k < 0) return; bibleJump(k + d, id); }
+function biblePicker(book, fromId){
+  const cur = fromId ? nwtIndex((findIdea(fromId) || {}).url) : -1, curE = cur >= 0 ? NWT_LIST[cur] : null, f = fromId ? `'${fromId}'` : 'null';
+  if (!book){
+    const btn = ([name], k) => `<button class="${curE && curE.b === k + 1 ? 'on' : ''}" onclick="biblePicker(${k + 1}, ${f})">${esc(name)}</button>`;
+    openSheet(`<h3>📖 Pick a book</h3>
+      <div class="sec">Hebrew-Aramaic Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(0, 39).map((x, k) => btn(x, k)).join('')}</div>
+      <div class="sec">Christian Greek Scriptures</div><div class="bgrid">${NWT_BOOKS.slice(39).map((x, k) => btn(x, k + 39)).join('')}</div>
+      <button class="btn" onclick="closeSheet()">Close</button>`);
+    return;
+  }
+  const [name, n] = NWT_BOOKS[book - 1], start = NWT_LIST.findIndex(e => e.b === book);
+  openSheet(`<h3>📖 ${esc(name)}</h3><p style="color:var(--muted);margin:0 0 10px">Pick a chapter. It starts playing, and the reading carries on from there each day.</p>
+    <div class="bgrid ch">${Array.from({length: n}, (_, c) => `<button class="${curE && curE.b === book && curE.c === c + 1 ? 'on' : ''}" onclick="closeSheet();bibleJump(${start + c}, ${f})">${c + 1}</button>`).join('')}</div>
+    <button class="btn alt" onclick="biblePicker(0, ${f})">← All books</button><button class="btn" onclick="closeSheet()">Close</button>`);
+}
 const NWT_LIST = NWT_BOOKS.flatMap(([name, n], k) => Array.from({length: n}, (_, c) => ({q: `${name} ${c + 1}`, b: k + 1, c: c + 1,
   u: `https://www.jw.org/en/library/bible/study-bible/books/${name.toLowerCase().replace(/ /g, '-')}/${c + 1}/`})));
 async function bibleCard(e){

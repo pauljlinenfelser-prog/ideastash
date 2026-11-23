@@ -196,6 +196,8 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 66: pull down at the top of Today to refresh it (same as Refresh Today).
   Beta 67: bottom bar = Circle, the GemStash chest (Treasures), Add. Shelf, Refresh Today and Settings are in each card's
   ... menu (Shelf and Settings also at the top of Treasures). Back to Today: <- Today, the phone's back gesture, or the chest again.
+  Beta 68: Bible chapter always 3rd in Today; on the card < and > for the previous/next chapter, tap the name to pick a
+  book and chapter (also Bible reading in Treasures); the reading carries on from the picked chapter.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
