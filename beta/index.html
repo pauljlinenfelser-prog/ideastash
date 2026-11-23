@@ -468,7 +468,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 78;
+const BETA_NO = 79;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -2571,7 +2571,7 @@ async function deletePost(id){
   } catch(e){ friendErr(e); }
 }
 // ---- posting a photo or video ----
-const CIRCLE_VIDEOS = false;   // beta 24: videos need Firebase Storage (paid plan); switch on when Mike upgrades
+const CIRCLE_VIDEOS = true;   // beta 24: videos need Firebase Storage (paid plan). Beta 79: on (Mike upgraded to Blaze 2026-11-23, Storage + storage.rules live)
 const photoMem = {};
 async function photoData(id){                               // a free-plan photo: from memory, the phone, or Firestore
   if (photoMem[id]) return photoMem[id];
@@ -2669,7 +2669,7 @@ async function doPost(){
   go.disabled = true;
   try {
     const c = await cb(), me = c.uid(), id = c.newId('posts');
-    if (pending.kind === 'photo' && !CIRCLE_VIDEOS){                     // beta 24: free plan, photo kept in Firestore
+    if (pending.kind === 'photo'){                                      // beta 24: photo kept in Firestore (beta 79: still, now that videos go to Storage)
       // beta 40: several photos = one post; each photo is its own photos/ doc (first: the post's id, then <id>_2, _3…)
       const files = pending.files, n = files.length, ids = files.map((_, k) => k ? id + '_' + (k + 1) : id), datas = [];
       for (let k = 0; k < n; k++){ prog(0.05 + 0.35 * k / n, n > 1 ? `Getting photo ${k + 1} of ${n} ready…` : 'Getting it ready…'); datas.push(await photoDataURL(files[k].file)); }
