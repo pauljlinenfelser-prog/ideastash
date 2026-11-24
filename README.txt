@@ -218,6 +218,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 83: My treasures says "Loading your treasures…" while they come in, instead of looking empty.
   Beta 84: trim a video before sharing it (slide the two ends; up to 1 minute is kept, so longer videos work too).
   Beta 85: add background music from your phone to a video, with a Video/Music balance slider.
+  Beta 86: Today stops repeating: choose how many videos over 5 min a day (1, 3 or no limit; was always 1), new cards from your Shelf sources past today's set, and no card you saw this week comes back.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
