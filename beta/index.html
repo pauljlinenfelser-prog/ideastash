@@ -153,6 +153,8 @@ nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;marg
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb .tt{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:11px;line-height:1.25;color:#fff;font-weight:600;
   background:linear-gradient(transparent,rgba(0,0,0,.85));display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.plload{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:10px;margin:4px 2px 12px}   /* beta 83 */
+.plload .spin{width:16px;height:16px;border:2px solid #ffffff30;border-top-color:var(--accent);border-radius:50%;animation:plspin .8s linear infinite}@keyframes plspin{to{transform:rotate(360deg)}}
 .thumb .tk{position:absolute;top:5px;right:6px;font-size:13px;text-shadow:0 1px 3px #000}
 .thumb .tl{position:absolute;top:5px;left:6px;font-size:12px;background:#000a;border-radius:999px;padding:2px 7px}   /* beta 78: who sees my post */
 #audSeg button{padding:9px 4px;font-size:13px}.audlist{max-height:30vh;overflow:auto;margin:8px 0;background:var(--panel2);border-radius:12px;padding:4px 10px}
@@ -470,7 +472,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 82;
+const BETA_NO = 83;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -2309,7 +2311,7 @@ async function circleStart(){                                // listen for reque
     }));
     circleUnsub.push(c.watch('chats', chatsChanged, me));   // beta 43
     await loadPosts();
-  } catch(e){ circleOn = false; friendErr(e); }
+  } catch(e){ circleOn = false; if (postsState === 'loading'){ postsState = 'failed'; renderCirclePosts(); } friendErr(e); }   // beta 83
 }
 /* ---- beta 42: alerts ---- */
 function addAlert(key, icon, text, to, quiet){
@@ -2523,6 +2525,7 @@ async function saveAud(id){
   } catch(e){ if (go){ go.disabled = false; go.textContent = audBtnLabel(false); } friendErr(e); }
 }
 // ---- posts ----
+let postsState = 'loading';                                   // beta 83: 'loading' until the first answer from the circle this time the app is open, then 'ok' or 'failed'
 async function loadPosts(){
   try {
     const c = await cb(), me = c.uid();
@@ -2534,9 +2537,9 @@ async function loadPosts(){
     }
     await commentAlerts();
     if (!db.alertsReady){ db.alertsReady = true; save(); }
-    renderCirclePosts();
+    postsState = 'ok'; renderCirclePosts();
     if (currentView === 'feed') addCircleToFeed();
-  } catch(e){ console.warn(e); }
+  } catch(e){ console.warn(e); if (postsState === 'loading'){ postsState = 'failed'; renderCirclePosts(); } }
 }
 const showPost = p => db.me && (p.uid === db.me.uid ? db.circleMode !== 'jw' : db.circleMode === 'all' && people()[p.uid] && people()[p.uid].show !== false);
 function feedPosts(){                                        // circle posts for Today: last 7 days, not yet seen (or seen today)
@@ -3151,8 +3154,8 @@ function renderLibrary(){
       <div class="comps">
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
         <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
-        ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${myPosts().length} shared</small><span class="pk">${postPeek(myPosts())}</span></button>
-        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e">👥</span><b>From my circle</b><small>${circPosts().length} shared</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
+        ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${postsState === 'loading' && !myPosts().length ? 'Loading…' : myPosts().length + ' shared'}</small><span class="pk">${postPeek(myPosts())}</span></button>
+        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e">👥</span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
         <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
       </div>
       ${tags.length ? `<div class="sec" style="margin-top:16px">Tags</div><div class="chips">${tags.map(t => `<button class="chip" onclick="libOpen('gem','${t.id}')">🏷️ ${esc(t.name)}<small>${db.ideas.filter(i => (i.stashes || []).includes(t.id)).length}</small></button>`).join('')}</div>` : ''}
@@ -3171,8 +3174,10 @@ function renderLibrary(){
   else if (libFilter === 'done') list = recentDone(), title = '🕘 Recently finished';
   else if (libFilter === 'mine' || libFilter === 'circ'){                 // beta 41: shared photos
     const ps = libFilter === 'mine' ? myPosts() : circPosts();
-    el.innerHTML = `${back}<div class="sec">${libFilter === 'mine' ? '📸 My treasures' : '👥 From my circle'} · ${ps.length}</div>
-      ${ps.length ? `<div class="thumbs">${ps.map(postThumbHTML).join('')}</div>` : `<p style="color:var(--muted)">${libFilter === 'mine' ? 'Photos you share with ➕ Add are kept here.' : 'Nothing shared by your circle yet.'}</p>`}
+    el.innerHTML = `${back}<div class="sec">${libFilter === 'mine' ? '📸 My treasures' : '👥 From my circle'}${ps.length || postsState === 'ok' ? ' · ' + ps.length : ''}</div>
+      ${postsState === 'loading' ? `<p class="plload"><span class="spin"></span>${ps.length ? 'Checking for anything new…' : libFilter === 'mine' ? 'Loading your treasures…' : 'Loading what your circle shared…'}</p>` : ''}
+      ${!ps.length && postsState === 'failed' ? `<p style="color:var(--muted)">Couldn’t reach your circle just now. Your photos are safe online; check your connection and come back here.</p>` : ''}
+      ${ps.length ? `<div class="thumbs">${ps.map(postThumbHTML).join('')}</div>` : postsState !== 'ok' ? '' : `<p style="color:var(--muted)">${libFilter === 'mine' ? 'Photos you share with ➕ Add are kept here.' : 'Nothing shared by your circle yet.'}</p>`}
       ${libFilter === 'mine' && !parentLocked() ? `<button class="btn" onclick="addMine()">＋ Share a ${CIRCLE_VIDEOS ? 'photo or video' : 'photo'}</button>` : ''}`;
     fillPhotos(el); return;
   }

@@ -215,6 +215,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 80: edit your own comments (Edit next to Delete); edited ones say "edited".
   Beta 81: edit the words on your own photo or video post (⋯ → ✏️ Edit what it says).
   Beta 82: on your own post you can Remove anyone's comment.
+  Beta 83: My treasures says "Loading your treasures…" while they come in, instead of looking empty.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
