@@ -480,9 +480,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 87;
+const BETA_NO = 88;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [88, 'Focus: a Bible chapter from your topic. The gems name verses (like “Take Courage!” (John 16:33)); each day the most-named chapter you haven’t heard yet comes as the theme chapter. Shelf → Focus → Bible reading: Theme chapter + my reading, Theme chapter instead, or My reading only.', ''],
   [87, 'Focus: Gem Miner (its own app) gathers one topic into a bundle and sends it here. While a focus is on, Today opens with the theme, then the Daily Text, a featured Morning Worship from the bundle, and your chosen number of gems a day instead of the usual mix. Shelf → Focus: gems a day, long videos (no limit / 30 / 60 min), see the list, switch off or end.', ''],
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
   [76, 'Fixed: 13 of the Bible Character Cards (the older ones, like Paul, Peter, Noah and Samuel) showed only a strip from the middle. Their PDFs are laid out differently. Those cards need adding once more: Shelf → Bible Character Cards shows which ones (their PDFs are still in your Downloads).', ''],
@@ -1130,9 +1131,9 @@ async function renderFeed(){
   if ((shelfNeedsPull() || needVideos || focusNeedsBuild()) && navigator.onLine !== false){
     el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
       <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
+    if (focusNeedsBuild()) { try { await buildFocusDaily(); } catch(e){} }   // beta 87; beta 88: first, so the Bible reading knows
     if (shelfNeedsPull()) await pullShelf();
     if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
-    if (focusNeedsBuild()) { try { await buildFocusDaily(); } catch(e){} }   // beta 87
     if (currentView !== 'feed' || gen !== feedGen) return;
   }
   dedupeVideos();
@@ -1166,8 +1167,11 @@ async function renderFeed(){
   while (rest.length || vq.length){ if (rest.length) seq.push(C(rest.shift())); if (vq.length) seq.push(V(vq.shift())); }
   // beta 68 (Mike): today's Bible chapter is always the 3rd item (the newest one, if you picked another chapter today)
   { const bib = seq.filter(x => x.card && x.card.lkind === 'nwt'), coreObj = seq[feedCore];
-    if (bib.length){ const keep = bib.sort((a, b) => (b.card.bibleAt || b.card.created || 0) - (a.card.bibleAt || a.card.created || 0))[0];
-      bib.forEach(x => seq.splice(seq.indexOf(x), 1)); seq.splice(Math.min(2, seq.length), 0, keep); feedCore = Math.max(0, seq.indexOf(coreObj)); } }
+    if (bib.length){ const isTheme = x => focusOn() && x.card.focus && x.card.pulledOn === today() && x.card.url === db.focus.bibleUrl;   // beta 88
+      const theme = bib.find(isTheme), own = bib.filter(x => !isTheme(x) && !(x.card.focus && !x.card.shelfId));
+      const keep = own.sort((a, b) => (b.card.bibleAt || b.card.created || 0) - (a.card.bibleAt || a.card.created || 0))[0];
+      bib.forEach(x => seq.splice(seq.indexOf(x), 1)); [theme, keep].filter(Boolean).reverse().forEach(x => seq.splice(Math.min(2, seq.length), 0, x));
+      feedCore = Math.max(0, seq.indexOf(coreObj)); } }
   { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * circEvery()), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
   exploreQueue = focusOn() ? [] : shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i) && !shelfPaused(i) && !shownRecently(i)));   // beta 25; beta 86
   feedCurrent = null;
@@ -4853,7 +4857,31 @@ function importData(file){
 const FOCUS_KEEP = ['daily', 'nwt'];                    // Shelf entries that keep going during a focus
 const FOCUS_MW = 'VODPgmEvtMorningWorship';
 const focusOn = () => !!(db.focus && db.focus.on);
-const focusRests = it => focusOn() && !!it && !FOCUS_KEEP.includes(it.kind);
+const focusRests = it => focusOn() && !!it && (!FOCUS_KEEP.includes(it.kind) || (it.kind === 'nwt' && focusBibleReplaces()));
+// beta 88 (Mike): a Bible chapter from the focus. The gems' titles and the theme verse name verses ("Take Courage!" (John 16:33));
+// each day the most-named chapter you haven't heard yet comes as the theme chapter. db.focus.bible: 'add' (with your usual reading,
+// the start), 'replace' (instead of it) or 'off' (your usual reading only).
+const focusBibleReplaces = () => db.focus.bible === 'replace' && db.focus.bibleDay === today() && !!db.focus.bibleUrl;
+const FB_ABBR = [['Ge','Gen'],['Ex','Exod'],['Le','Lev'],['Nu','Num'],['De','Deut'],['Jos','Josh'],['Jg','Judg'],['Ru'],['1Sa','1 Sam'],['2Sa','2 Sam'],['1Ki','1 Ki'],['2Ki','2 Ki'],
+  ['1Ch','1 Chron'],['2Ch','2 Chron'],['Ezr'],['Ne','Neh'],['Es','Esth'],[],['Ps','Psalm','Psa'],['Pr','Prov'],['Ec','Eccl'],['Ca','Song of Sol','Song'],['Isa'],['Jer'],['La','Lam'],
+  ['Eze','Ezek'],['Da','Dan'],['Ho','Hos'],['Joe'],['Am'],['Ob','Obad'],['Jon'],['Mic'],['Na','Nah'],['Hab'],['Zep','Zeph'],['Hag'],['Zec','Zech'],['Mal'],['Mt','Matt'],['Mr'],['Lu'],
+  ['Joh'],['Ac'],['Ro','Rom'],['1Co','1 Cor'],['2Co','2 Cor'],['Ga','Gal'],['Eph'],['Php','Phil'],['Col'],['1Th','1 Thess'],['2Th','2 Thess'],['1Ti','1 Tim'],['2Ti','2 Tim'],['Tit'],
+  ['Phm','Philem'],['Heb'],['Jas'],['1Pe','1 Pet'],['2Pe','2 Pet'],['1Jo'],['2Jo'],['3Jo'],[],['Re','Rev']];
+const fbKey = x => x.toLowerCase().replace(/[.\s]/g, '');
+const FB_NO = {}; NWT_BOOKS.forEach(([n], i) => [n, ...FB_ABBR[i]].forEach(a => FB_NO[fbKey(a)] = i + 1));
+function focusChapters(f){                               // chapter (index in NWT_LIST) -> how often the bundle names it
+  const count = {}, re = /([1-3]\s?)?(Song of Solomon|Song of Sol|[A-Z][a-z]+)\.?\s(\d{1,3})(?::\d{1,3})?/g;
+  for (const text of [f.verse || '', ...f.items.map(x => x.t)]) for (const m of String(text).matchAll(re)){
+    const b = FB_NO[fbKey((m[1] || '') + m[2])], c = +m[3]; if (!b) continue;
+    const k = NWT_LIST.findIndex(e => e.b === b && e.c === c); if (k >= 0) count[k] = (count[k] || 0) + (text === f.verse ? 3 : 1);   // the theme verse counts most
+  }
+  return count;
+}
+function focusBiblePick(f){                             // not heard yet, not given in this focus, most named first
+  const count = focusChapters(f), given = f.bibleGiven || [], heard = db.bibleHeard || {};
+  const ks = Object.keys(count).map(Number).filter(k => !given.includes(k)).sort((a, b) => count[b] - count[a] || a - b);
+  const k = ks.find(k => !heard[k]); return k === undefined ? (ks.length ? ks[0] : -1) : k;   // all heard? then the most named one
+}
 const focusDone = f => f.items.filter(x => x.done).length;
 function focusFromHash(){
   const m = location.hash.match(/^#focus=([\w-]+)/); if (!m) return null;
@@ -4912,6 +4940,17 @@ async function buildFocusDaily(){
     } catch(e){ if (/fetch|network|abort|timed/i.test(e.message || '')){ failed = true; break; } x.done = 'skip'; }   // offline: try again later
   }
   W.daily.items = [...vids, ...W.daily.items.filter(v => !vids.some(n => n.lank === v.lank))];
+  f.bible ||= 'add';
+  if (f.bible !== 'off' && f.bibleDay !== t && !failed){   // beta 88: today's theme chapter
+    const k = focusBiblePick(f);
+    if (k >= 0) try {
+      let c = db.ideas.find(i => i.url === NWT_LIST[k].u && i.lkind === 'nwt');
+      if (!c){ c = await bibleCard(NWT_LIST[k]); db.ideas.push(c); }
+      if (!c.shelfId){ c.pulledOn = t; c.focus = true; c.bibleAt = Date.now(); }   // its own card, apart from your reading schedule
+      else { c = {...c, id:uid(), shelfId:'', heard:false, lpos:0, pulledOn:t, focus:true, stashes:[], created:Date.now()}; db.ideas.push(c); }
+      f.bibleUrl = c.url; f.bibleTitle = c.title; f.bibleDay = t; (f.bibleGiven ||= []).push(k);
+    } catch(e){ /* no recording or offline: no theme chapter today */ }
+  }
   if (!failed) f.day = t;
   f.todayIds = f.day === t ? picks.filter(x => x.done === t).map(x => x.k + x.id) : [];
   if (!f.items.some(x => !x.done) && !picks.length){ f.on = false; f.finished = t; toast(`Your “${f.theme}” focus is finished. Your usual mix is back.`); }
@@ -4924,11 +4963,13 @@ function focusSplash(force){
   const n = f.day === today() ? f.todayIds.length - (mw ? 1 : 0) : rest.length;
   const done = focusDone(f), total = f.items.length;
   const day = Math.max(1, Math.round((new Date(today()) - new Date(f.started)) / 864e5) + 1);
+  const bk = f.bible === 'off' ? -1 : focusBiblePick(f);   // beta 88: today's theme chapter (already chosen, or the one that will be)
+  const bt = f.bibleDay === today() ? f.bibleTitle : bk >= 0 ? NWT_LIST[bk].q : '';
   const el = document.createElement('div'); el.id = 'focusSplash';
   el.innerHTML = `<img src="focus-loupe-320.webp" alt="">
     <div class="k">Focused meditation</div><div class="th">${esc(f.theme)}</div>
     ${f.verse ? `<div class="vs">${esc(f.verse)}</div>` : ''}
-    <div class="st">Today: ${mw ? '<b>Morning Worship</b> + ' : ''}${n} gem${n === 1 ? '' : 's'}<br>Day ${day} of your focus</div>
+    <div class="st">Today: ${mw ? '<b>Morning Worship</b> + ' : ''}${bt ? `<b>${esc(bt)}</b> + ` : ''}${n} gem${n === 1 ? '' : 's'}<br>Day ${day} of your focus</div>
     <div class="fbar"><i style="width:${Math.round(100 * done / total)}%"></i></div><div class="st" style="font-size:12px">${done} of ${total} gems given</div>
     <button class="go">Begin</button><div class="sm">Daily Text plays as usual</div>`;
   document.body.appendChild(el);
@@ -4944,13 +4985,17 @@ function focusShelfHTML(){
     <div class="facts"><button onclick="focusList()">See list</button><button onclick="focusEnd()">Remove</button></div></div>`;
   return `<div class="focusbox"><div class="fh"><img src="focus-loupe-320.webp" alt=""> Focus on: ${esc(f.theme)}
       <button class="fsw on" onclick="focusSwitch()" title="Switch the focus off"></button></div>
-    <div class="fp">From Gem Miner · <b>${done} of ${total} gems</b> given · <b>${f.perDay} a day</b><br>While this is on, Today brings this topic instead of your Shelf mix. The Daily Text and Bible reading stay. When the bundle is used up, your usual mix comes back.</div>
+    <div class="fp">From Gem Miner · <b>${done} of ${total} gems</b> given · <b>${f.perDay} a day</b><br>While this is on, Today brings this topic instead of your Shelf mix. The Daily Text stays. When the bundle is used up, your usual mix comes back.</div>
     <div class="flv"><span>🎬 Long videos during focus</span><select onchange="focusSet('longMax', +this.value)">
       ${[[0, 'No time limit'], [30, 'Up to 30 min'], [60, 'Up to 60 min']].map(([v, l]) => `<option value="${v}" ${f.longMax === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="flv" style="margin-top:8px"><span>📖 Bible reading</span><select onchange="focusSet('bible', this.value)">
+      ${[['add', 'Theme chapter + my reading'], ['replace', 'Theme chapter instead'], ['off', 'My reading only']].map(([v, l]) => `<option value="${v}" ${(f.bible || 'add') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    ${f.bibleDay === today() && f.bibleTitle ? `<div class="fp" style="margin:6px 0 0">Today's theme chapter: <b>${esc(f.bibleTitle)}</b></div>` : ''}
     <div class="facts"><label>Gems a day <select onchange="focusSet('perDay', +this.value)">${[1, 2, 3, 4, 5, 6].map(n => `<option ${f.perDay === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <button onclick="focusList()">See list</button><button onclick="focusEnd()">End focus</button></div></div>`;
 }
-function focusSet(k, v){ db.focus[k] = v; save(); renderShelf(); toast(k === 'perDay' ? `${v} gem${v === 1 ? '' : 's'} a day, from tomorrow` : 'Saved: it counts from the next gems'); }
+function focusSet(k, v){ db.focus[k] = v; save(); renderShelf();
+  toast(k === 'perDay' ? `${v} gem${v === 1 ? '' : 's'} a day, from tomorrow` : k === 'bible' ? 'Bible reading: saved (Today changes from tomorrow)' : 'Saved: it counts from the next gems'); }
 function focusSwitch(){
   const f = db.focus; f.on = !f.on; if (f.on){ f.finished = ''; f.splash = ''; } save(); renderShelf();
   toast(f.on ? `Focus on: ${f.theme}` : 'Focus off: your usual mix is back');

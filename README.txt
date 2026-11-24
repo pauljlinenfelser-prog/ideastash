@@ -223,6 +223,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
       (Mike's loupe miner, the verse, today's plan) once a day; Today brings the Daily Text, Bible reading, a featured
       Morning Worship from the bundle and 3 gems a day instead of the usual mix. Shelf → Focus: gems a day, long videos
       (no limit / up to 30 / up to 60 min), see the list, switch off, end. It ends by itself when every gem is given.
+  Beta 88: Focus brings a Bible chapter from your topic: the gems' titles and the theme verse name verses, and each day
+      the most-named chapter you haven't heard yet comes 3rd in Today (e.g. Courage: Joshua 1). Shelf → Focus → Bible
+      reading: Theme chapter + my reading (the start), Theme chapter instead, or My reading only.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
