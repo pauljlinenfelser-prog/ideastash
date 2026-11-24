@@ -236,6 +236,12 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 94: Auto-scroll has Mike's rolling gem cart (mirrored); it rolls while auto-scroll runs, and the button says Stop.
   Beta 95: the streak is Mike's brass lantern: a small flame (0-6 days), a steady glow (7-29), a blaze (30+).
   Beta 96: Mike's brass bell for alerts (it swings when something new is waiting) and his pickaxe with a green gem for Add.
+  Beta 97: at the end of a focus list, a screen asks: Go through it again, Pick another list, or Back to my usual mix.
+  Beta 98: Focus → Other gems: None (nothing else, not even your circle or your own posts) or a short break after every
+      3rd … 10th focus gem (circle shares first, then gems you've kept). Replaces "All shares from my circle".
+  Beta 99: GemStash's opening screen once a day (purple): Mike's video of the miner picking at the ore, finding a gem and examining it
+      (black background removed, fading in), then "Turn your
+      doom-scrolling into LIFE-scrolling" and Proverbs 2:4, 5. Also: switching lists on the same day shows only the new list.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)

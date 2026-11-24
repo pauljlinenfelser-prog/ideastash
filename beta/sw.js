@@ -1,6 +1,6 @@
 // IdeaStash service worker — caches the app so it opens offline
-const CACHE = 'gemstash-beta-96';   // BETA: its own offline cache
-const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-chest-bt-192.png', 'icon-chest-bt-512.png', 'logo-chest-128.png', 'logo-chest-320.webp', 'focus-loupe-320.webp', 'gemminer-cart-160.webp', 'circle-miners-128.webp', 'auto-cart-96.webp', 'lantern-low-72.webp', 'lantern-mid-72.webp', 'lantern-high-72.webp', 'bell-72.webp', 'add-pickaxe-96.webp', 'icon-book-192.png', 'icon-book-512.png', 'banners/bible-desk.webp', 'banners/bible-verse.webp', 'banners/family.webp', 'banners/archives.webp'];
+const CACHE = 'gemstash-beta-99';   // BETA: its own offline cache
+const SHELL = ['./', 'index.html', 'sources.js', 'manifest.json', 'icon-chest-bt-192.png', 'icon-chest-bt-512.png', 'logo-chest-128.png', 'logo-chest-320.webp', 'focus-loupe-320.webp', 'gemminer-cart-160.webp', 'circle-miners-128.webp', 'auto-cart-96.webp', 'lantern-low-72.webp', 'lantern-mid-72.webp', 'lantern-high-72.webp', 'bell-72.webp', 'add-pickaxe-96.webp', 'miner-finds-gem.webm', 'miner-finds-gem.mp4', 'icon-book-192.png', 'icon-book-512.png', 'banners/bible-desk.webp', 'banners/bible-verse.webp', 'banners/family.webp', 'banners/archives.webp'];
 // (v25) always ask GitHub for the newest copy ('no-cache' = check first, reuse only if unchanged). Before, the browser could
 // reuse GitHub's copy for up to 10 minutes, so a new version didn't show up right away.
 self.addEventListener('install', e => {
