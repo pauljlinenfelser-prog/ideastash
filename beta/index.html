@@ -360,6 +360,12 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .cpgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.cpgrid>div{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#000}
 .cpgrid img{width:100%;height:100%;object-fit:cover;display:block}.cpgrid button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;background:#000b;color:#fff;font-size:14px;padding:0;line-height:26px}
 .cpgrid label{display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:12px;color:var(--accent);background:var(--panel2);cursor:pointer;aspect-ratio:1;border-radius:10px}.cpgrid label b{font-size:26px;line-height:1}
+.trim{margin:10px 2px 0}.trim .tt{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}.trim .tt b{color:#fff}   /* beta 84: video trimmer */
+.trim .rng{position:relative;height:34px}.trim .rng .sel{position:absolute;top:13px;height:8px;background:var(--accent);border-radius:4px}.trim .rng:before{content:'';position:absolute;left:0;right:0;top:13px;height:8px;background:var(--panel2);border-radius:4px}
+.trim input[type=range]{position:absolute;left:0;top:0;width:100%;height:34px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.trim input[type=range]::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;width:26px;height:34px;border-radius:8px;background:#fff;border:3px solid var(--accent);box-shadow:0 1px 4px #0008}
+.trim input[type=range]::-moz-range-thumb{pointer-events:auto;width:22px;height:30px;border-radius:8px;background:#fff;border:3px solid var(--accent)}
+.trim .tb{display:flex;gap:8px;margin-top:8px}.trim .tb button{flex:1;padding:9px;font-size:14px}
 .cpbar{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:10px}.cpbar i{display:block;height:100%;width:0;background:var(--accent)}
 nav .ic{position:relative}
 nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;top:-4px;right:-10px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 5px}
@@ -472,7 +478,7 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 83;
+const BETA_NO = 84;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
@@ -2655,7 +2661,7 @@ function postSheet(cap){
       <p style="color:var(--muted);font-size:13px;margin:6px 2px 0;text-align:center">Pick up to ${PHOTO_SET_MAX} at once: they go in as one set you swipe through.</p></div>
     <textarea id="cpCap" maxlength="200" placeholder="Say a few words (optional)" style="min-height:64px">${typeof cap === 'string' ? esc(cap) : ''}</textarea>
     <div class="cwarn">Only your own photos and videos. Please don’t post pictures or videos from jw.org: jw.org’s Terms don’t allow re-posting them.</div>
-    <p style="color:var(--muted);font-size:13px;margin:8px 2px 2px"><b style="color:#fff">Who sees it?</b> Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos can be up to 1 minute.' : 'Photos for now; videos are coming later.'}</p>
+    <p style="color:var(--muted);font-size:13px;margin:8px 2px 2px"><b style="color:#fff">Who sees it?</b> Stays until you delete it. ${CIRCLE_VIDEOS ? 'Videos: you keep up to 1 minute, and can trim it here.' : 'Photos for now; videos are coming later.'}</p>
     <div id="audBox"></div>
     <div id="cpProg" style="display:none" class="cpbar"><i></i></div>
     <button class="btn" id="cpGo" onclick="doPost()">Share with my circle</button>
@@ -2671,9 +2677,19 @@ async function pickMedia(files){                             // beta 40: one pho
     const file = vids[0], url = URL.createObjectURL(file), v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
     await new Promise(r => { v.onloadedmetadata = r; v.onerror = r; });
     if (!(v.duration > 0)) return toast('That video can’t be read here');
-    if (v.duration > 61) return toast(`That video is ${fmtDur(v.duration)}. Videos can be up to 1 minute: trim it on your phone first.`);
-    pending = {file, kind: 'video', dur: Math.round(v.duration)};
-    box.innerHTML = `<video src="${url}" playsinline muted controls style="width:100%;max-height:260px;border-radius:12px;background:#000"></video>`;
+    if (v.duration > 20 * 60) return toast(`That video is ${fmtDur(v.duration)}. Pick one under 20 minutes, then cut out the part you want.`);
+    // beta 84 (Mike): trim it here. Up to 1 minute is kept; longer videos start with the first minute picked.
+    pending = {file, kind: 'video', full: v.duration, from: 0, to: Math.min(v.duration, VID_MAX), dur: Math.round(Math.min(v.duration, VID_MAX))};
+    box.innerHTML = `<video id="cpVid" src="${url}" playsinline controls style="width:100%;max-height:260px;border-radius:12px;background:#000"></video>
+      <div class="trim"><div class="tt"><span>✂️ Keep <b id="trLen"></b></span><span id="trSpan"></span></div>
+        <div class="rng"><div class="sel" id="trSel"></div>
+          <input type="range" id="trA" min="0" max="${v.duration.toFixed(1)}" step="0.1" value="0" oninput="trimMove('a')">
+          <input type="range" id="trB" min="0" max="${v.duration.toFixed(1)}" step="0.1" value="${pending.to.toFixed(1)}" oninput="trimMove('b')"></div>
+        <div class="tb"><button class="btn alt" onclick="trimPlay()">▶️ Play the part I keep</button></div>
+        <p class="audnote" id="trNote">${v.duration > VID_MAX ? `Your video is ${fmtDur(v.duration)}. Slide the ends to pick up to 1 minute.` : 'Slide the ends to cut off the start or the end.'}</p></div>`;
+    const pv = document.getElementById('cpVid');
+    pv.ontimeupdate = () => { if (pending && pending.kind === 'video' && pv.dataset.loop && pv.currentTime >= pending.to){ pv.pause(); pv.currentTime = pending.from; delete pv.dataset.loop; } };
+    trimDraw();
     return;
   }
   if (!pics.length) return toast('Pick a photo or a video');
@@ -2683,6 +2699,29 @@ async function pickMedia(files){                             // beta 40: one pho
   pending.files.push(...pics.slice(0, Math.max(0, room)).map(file => ({file, url: URL.createObjectURL(file)})));
   drawPicks();
 }
+// ---- beta 84: video trimmer ----
+const VID_MAX = 60;
+function trimDraw(){
+  const a = document.getElementById('trA'), b = document.getElementById('trB'); if (!a || !pending || pending.kind !== 'video') return;
+  const T = pending.full, sel = document.getElementById('trSel');
+  sel.style.left = (pending.from / T * 100) + '%'; sel.style.width = ((pending.to - pending.from) / T * 100) + '%';
+  document.getElementById('trLen').textContent = fmtDur(pending.to - pending.from);
+  document.getElementById('trSpan').textContent = `${fmtDur(pending.from)} – ${fmtDur(pending.to)}`;
+  a.value = pending.from; b.value = pending.to;
+}
+function trimMove(which){
+  const a = +document.getElementById('trA').value, b = +document.getElementById('trB').value, T = pending.full, pv = document.getElementById('cpVid');
+  if (which === 'a'){ pending.from = Math.min(a, pending.to - 1); if (pending.to - pending.from > VID_MAX) pending.to = Math.min(T, pending.from + VID_MAX); }
+  else { pending.to = Math.max(b, pending.from + 1); if (pending.to - pending.from > VID_MAX) pending.from = Math.max(0, pending.to - VID_MAX); }
+  pending.dur = Math.round(pending.to - pending.from);
+  if (pv){ pv.pause(); delete pv.dataset.loop; pv.currentTime = which === 'a' ? pending.from : pending.to; }
+  trimDraw();
+}
+function trimPlay(){
+  const pv = document.getElementById('cpVid'); if (!pv) return;
+  pv.currentTime = pending.from; pv.dataset.loop = '1'; pv.play().catch(() => {});
+}
+const trimmed = x => x && x.kind === 'video' && x.full && (x.from > 0.2 || x.to < x.full - 0.2);
 function drawPicks(){                                        // beta 40: the photos picked so far, each with ✕, plus "add more"
   const box = document.getElementById('cpPrev'), list = (pending && pending.files) || []; if (!box) return;
   if (!list.length) return postSheet(document.getElementById('cpCap') ? document.getElementById('cpCap').value : '');
@@ -2697,8 +2736,9 @@ async function shrinkPhoto(file){
   cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
   return new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
 }
-async function shrinkVideo(file, onProg){                    // big phone videos are re-recorded smaller (takes as long as the video)
-  if (file.size <= 25e6) return file;
+async function shrinkVideo(file, onProg, from, to){          // big phone videos are re-recorded smaller (takes as long as the video)
+  const cut = to != null;                                    // beta 84: or just the part between from and to (seconds)
+  if (!cut && file.size <= 25e6) return file;
   const v = document.createElement('video'); v.src = URL.createObjectURL(file); v.playsInline = true; v.muted = true;
   await new Promise((r, j) => { v.onloadedmetadata = r; v.onerror = () => j(new Error('can’t read that video')); });
   const st = (v.captureStream || v.mozCaptureStream).call(v);
@@ -2706,9 +2746,11 @@ async function shrinkVideo(file, onProg){                    // big phone videos
   const rec = new MediaRecorder(st, {mimeType: type, videoBitsPerSecond: 2500000, audioBitsPerSecond: 96000}), parts = [];
   rec.ondataavailable = e => e.data.size && parts.push(e.data);
   const done = new Promise(r => rec.onstop = r);
+  const a = cut ? from : 0, b = cut ? to : v.duration;
+  if (a > 0){ v.currentTime = a; await new Promise(r => { v.onseeked = r; setTimeout(r, 3000); }); }
   rec.start(1000); await v.play();
-  await new Promise(r => { v.ontimeupdate = () => onProg && onProg(v.currentTime / v.duration); v.onended = r; });
-  rec.stop(); await done; URL.revokeObjectURL(v.src);
+  await new Promise(r => { v.ontimeupdate = () => { onProg && onProg(Math.min(1, (v.currentTime - a) / (b - a))); if (v.currentTime >= b) r(); }; v.onended = r; });
+  v.pause(); rec.stop(); await done; URL.revokeObjectURL(v.src);
   return new Blob(parts, {type: type.split(';')[0]});
 }
 async function doPost(){
@@ -2742,7 +2784,7 @@ async function doPost(){
     }
     let blob = pending.kind === 'photo' ? pending.files[0].file : pending.file;
     if (pending.kind === 'photo'){ prog(0.05, 'Getting it ready…'); blob = await shrinkPhoto(blob); }
-    else blob = await shrinkVideo(blob, p => prog(p * 0.5, 'Getting your video ready…'));
+    else blob = await shrinkVideo(blob, p => prog(p * 0.5, trimmed(pending) ? 'Cutting your video…' : 'Getting your video ready…'), ...(trimmed(pending) ? [pending.from, pending.to] : []));   // beta 84
     const ext = pending.kind === 'photo' ? 'jpg' : /webm/.test(blob.type) ? 'webm' : 'mp4', path = `posts/${me}/${id}.${ext}`;
     const url = await c.upload(path, blob, p => prog(pending.kind === 'video' ? 0.5 + p * 0.5 : p, 'Sending…'));
     const post = {uid: me, name: db.me.name, caption: (document.getElementById('cpCap').value || '').trim().slice(0, 200), kind: pending.kind,
