@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 100;
+const BETA_NO = 101;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [101, 'The opening screen with the miner video now plays every time you open GemStash fresh (after closing it completely), not just once a day. Switching back from another app doesn’t replay it. Tap to skip.', ''],
   [100, 'Circle has Mike’s new picture: three miners (grandfather, boy and mother) sharing a blue gem.', ''],
   [99, 'A new opening screen, once a day: the miner finds a gem and holds it up to the light, with “Turn your doom-scrolling into LIFE-scrolling” and Proverbs 2:4, 5. Tap to begin.', ''],
   [98, 'Focus → Other gems: None (nothing else until the focus is done, not your circle, not your own posts) or a short break after every 3rd … 10th focus gem (your circle’s shares first, then gems you’ve kept). This replaces “All shares from my circle”.', ''],
@@ -5152,12 +5153,12 @@ function focusRepeat(){
   focusLibUse(f.lib); db.feedSpot = null; save(); focusRedraw(); tlog('focus repeated: ' + f.theme);
   toast(`Going through “${f.theme}” again`); go('feed'); focusSplash(true);
 }
-/* beta 99 (Mike): GemStash's opening screen, once a day. The miner finds a gem and holds it up to the light, the tagline
+/* beta 99 (Mike): GemStash's opening screen (beta 101: every time the app is opened fresh). The miner finds a gem and holds it up to the light, the tagline
    and Proverbs 2:4, 5 (NWT, both verses in full, word for word as on wol.jw.org; Mike asked that it's never shortened) fade in. Tap anywhere to go on; it moves on by itself after a few seconds.
    Beta 99b (Mike): purple like the rest of GemStash, and more movement (lift, glow, glint, dust in the light, LIFE pops). Then a focus opening screen, if any. */
 function gsSplash(then){
-  if (db.gsSplash === today() || document.getElementById('gsSplash')){ then && then(); return; }
-  db.gsSplash = today(); save();
+  if (document.getElementById('gsSplash')){ then && then(); return; }   // beta 101 (Mike): every fresh open (was once a day).
+  db.gsSplash = today(); save();   // (kept for reference; not checked any more) Coming back from another app doesn't reload the page, so it doesn't play then.
   const el = document.createElement('div'); el.id = 'gsSplash';
   el.innerHTML = `<div class="rays"></div><div class="beam"></div>
     <div class="brand"><img src="logo-chest-128.png" alt="">GemStash</div>

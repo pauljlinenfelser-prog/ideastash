@@ -243,6 +243,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
       (black background removed, fading in), then "Turn your
       doom-scrolling into LIFE-scrolling" and Proverbs 2:4, 5. Also: switching lists on the same day shows only the new list.
   Beta 100: Circle has Mike's new picture: three miners (grandfather, boy and mother) sharing a blue gem.
+  Beta 101: the opening screen plays every time GemStash is opened fresh (was once a day); switching back from another app doesn't replay it.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
