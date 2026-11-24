@@ -1,6 +1,6 @@
 // Gem Miner service worker: keeps the app working offline. jw.org lists always go to the network.
-const CACHE = 'gemminer-beta-1';
-const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-cart-160.png', 'focus-loupe-320.png', '../app/sources.js'];
+const CACHE = 'gemminer-beta-2';
+const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-cart-160.png', 'focus-loupe-320.png', 'miner-fills-cart.mp4', '../app/sources.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, {cache: 'reload'})))));
   self.skipWaiting();

@@ -254,6 +254,9 @@ GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/
       (a featured Morning Worship first, ✓ to keep, ＋ to add more finds, a theme verse), Your bundles,
       and Send to GemStash (opens GemStash Beta with the bundle in the link; GemStash learns to use
       it in its Focus update, which comes next).
+  Gem Miner Beta 2: an opening screen every fresh open, like GemStash's: Mike's video of the miner picking at the ore
+      and filling his cart (the jump between its two scenes smoothed with a dissolve; the mine scene melts into the
+      purple at its edges), "Dig for the gems / Fill your cart" and Psalm 119:162.
 
 VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup

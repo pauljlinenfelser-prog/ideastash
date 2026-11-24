@@ -63,6 +63,29 @@ input:focus{border-color:var(--mine)}
 .sheet .b{display:block;width:100%;border-radius:14px;padding:14px;font-weight:800;margin-top:8px;text-decoration:none;font-size:15px}
 .b.main{background:var(--mine);color:#00262e}.b.sec2{background:var(--panel2);color:var(--text)}
 .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.5}
+/* Gem Miner beta 2 (Mike): an opening screen every fresh open, like GemStash's: Mike's video of the miner filling his cart */
+#gmSplash{position:fixed;inset:0;z-index:50;overflow:hidden;background:radial-gradient(ellipse at 50% 34%,#3b2a6e 0,#211a3d 42%,#14121f 72%,#0b0a12 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;transition:opacity .5s}
+#gmSplash.out{opacity:0}
+#gmSplash .beam{position:absolute;left:50%;top:-10%;width:70vmin;height:80vh;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 0,#c9b8ff55 0,#ffd27a22 35%,transparent 65%);opacity:0;animation:gmFade 1.2s .2s forwards}
+#gmSplash .rays{position:absolute;left:50%;top:38%;width:120vmax;height:120vmax;margin:-60vmax 0 0 -60vmax;opacity:0;
+  background:repeating-conic-gradient(from 0deg,#b9a8ff14 0 6deg,transparent 6deg 18deg);animation:gmFade 1s 1s forwards,gmSpin 40s linear infinite}
+#gmSplash .brand{position:relative;display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:.04em;color:#4fc3d9;opacity:0;animation:gmFade .8s .1s forwards}
+#gmSplash .brand img{width:44px;height:44px}
+#gmSplash .stage{position:relative;width:min(88vw,360px);aspect-ratio:1;margin:6px 0 0}
+#gmSplash video{width:100%;height:100%;display:block;opacity:0;animation:gmVidIn 1.4s .15s ease-out forwards;
+  -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 58%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 58%,transparent 100%)}
+#gmSplash .gtag{position:relative;font-size:18px;color:#f3e9d8;line-height:1.3;opacity:0;animation:gmFade .9s 3.9s forwards}
+#gmSplash .gtag b{display:block;font-size:30px;letter-spacing:.02em;color:#ffc24a;text-shadow:0 0 18px #ffb84d99;margin-top:2px;opacity:0;transform:scale(.6);
+  animation:gmPop .7s 4.4s cubic-bezier(.2,1.6,.4,1) forwards,gmShine 3s 5.2s ease-in-out infinite alternate}
+#gmSplash .scr{position:relative;max-width:440px;margin-top:12px;font-style:italic;font-size:15px;line-height:1.5;color:#d9cdbb;opacity:0;animation:gmFade 1s 5s forwards}
+#gmSplash .scr span{display:block;font-style:normal;font-weight:700;font-size:12px;color:#ffc24a;margin-top:6px;letter-spacing:.05em}
+#gmSplash .tap{position:absolute;bottom:calc(var(--safe-b) + 26px);font-size:12px;color:#b9b0e0;opacity:0;animation:gmFade 1s 6s forwards}
+@keyframes gmFade{to{opacity:1}}
+@keyframes gmSpin{to{transform:rotate(360deg)}}
+@keyframes gmVidIn{from{opacity:0;filter:blur(6px) brightness(.4)}to{opacity:1;filter:none}}
+@keyframes gmPop{to{opacity:1;transform:none}}
+@keyframes gmShine{from{text-shadow:0 0 14px #ffb84d88}to{text-shadow:0 0 26px #ffd27acc,0 0 4px #fff8}}
 </style>
 </head><body>
 <div id="app"></div>
@@ -74,7 +97,7 @@ input:focus{border-color:var(--mine)}
    Gathers one topic from jw.org into a bundle, then hands it to GemStash in a link (#focus=...).
    Terms: only jw.org's own lists of videos (the same open video catalogue GemStash uses) and GemStash's lists of
    narrated articles. It keeps titles, IDs and links only: no article text and no pictures from the website. */
-const BETA_NO = 1;
+const BETA_NO = 2;
 const GEMSTASH = '../beta/';                  // the Focus control is built in the GemStash beta first
 const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
 const LS = 'gemminer:';                       // GemStash lives on the same site, so keep our own names
@@ -396,6 +419,21 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'q') runSearch(); });
 
+// beta 2: the opening screen. Psalm 119:162, word for word from the New World Translation (checked on wol.jw.org).
+(function gmSplash(){
+  const el = document.createElement('div'); el.id = 'gmSplash';
+  el.innerHTML = `<div class="rays"></div><div class="beam"></div>
+    <div class="brand"><img src="logo-cart-160.png" alt="">Gem Miner</div>
+    <div class="stage"><video muted playsinline preload="auto" src="miner-fills-cart.mp4"></video></div>
+    <div class="gtag">Dig for the gems<b>Fill your cart</b></div>
+    <div class="scr">“I rejoice over your saying<br>Like someone who finds great spoil.”<span>Psalm 119:162</span></div>
+    <div class="tap">Tap to begin</div>`;
+  document.body.appendChild(el);
+  const v = el.querySelector('video'); v.play().catch(() => {});
+  let gone = false;
+  const close = () => { if (gone) return; gone = true; el.classList.add('out'); setTimeout(() => el.remove(), 500); };
+  el.addEventListener('click', close); setTimeout(close, 11000);
+})();
 render();
 buildIndex(false).then(render);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).catch(() => {});
