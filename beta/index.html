@@ -36,7 +36,8 @@ header h1 img.logo{height:46px;width:46px;display:inline-block;vertical-align:mi
 .alert.new{outline:2px solid var(--accent)}.alert .i{font-size:22px}.alert small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .pill.auto{font-weight:600}
 .pill.vol{padding:6px 9px}   /* beta 53 */
-header .pill{white-space:nowrap;flex:none}   /* beta 53: one line, even with 🔊 and 🔔 */
+header .pill{white-space:nowrap;flex:none}
+#streak{display:inline-flex;align-items:center;gap:3px}#streak img{width:28px;height:28px;margin:-8px 0 -8px -5px;filter:drop-shadow(0 0 4px #ffb84d66)}   /* beta 95 */   /* beta 53: one line, even with 🔊 and 🔔 */
 /* beta 69: three parts; the whole bar fades in Today once you scroll or something plays, and comes back when you touch the screen */
 header{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;padding-top:calc(var(--safe-t) + 8px);padding-bottom:8px;transition:opacity .35s}
 header .hl{justify-self:start;min-width:0}header .hc{justify-self:center;display:flex;align-items:center;gap:8px}header .hr{justify-self:end}
@@ -72,7 +73,10 @@ header h1{min-width:0;white-space:nowrap}
 .cm .del{float:right;font-size:13px;color:var(--muted)}
 .cm .del + .del{margin-right:12px}.cm .ed{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}.cm.editing{outline:2px solid var(--accent)}   /* beta 80: edit my comment */
 #cmNote{color:var(--accent);font-size:13px;margin:0 2px 6px;display:none}
-.pill.auto.on{background:var(--accent);color:#1b1408}   /* (v18) auto-scroll is running */
+.pill.auto.on{background:var(--accent);color:#1b1408}
+#autoBtn{display:inline-flex;align-items:center;gap:4px}#autoBtn img{width:30px;height:30px;margin:-8px 0 -8px -4px;filter:drop-shadow(0 1px 2px #000a)}   /* beta 94 */
+#autoBtn.on img{animation:cartRoll .7s ease-in-out infinite alternate}
+@keyframes cartRoll{from{transform:translateX(-2px) rotate(-3deg)}to{transform:translateX(2px) rotate(2deg)}}   /* (v18) auto-scroll is running */
 main{flex:1;overflow:hidden;position:relative}
 .view{position:absolute;inset:0;overflow-y:auto;display:none;padding:0 16px 24px}
 .view.active{display:block}
@@ -95,6 +99,13 @@ nav button.on{color:var(--accent)}
 .bmark .seg button.on{background:var(--accent);color:#000;font-weight:700}.bgrid.marking button{border-style:dashed}   /* beta 72 */
 .blegend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:0 0 10px}
 .blegend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-left:6px}.blegend i.part{background:#2b4f8a}.blegend i.fin{background:#24704a}.blegend i.on{outline:3px solid var(--accent);outline-offset:-3px}
+nav button.circlenav .ic img{display:block;width:46px;height:46px;margin:-20px 0 -2px;filter:drop-shadow(0 2px 4px #000a)}   /* beta 93 */
+nav button.addnav .ic img{display:block;width:46px;height:46px;margin:-20px 0 -2px;filter:drop-shadow(0 2px 4px #000a)}   /* beta 96 */
+.pill.bell img{width:24px;height:24px;display:block;margin:-5px -2px;filter:drop-shadow(0 0 3px #ffb84d55)}   /* beta 96: Mike's brass bell */
+.pill.bell:has(b:not(:empty)) img{animation:bellRing 2.4s ease-in-out infinite;transform-origin:50% 10%}
+@keyframes bellRing{0%,70%,100%{transform:rotate(0)}75%{transform:rotate(14deg)}85%{transform:rotate(-12deg)}93%{transform:rotate(6deg)}}
+nav button.focusnav img{width:42px;height:42px;margin:-16px 0 -1px;border-radius:50%;filter:drop-shadow(0 2px 4px #000a)}
+nav button.focusnav.live img{box-shadow:0 0 0 2px #4fc3d9,0 0 12px #4fc3d9aa}   /* beta 92: a focus is on */
 nav button.chestnav{flex:1.2}nav button.chestnav img{width:54px;height:54px;margin:-22px 0 -2px;filter:drop-shadow(0 3px 6px #000a)}   /* beta 67: the chest sits a bit higher and bigger */
 #homeBtn{white-space:nowrap}
 
@@ -403,9 +414,9 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <!-- beta 69 (Mike): ← Today on the left (other screens), BETA 🔔 🔥 in the middle, a small Auto on the right; the chest, 📖 and 🔊 are gone -->
     <div class="hl"><button class="pill" id="homeBtn" onclick="go('feed')" title="Back to Today" hidden>← Today</button></div>
     <div class="hc"><small class="betab">BETA</small>
-      <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none">🔔<b id="bellN"></b></button>
-      <span class="pill" id="streak">🔥 0</span></div>
-    <div class="hr"><button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll">▶ Auto</button></div>
+      <button class="pill bell" id="bellBtn" onclick="openAlerts()" title="Alerts" style="display:none"><img src="bell-72.webp" alt=""><b id="bellN"></b></button>
+      <span class="pill" id="streak"><img src="lantern-low-72.webp" alt="">0</span></div>
+    <div class="hr"><button class="pill auto" id="autoBtn" onclick="toggleAuto()" title="Auto-scroll"><img src="auto-cart-96.webp" alt="">Auto</button></div>
   </header>
   <button id="autoAsk" class="autoask" hidden onclick="autoAskGo()">▶ Continue auto-scroll?</button>   <!-- beta 69 -->
   <main>
@@ -417,11 +428,13 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <section class="view" id="library"></section>
     <section class="view" id="add"></section>
     <section class="view" id="more"></section>
+    <section class="view" id="focus"></section>   <!-- beta 92 -->
   </main>
   <nav>
-    <button data-v="circle"><span class="ic">👥</span>Circle</button>   <!-- beta 67 (Mike): Circle · GemStash chest (Treasures) · Add -->
+    <button data-v="circle" class="circlenav"><span class="ic"><img src="circle-miners-128.webp" alt=""></span>Circle</button>   <!-- beta 93: Mike's circle of miners -->   <!-- beta 67 (Mike): Circle · GemStash chest (Treasures) · Add -->
     <button data-v="library" class="chestnav" title="Treasures (tap again for Today)"><img src="logo-chest-128.png" alt=""><span>Treasures</span></button>
-    <button data-v="mine"><span class="ic">➕</span>Add</button>
+    <button data-v="focus" class="focusnav" title="Focus and your Gem Miner cart"><img src="focus-loupe-320.webp" alt=""><span>Focus</span></button>   <!-- beta 92 (Mike) -->
+    <button data-v="mine" class="addnav"><span class="ic"><img src="add-pickaxe-96.webp" alt=""></span>Add</button>   <!-- beta 96: Mike's pickaxe -->
   </nav>
 </div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -480,9 +493,15 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 90;
+const BETA_NO = 96;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [96, 'Mike’s brass bell for alerts (it swings when something new is waiting) and his pickaxe with a green gem for Add.', ''],
+  [95, 'Your streak is Mike’s brass lantern now: a small flame up to 6 days, a steady glow from 7 days, and a blaze from 30 days.', ''],
+  [94, 'Auto-scroll has Mike’s rolling gem cart. It rolls while auto-scroll runs (tap it again to stop).', ''],
+  [93, 'Circle has Mike’s own picture now: miners sitting around a lantern, sharing a gem (bottom bar, Shelf and Treasures).', ''],
+  [92, 'Focus in the bottom bar: your loupe miner, next to Treasures, opens your focus and your Gem Miner cart in one place. It glows while a focus is on.', ''],
+  [91, 'The Gem Miner cart on the Shelf keeps every list you send from Gem Miner. Tap the cart, pick a list, and focus on it again any day without opening Gem Miner.', ''],
   [90, 'Full focus has no daily scrolling limit (unless a parent set it with a PIN). Spread-out focus and normal days keep your limit.', ''],
   [89, 'Full focus (Shelf → Focus, now the start): every gem in the bundle is in Today and only this topic, besides the Daily Text and Bible reading. Gems you don’t get to come back the next day. “All shares from my circle (during full focus)” lets your circle’s posts in. Or “Spread this meditation out”: 1 to 10 gems a day.', ''],
   [88, 'Focus: a Bible chapter from your topic. The gems name verses (like “Take Courage!” (John 16:33)); each day the most-named chapter you haven’t heard yet comes as the theme chapter. Shelf → Focus → Bible reading: Theme chapter + my reading, Theme chapter instead, or My reading only.', ''],
@@ -683,7 +702,7 @@ function go(v, how){
   topBtnShow();   // beta 61
   if (v === 'library'){ migrateTreasures(); libFilter = 'home'; }   // beta 32: the chest opens at the top
   gemClose();
-  ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore})[v]();
+  ({feed:renderFeed, shelf:renderShelf, circle:renderCircle, library:renderLibrary, add:renderAdd, more:renderMore, focus:renderFocusView})[v]();   // beta 92: + focus
 }
 
 /* ================= daily + streak ================= */
@@ -765,7 +784,10 @@ function bumpStreak(){
   db.streak.count = db.streak.last === ys ? db.streak.count+1 : 1;
   db.streak.last = t; save(); renderStreak();
 }
-function renderStreak(){ document.getElementById('streak').textContent = '🔥 ' + db.streak.count; }
+// beta 95 (Mike): his brass lantern burns brighter as the streak grows: a small flame (0-6 days), a steady glow (7-29), a blaze (30+)
+const lanternFor = c => c >= 30 ? 'high' : c >= 7 ? 'mid' : 'low';
+function renderStreak(){ const el = document.getElementById('streak'), c = db.streak.count || 0;
+  el.innerHTML = `<img src="lantern-${lanternFor(c)}-72.webp" alt="">${c}`; el.title = `${c}-day streak`; }
 
 /* ================= card ================= */
 // (v9) poster = full-screen picture; (v10) a story = several pictures you swipe sideways. Double-tap and ❤️ work like videos.
@@ -1572,7 +1594,8 @@ function autoHTML(){
     <p style="color:var(--muted);font-size:13px;line-height:1.5">Turn Auto on with ▶ Auto at the top of Today. Reading speed also sets how long pictures stay.</p>`;
 }
 let autoOn = false, autoState = null, autoHold = 0, autoLast = 0;
-function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn); b.textContent = autoOn ? '⏸ Auto' : '▶ Auto'; }
+function setAutoButton(){ const b = document.getElementById('autoBtn'); if (!b) return; b.classList.toggle('on', autoOn);
+  b.innerHTML = `<img src="auto-cart-96.webp" alt="">${autoOn ? 'Stop' : 'Auto'}`; }   // beta 94: Mike's rolling gem cart (it rolls while auto-scroll runs)
 function toggleAuto(){
   autoOn = !autoOn; db.auto = autoOn; save(); setAutoButton(); autoState = null; autoHold = 0;
   toast(autoOn ? 'Auto-scroll on: touch the screen to stop' : 'Auto-scroll off'); { const a = document.getElementById('autoAsk'); if (a) a.hidden = true; }   // beta 69
@@ -3256,7 +3279,7 @@ function renderLibrary(){
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
         <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
         ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${postsState === 'loading' && !myPosts().length ? 'Loading…' : myPosts().length + ' shared'}</small><span class="pk">${postPeek(myPosts())}</span></button>
-        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e">👥</span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
+        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
         <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
       </div>
       ${tags.length ? `<div class="sec" style="margin-top:16px">Tags</div><div class="chips">${tags.map(t => `<button class="chip" onclick="libOpen('gem','${t.id}')">🏷️ ${esc(t.name)}<small>${db.ideas.filter(i => (i.stashes || []).includes(t.id)).length}</small></button>`).join('')}</div>` : ''}
@@ -4417,6 +4440,7 @@ function renderShelf(){
   const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
   el.innerHTML = `
     ${focusShelfHTML()}
+    ${cartShelfHTML()}
     <div class="sec">My Shelf</div>
     ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
     ${db.shelf.map(it => `<button class="shelfitem ${it.paused || focusRests(it) ?'paused':''}" onclick="shelfSheet('${it.id}')">
@@ -4432,9 +4456,9 @@ function renderShelf(){
       <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${focusOn() ? 'Resting during the focus · ' : ''}${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
       <span>›</span></button>
     <div class="sec">Your circle</div>
-    ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e">👥</span>
+    ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
       <span class="t" style="flex:1;min-width:0"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">${esc(circShelfSub())}</small></span>
-      <span>›</span></button>` : `<button class="shelfitem" onclick="go('circle')"><span class="e">👥</span>
+      <span>›</span></button>` : `<button class="shelfitem" onclick="go('circle')"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
       <span class="t" style="flex:1"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">Set up your circle on the Circle tab first</small></span>
       <span>›</span></button>`}
     <div class="sec">Add to shelf</div>
@@ -4907,15 +4931,80 @@ function focusOffer(f){
   const old = db.focus && db.focus.on ? db.focus : null;
   openSheet(`<div style="text-align:center"><img src="focus-loupe-320.webp" alt="" style="width:130px;height:130px">
     <h3 style="margin:6px 0 4px">${esc(f.theme)}</h3>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 12px">${f.items.length} gems from Gem Miner for a focused meditation.<br>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 12px">${f.items.length} gems ${f.fromLink ? 'from Gem Miner' : 'from your Gem Miner cart'} for a focused meditation.${f.fromLink ? ' It’s kept in your Gem Miner cart on the Shelf, too.' : ''}<br>
     While it's on, Today brings these gems instead of your usual mix. The Daily Text and your Bible reading stay.
     ${old ? `<br><b style="color:var(--text)">This replaces your “${esc(old.theme)}” focus.</b>` : ''}</p>
     <button class="btn" id="focusGo">Start the focus</button>
     <button class="btn alt" onclick="closeSheet()">Not now</button></div>`);
   document.getElementById('focusGo').onclick = () => {
-    db.focus = {...f, on:true, mode:'full', circle:false, perDay:3, longMax:0, started:today(), day:'', todayIds:[], splash:''};
-    save(); closeSheet(); tlog('focus started: ' + f.theme); feedRefresh(); focusSplash(true);
+    const was = db.focus || {}, keep = k => was[k] !== undefined ? was[k] : undefined;   // beta 91: your last focus settings carry on
+    db.focus = {theme:f.theme, verse:f.verse || '', items:focusFresh(f.items), on:true, mode:keep('mode') || 'full', circle:!!keep('circle'),
+      perDay:keep('perDay') || 3, longMax:keep('longMax') || 0, bible:keep('bible') || 'add', started:today(), day:'', todayIds:[], splash:'', lib:f.lib || ''};
+    focusLibUse(db.focus.lib);
+    save(); closeSheet(); tlog('focus started: ' + f.theme); focusNavMark(); feedRefresh(); focusSplash(true);
   };
+}
+/* beta 91 (Mike): the Gem Miner cart on the Shelf keeps every list sent from Gem Miner, so one can be focused on again any day
+   without opening Gem Miner. db.focusLib = [{id, theme, verse, items, added, used, runs}] (this phone only). */
+const focusFresh = items => items.map(x => x.k === 'v' ? {k:'v', id:x.id, t:x.t, d:x.d, c:x.c} : {k:'a', id:x.id, t:x.t, c:x.c, u:x.u});
+const focusSig = f => f.theme.toLowerCase() + '|' + f.items.map(x => x.k + x.id).join(',');
+function focusLibAdd(f){
+  const lib = db.focusLib ||= [], sig = focusSig(f);
+  let e = lib.find(x => focusSig(x) === sig);
+  if (!e){ e = {id:uid(), theme:f.theme, verse:f.verse || '', items:focusFresh(f.items), added:Date.now(), used:0, runs:0}; lib.unshift(e); }
+  else if (f.verse) e.verse = f.verse;
+  save(); return e.id;
+}
+function focusLibUse(id){ const e = (db.focusLib || []).find(x => x.id === id); if (e){ e.used = Date.now(); e.runs = (e.runs || 0) + 1; save(); } }
+function focusLibInit(){   // once: the focus that's already running goes into the cart
+  if (db.focusLibV) return; db.focusLibV = 1; db.focusLib ||= [];
+  if (db.focus && db.focus.items) db.focus.lib = focusLibAdd(db.focus);
+  save();
+}
+function cartShelfHTML(){
+  const lib = db.focusLib || [];
+  return `<button class="shelfitem" onclick="cartSheet()"><span class="e"><img src="gemminer-cart-160.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
+    <span class="t" style="flex:1;min-width:0"><b>Gem Miner cart</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lib.length
+      ? `${lib.length} list${lib.length === 1 ? '' : 's'} · ${esc(lib.map(x => x.theme).join(', '))}` : 'Lists you send from Gem Miner are kept here'}</small></span><span>›</span></button>`;
+}
+function cartListHTML(){
+  const lib = db.focusLib || [], cur = focusOn() ? db.focus.lib : '';
+  const when = t => t ? new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+  return lib.length ? lib.map(e => `<div class="cartrow ${e.id === cur ? 'on' : ''}">
+      <button class="cmain" onclick="cartFocus('${e.id}')"><b>${esc(e.theme)}</b>
+        <small>${e.items.length} gems · sent ${when(e.added)}${e.runs ? ` · focused ${e.runs}×, last ${when(e.used)}` : ''}${e.id === cur ? ' · <span style="color:#4fc3d9">in focus now</span>' : ''}</small></button>
+      <button class="cdel" title="Remove from the cart" onclick="cartRemove('${e.id}')">🗑️</button></div>`).join('')
+      : '<p style="color:var(--muted);text-align:center">Nothing here yet.</p>';
+}
+function cartSheet(){
+  openSheet(`<div style="text-align:center"><img src="gemminer-cart-160.webp" alt="" style="width:110px;height:110px"><h3 style="margin:4px 0 2px">Gem Miner cart</h3>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Every list you've sent from Gem Miner. Tap one to focus on it again.</p></div>
+    ${cartListHTML()}
+    <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="../gemminer/">⛏️ Find something new in Gem Miner</a>
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
+// beta 92 (Mike): the loupe miner in the bottom bar opens this page: your focus and the Gem Miner cart in one place
+function renderFocusView(){
+  const el = document.getElementById('focus'); if (!el) return;
+  el.innerHTML = `<div class="sec">Focus</div>
+    ${db.focus ? focusShelfHTML() : `<div class="focusbox off"><div class="fh"><img src="focus-loupe-320.webp" alt=""> No focus right now</div>
+      <div class="fp">Pick a list from your Gem Miner cart to focus on it, or find something new in Gem Miner.</div></div>`}
+    <div class="sec" style="display:flex;align-items:center;gap:8px"><img src="gemminer-cart-160.webp" alt="" style="width:30px;height:30px"> Gem Miner cart</div>
+    ${cartListHTML()}
+    <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="../gemminer/">⛏️ Find something new in Gem Miner</a>`;
+  focusNavMark();
+}
+function focusRedraw(){ focusNavMark(); if (currentView === 'focus') renderFocusView(); else if (currentView === 'shelf') renderShelf(); }
+function focusNavMark(){ const b = document.querySelector('nav .focusnav'); if (b) b.classList.toggle('live', focusOn()); }
+function cartFocus(id){
+  const e = (db.focusLib || []).find(x => x.id === id); if (!e) return;
+  if (focusOn() && db.focus.lib === id) return toast(`“${e.theme}” is already your focus`);
+  focusOffer({theme:e.theme, verse:e.verse, items:e.items, lib:e.id});
+}
+function cartRemove(id){
+  const e = (db.focusLib || []).find(x => x.id === id); if (!e) return;
+  openSheet(`<h3>Remove “${esc(e.theme)}” from the cart?</h3><p style="color:var(--muted)">You can always send it again from Gem Miner.${focusOn() && db.focus.lib === id ? ' Your focus on it keeps going.' : ''}</p>
+    <button class="btn" onclick="db.focusLib=db.focusLib.filter(x=>x.id!=='${id}');save();focusRedraw();currentView==='focus'?closeSheet():cartSheet()">Remove</button><button class="btn alt" onclick="currentView==='focus'?closeSheet():cartSheet()">Keep it</button>`);
 }
 // the next gems, without changing anything: one Morning Worship to feature, then perDay others
 // beta 89 (Mike): "Full focus" (the start): Today is only this topic, every gem in the bundle at once; gems you didn't get to
@@ -5019,20 +5108,20 @@ function focusShelfHTML(){
       <button onclick="focusList()">See list</button><button onclick="focusEnd()">End focus</button></div></div>`;
 }
 function focusMode(m, n){                                 // beta 89
-  const f = db.focus, was = f.mode || 'full'; f.mode = m; if (n) f.perDay = n; save(); renderShelf();
-  if (m === 'full' && was !== 'full'){ f.day = ''; save(); feedRefresh(); go('shelf'); toast('Full focus: every gem is in Today now'); }
+  const f = db.focus, was = f.mode || 'full'; f.mode = m; if (n) f.perDay = n; save(); focusRedraw();
+  if (m === 'full' && was !== 'full'){ f.day = ''; db.feedSpot = null; save(); toast('Full focus: every gem is in Today now'); }
   else toast(m === 'full' ? 'Full focus' : `Spread out: ${f.perDay} gem${f.perDay === 1 ? '' : 's'} a day, from tomorrow`);
 }
-function focusSet(k, v){ db.focus[k] = v; save(); renderShelf(); if (k === 'circle'){ feedRefresh(); go('shelf'); return toast(v ? 'Your circle’s shares come in during full focus' : 'Full focus: only this topic'); }
+function focusSet(k, v){ db.focus[k] = v; save(); focusRedraw(); if (k === 'circle'){ db.feedSpot = null; save(); return toast(v ? 'Your circle’s shares come in during full focus' : 'Full focus: only this topic'); }
   toast(k === 'perDay' ? `${v} gem${v === 1 ? '' : 's'} a day, from tomorrow` : k === 'bible' ? 'Bible reading: saved (Today changes from tomorrow)' : 'Saved: it counts from the next gems'); }
 function focusSwitch(){
-  const f = db.focus; f.on = !f.on; if (f.on){ f.finished = ''; f.splash = ''; } save(); renderShelf();
+  const f = db.focus; f.on = !f.on; if (f.on){ f.finished = ''; f.splash = ''; } db.feedSpot = null; save(); focusRedraw();
   toast(f.on ? `Focus on: ${f.theme}` : 'Focus off: your usual mix is back');
-  feedRefresh(); if (f.on) focusSplash(true);
+  if (f.on) focusSplash(true);
 }
 function focusEnd(){
   openSheet(`<h3>End the “${esc(db.focus.theme)}” focus?</h3><p style="color:var(--muted)">Your usual mix comes back. Cards you already got stay in Today and Treasures.</p>
-    <button class="btn" onclick="db.focus=null;save();closeSheet();renderShelf();feedRefresh()">End it</button><button class="btn alt" onclick="closeSheet()">Keep it</button>`);
+    <button class="btn" onclick="db.focus=null;db.feedSpot=null;save();closeSheet();focusRedraw()">End it</button><button class="btn alt" onclick="closeSheet()">Keep it</button>`);
 }
 function focusList(){
   const f = db.focus, link = x => x.k === 'v' ? finderUrl(x.id) : x.u;
@@ -5070,6 +5159,9 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .fsub{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 10px 2px 38px;font-size:13px}.fsub.dim{opacity:.5}
 .fsub i{width:18px;height:18px;border-radius:5px;border:2px solid var(--muted);flex:none;font-style:normal;font-size:12px;line-height:14px;text-align:center;color:#00262e}
 .fsub i.on{background:#4fc3d9;border-color:#4fc3d9}
+.cartrow{display:flex;gap:8px;align-items:center;background:var(--panel2);border-radius:12px;margin-bottom:8px;border:1px solid transparent}
+.cartrow.on{border-color:#4fc3d9;background:#17363d}.cartrow .cmain{flex:1;text-align:left;padding:11px 12px;min-width:0}
+.cartrow .cmain b{display:block;font-size:15px}.cartrow .cmain small{color:var(--muted);font-size:12px}.cartrow .cdel{padding:10px 12px;font-size:16px}
 .focusbox .facts{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
 .focusbox .facts button,.focusbox .facts label{flex:1;text-align:center;background:var(--panel2);border-radius:10px;padding:8px;font-size:13px;white-space:nowrap}
 .flist{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #2a2640;color:var(--text);text-decoration:none;font-size:14px}
@@ -5085,7 +5177,8 @@ ensureDailyShelf();
 applyVol(); autoOn = !!db.auto; setAutoButton();   // beta 53: applyVol if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed(); bellDraw();   // beta 42
-{ const f = focusFromHash(); if (f) setTimeout(() => focusOffer(f), 300); else focusSplash(); }   // beta 87: a bundle from Gem Miner; the focus opening screen once a day
+focusLibInit(); focusNavMark();   // beta 91; beta 92
+{ const f = focusFromHash(); if (f){ f.lib = focusLibAdd(f); f.fromLink = true; setTimeout(() => focusOffer(f), 300); } else focusSplash(); }   // beta 87: a bundle from Gem Miner; the focus opening screen once a day
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
 if (syncOn()) setTimeout(syncStart, 1200);   // beta 46
 if (window._joinFromLink){ db.pendingJoin = window._joinFromLink; delete db.pendingJoinName; save(); go('circle'); inviterName(); if (circleReady()) joinPending(); }   // beta 35
