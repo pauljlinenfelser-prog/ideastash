@@ -217,6 +217,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 82: on your own post you can Remove anyone's comment.
   Beta 83: My treasures says "Loading your treasures…" while they come in, instead of looking empty.
   Beta 84: trim a video before sharing it (slide the two ends; up to 1 minute is kept, so longer videos work too).
+  Beta 85: add background music from your phone to a video, with a Video/Music balance slider.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 VERSIONS
