@@ -226,6 +226,9 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 88: Focus brings a Bible chapter from your topic: the gems' titles and the theme verse name verses, and each day
       the most-named chapter you haven't heard yet comes 3rd in Today (e.g. Courage: Joshua 1). Shelf → Focus → Bible
       reading: Theme chapter + my reading (the start), Theme chapter instead, or My reading only.
+  Beta 89: Full focus (now the start): every gem in the bundle is in Today and only this topic (plus Daily Text and
+      Bible reading); gems you don't get to come back the next day. "All shares from my circle (during full focus)"
+      lets your circle's posts in. "Spread this meditation out": 1 to 10 gems a day (was 1 to 6).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
