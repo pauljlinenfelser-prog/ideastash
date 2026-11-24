@@ -1,0 +1,146 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#14121f;--panel:#1e1b2e;--panel2:#272340;--muted:#a39fbd;--accent:#ffb84d;--accent2:#7c6cff;--ok:#3ed6a0;--gold:#ffc24a;--mine:#4fc3d9}
+*{box-sizing:border-box}body{margin:0;background:#0b0a12;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;padding:28px;width:1700px}
+h1{font-size:26px;margin:0 0 4px;color:var(--gold)}.sub{color:var(--muted);margin:0 0 22px;font-size:15px}
+.row{display:flex;gap:28px}.col{width:384px}.cap{color:var(--muted);font-size:14px;line-height:1.45;margin:10px 4px 0}
+.cap b{color:#fff}.step{display:inline-block;background:var(--gold);color:#000;border-radius:50%;width:24px;height:24px;text-align:center;font-weight:800;margin-right:6px}
+.app{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px 4px}.app.m{color:var(--mine)}.app.g{color:var(--accent)}
+.phone{width:384px;height:780px;background:var(--bg);border-radius:28px;border:3px solid #2e2a44;overflow:hidden;position:relative}
+.top{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;font-size:19px;font-weight:700}.top .ic{font-size:26px}
+.top .r{margin-left:auto;font-size:12px;color:var(--muted);background:var(--panel2);border-radius:999px;padding:5px 10px;font-weight:500}
+.search{margin:6px 16px 12px;background:var(--panel2);border:1px solid #3a3558;border-radius:14px;padding:13px 14px;color:#fff;font-size:15px;display:flex;gap:8px}
+.search span{color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 16px 14px}.chip{background:var(--panel2);border-radius:999px;padding:6px 11px;font-size:12px;color:var(--muted)}.chip.on{background:var(--mine);color:#00262e;font-weight:700}
+.sec{color:var(--muted);letter-spacing:.08em;font-size:12px;margin:4px 16px 10px;text-transform:uppercase}
+.packs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px}
+.pack{border-radius:16px;padding:12px;height:104px;display:flex;flex-direction:column;justify-content:flex-end;font-weight:700;font-size:15px}
+.pack small{font-weight:400;font-size:11px;opacity:.85;margin-top:2px}
+.g1{background:linear-gradient(135deg,#3b2a6e,#7c6cff)}.g2{background:linear-gradient(135deg,#1c4a52,#4fc3d9)}.g3{background:linear-gradient(135deg,#5a3313,#ffb84d)}
+.g4{background:linear-gradient(135deg,#4a1d36,#ff5c9a)}.g5{background:linear-gradient(135deg,#1e3d2c,#3ed6a0)}.g6{background:linear-gradient(135deg,#2a2640,#6b6690)}
+.hdr{margin:4px 16px 12px;border-radius:18px;padding:16px;background:linear-gradient(135deg,#1c4a52,#4fc3d9)}
+.hdr b{font-size:22px;display:block}.hdr small{font-size:13px;opacity:.9}
+.item{display:flex;gap:10px;align-items:center;margin:0 16px 8px;background:var(--panel);border-radius:14px;padding:9px}
+.th{width:54px;height:42px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px}
+.item .t{flex:1;font-size:13px;line-height:1.3}.item .t small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.item .x{color:var(--muted);font-size:16px;padding:0 4px}.item .ck{color:var(--ok);font-size:16px;padding:0 4px}
+.tag{display:inline-block;font-size:10px;font-weight:800;background:var(--gold);color:#000;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.btn{position:absolute;left:16px;right:16px;bottom:20px;border-radius:16px;padding:15px;text-align:center;font-weight:800;font-size:16px}
+.btn.m{background:var(--mine);color:#00262e}.btn.g{background:var(--accent);color:#2a1700}
+/* splash */
+.splash{position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,#2b5d69 0,#14121f 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.splash .gem{font-size:64px;margin-bottom:10px}.splash .k{color:var(--mine);letter-spacing:.18em;font-size:12px;font-weight:800;text-transform:uppercase}
+.splash .th1{font-size:40px;font-weight:800;margin:8px 0 6px}.splash .v{color:#dfe;opacity:.85;font-style:italic;font-size:15px;margin-bottom:22px;line-height:1.4}
+.splash .st{color:var(--muted);font-size:14px;line-height:1.6}.splash .st b{color:#fff}
+.bar{width:220px;height:8px;background:#2e2a44;border-radius:9px;margin:14px auto 6px;overflow:hidden}.bar i{display:block;height:100%;width:21%;background:var(--mine)}
+.splash .go{margin-top:28px;background:var(--mine);color:#00262e;border-radius:999px;padding:12px 34px;font-weight:800}
+.splash .sm{margin-top:14px;color:var(--muted);font-size:12px}
+/* today */
+.fband{margin:2px 16px 10px;border-radius:12px;padding:8px 12px;background:#17363d;border:1px solid #2f6b77;font-size:13px;display:flex;align-items:center;gap:8px}
+.fband b{color:var(--mine)}.fband span{margin-left:auto;color:var(--muted);font-size:12px}
+.card{margin:0 16px 10px;border-radius:18px;overflow:hidden;background:var(--panel)}
+.card .pic{height:160px;display:flex;align-items:flex-end;padding:12px;font-size:12px;font-weight:800;letter-spacing:.06em}
+.card .bd{padding:12px 14px}.card .bd b{font-size:16px;display:block;margin-bottom:4px}.card .bd small{color:var(--muted);font-size:12px}
+.feat{outline:2px solid var(--gold)}
+.lbl{display:inline-block;background:rgba(0,0,0,.45);border-radius:8px;padding:3px 8px}
+.mini{display:flex;gap:10px;margin:0 16px}.mini .card{flex:1;margin:0}.mini .pic{height:84px}.mini .bd b{font-size:13px}
+nav{position:absolute;bottom:0;left:0;right:0;height:62px;background:#17151f;border-top:1px solid #2a2640;display:flex;justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}
+nav div{text-align:center;width:60px}nav i{font-style:normal;font-size:20px;display:block;height:26px}nav .on{color:var(--accent)}
+/* shelf */
+.fbox{margin:4px 16px 14px;border-radius:18px;padding:14px;background:var(--panel);border:1px solid #2f6b77}
+.fbox .h{display:flex;align-items:center;gap:8px;font-weight:800}.fbox .h .sw{margin-left:auto;width:44px;height:26px;border-radius:99px;background:var(--mine);position:relative}
+.fbox .h .sw:after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.fbox .p{color:var(--muted);font-size:13px;margin:8px 0;line-height:1.45}.fbox .p b{color:#fff}
+.fbox .acts{display:flex;gap:8px;margin-top:10px}.fbox .acts div{flex:1;text-align:center;background:var(--panel2);border-radius:10px;padding:8px;font-size:12px}
+.shelf{margin:0 16px 8px;background:var(--panel);border-radius:14px;padding:12px;font-size:14px;display:flex;justify-content:space-between;opacity:.5}
+.lv{display:flex;justify-content:space-between;align-items:center;background:#17363d;border:1px solid #2f6b77;border-radius:10px;padding:9px 10px;font-size:12px;margin-top:4px}.lv b{color:var(--mine)}
+.shelf small{color:var(--muted)}
+</style></head><body>
+<h1>Gem Miner + GemStash Focus: mockup</h1>
+<p class="sub"><img src="icon-cart.svg" style="width:40px;vertical-align:middle;border-radius:9px;margin-right:6px"> Gem Miner icon (draft) &nbsp;&nbsp; <img src="icon-loupe.svg" style="width:40px;vertical-align:middle;border-radius:9px;margin-right:6px"> GemStash Focus icon (draft) &nbsp;&nbsp;·&nbsp; Gem Miner gathers one topic into a bundle and sends it to GemStash. GemStash then focuses Today on that topic. (Pictures are plain colour blocks in this mockup.)</p>
+<div class="row">
+
+<!-- 1 Gem Miner home -->
+<div class="col"><div class="app m">Gem Miner</div><div class="phone">
+ <div class="top"><img src="icon-cart.svg" style="width:34px;border-radius:8px">Gem Miner<span class="r">jw.org only</span></div>
+ <div class="search">🔍 <span>Topic or verse… e.g. courage, Josh 1:9</span></div>
+ <div class="chips"><div class="chip on">All</div><div class="chip">🎬 Videos</div><div class="chip">🎧 Audio</div><div class="chip">📄 Articles (with narration)</div></div>
+ <div class="sec">Starter packs</div>
+ <div class="packs">
+  <div class="pack g2">Courage<small>14 gems</small></div><div class="pack g1">Prayer<small>18 gems</small></div>
+  <div class="pack g3">Family<small>22 gems</small></div><div class="pack g4">Anxiety &amp; peace<small>16 gems</small></div>
+  <div class="pack g5">Faith in hard times<small>12 gems</small></div><div class="pack g6">Kindness<small>10 gems</small></div>
+ </div>
+</div><p class="cap"><span class="step">1</span><b>Pick a topic.</b> Type one, or tap a starter pack. Gem Miner looks only through jw.org's own lists of videos and audio.</p></div>
+
+<!-- 2 bundle -->
+<div class="col"><div class="app m">Gem Miner</div><div class="phone">
+ <div class="top"><img src="icon-cart.svg" style="width:34px;border-radius:8px">Courage<span class="r">‹ Back</span></div>
+ <div class="hdr"><b>💎 Courage</b><small>14 gems · about 3 h 10 min · 6 videos, 5 audio, 3 articles</small></div>
+ <div class="item"><div class="th g3">🎬</div><div class="t">Morning Worship: “Be Courageous”<span class="tag">FEATURED</span><small>Video · 9 min</small></div><div class="ck">✓</div></div>
+ <div class="item"><div class="th g2">🎬</div><div class="t">Courage when you're the only one<small>Video · 4 min</small></div><div class="ck">✓</div></div>
+ <div class="item"><div class="th g1">🎧</div><div class="t">Joshua: “Be courageous and very strong”<small>Audio (narrated article) · 12 min</small></div><div class="ck">✓</div></div>
+ <div class="item"><div class="th g5">🎧</div><div class="t">Drama: Faith that moves to action<small>Audio · 28 min</small></div><div class="ck">✓</div></div>
+ <div class="item"><div class="th g4">🎬</div><div class="t">Facing fear at school<small>Video · 3 min</small></div><div class="x">✕</div></div>
+ <div class="item"><div class="th g6">📄</div><div class="t">How can I be brave?<small>Article · listen to it · 7 min</small></div><div class="ck">✓</div></div>
+ <div class="item"><div class="th g2">🎬</div><div class="t">Talk: Strength from Jehovah<small>Video · 15 min</small></div><div class="ck">✓</div></div>
+ <div class="btn m">💎 Send to GemStash</div>
+</div><p class="cap"><span class="step">2</span><b>Look it over.</b> Tap ✕ to leave out anything you don't want. Morning Worship videos are marked <b>FEATURED</b>. Then send the bundle to GemStash.</p></div>
+
+<!-- 3 splash -->
+<div class="col"><div class="app g">GemStash</div><div class="phone">
+ <div class="splash">
+  <img src="icon-loupe.svg" style="width:120px;border-radius:26px;margin-bottom:14px;box-shadow:0 0 40px #4fc3d966"><div class="k">Focused meditation</div>
+  <div class="th1">Courage</div>
+  <div class="v">“Be courageous and strong.”<br>Joshua 1:9</div>
+  <div class="st">Today: <b>Morning Worship</b> + 3 gems<br>Long videos: no time limit<br>Day 2 of your focus</div>
+  <div class="bar"><i></i></div><div class="st" style="font-size:12px">3 of 14 gems done</div>
+  <div class="go">Begin</div>
+  <div class="sm">Daily Text plays as usual</div>
+ </div>
+</div><p class="cap"><span class="step">3</span><b>Opening screen.</b> While a focus is on, GemStash opens with the theme, its verse and today's plan. Tap Begin (or it moves on by itself after a few seconds).</p></div>
+
+<!-- 4 today -->
+<div class="col"><div class="app g">GemStash</div><div class="phone">
+ <div class="top"><span class="ic">💎</span>GemStash<span class="r">🔊 🔔</span></div>
+ <div class="fband"><img src="icon-loupe.svg" style="width:22px;border-radius:5px"> Focus: <b>Courage</b><span>3 of 14 · change</span></div>
+ <div class="card"><div class="pic g6"><span class="lbl">DAILY TEXT</span></div><div class="bd"><b>Tuesday, November 24</b><small>Plays as usual, first thing</small></div></div>
+ <div class="card feat"><div class="pic g3"><span class="lbl">⭐ FEATURED · MORNING WORSHIP</span></div><div class="bd"><b>“Be Courageous”</b><small>From your Courage focus · 9 min</small></div></div>
+ <div class="mini">
+  <div class="card"><div class="pic g2"><span class="lbl">🎬 VIDEO</span></div><div class="bd"><b>Courage when you're the only one</b></div></div>
+  <div class="card"><div class="pic g1"><span class="lbl">🎧 LISTEN</span></div><div class="bd"><b>Joshua: “Be courageous…”</b></div></div>
+ </div>
+ <nav><div class="on"><i>☀️</i>Today</div><div><i>🎬</i>Watch</div><div><i>👥</i>Circle</div><div><i>📚</i>Shelf</div><div><i>🧰</i>Treasures</div></nav>
+</div><p class="cap"><span class="step">4</span><b>Today, focused.</b> Daily Text first as usual. If the bundle has a Morning Worship, it's the featured card. Then the rest of today's gems come from the focus instead of the random mix.</p></div>
+
+</div>
+<div class="row" style="margin-top:30px">
+
+<!-- 5 shelf control -->
+<div class="col"><div class="app g">GemStash</div><div class="phone">
+ <div class="top"><span class="ic">📚</span>My Shelf</div>
+ <div class="fbox">
+  <div class="h"><img src="icon-loupe.svg" style="width:26px;border-radius:6px"> Focus on: Courage<div class="sw"></div></div>
+  <div class="p">From Gem Miner · <b>3 of 14 gems</b> done · <b>3 a day</b><br>While this is on, Today serves this topic instead of your Shelf mix. When the bundle is used up, your normal mix comes back.</div>
+  <div class="lv"><span>🎬 Long videos during focus</span><b>No time limit ▾</b></div><div class="acts"><div>Gems a day: 3 ▾</div><div>See list</div><div>End focus</div></div>
+ </div>
+ <div class="sec">Your Shelf (resting during the focus)</div>
+ <div class="shelf">Daily Text<small>still on</small></div>
+ <div class="shelf">Questions From Readers<small>paused</small></div>
+ <div class="shelf">Bible Questions Answered<small>paused</small></div>
+ <div class="shelf">Watch channels<small>paused</small></div>
+ <nav><div><i>☀️</i>Today</div><div><i>🎬</i>Watch</div><div><i>👥</i>Circle</div><div class="on"><i>📚</i>Shelf</div><div><i>🧰</i>Treasures</div></nav>
+</div><p class="cap"><span class="step">5</span><b>The Focus control.</b> It sits at the top of the Shelf. Switch it off or end it any time. <b>Long videos during focus</b> lifts the usual video-length limit (choices: No time limit / up to 30 min / up to 60 min). Your Shelf just rests, and nothing is lost.</p></div>
+
+<div class="col" style="width:760px;padding-top:30px">
+ <div class="cap" style="font-size:16px;line-height:1.7">
+ <b style="color:var(--gold);font-size:18px">Questions for Mike</b><br>
+ • <b>Gems a day</b> during a focus: is 3 (plus Daily Text and a Morning Worship) right?<br>
+ • <b>Opening screen</b>: every time GemStash opens, or only the first time each day?<br>
+ • <b>Verse on the opening screen</b>: should Gem Miner choose one, or should you type it in?<br>
+ • <b>When the bundle runs out</b>: back to the normal mix by itself (as shown), or ask first?<br><br>
+ <b style="color:var(--gold);font-size:18px">How it connects</b><br>
+ Gem Miner lives on your same site, next to GemStash. "Send to GemStash" just opens GemStash with the bundle inside the link. There's no account and nothing to set up, and the same link could later go to a friend.
+ </div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- GemStash Focus draft icon: a person wearing a loupe, looking closely at a gem -->
+  <rect width="128" height="128" rx="28" fill="#17363d"/>
+  <!-- shoulders -->
+  <path d="M6 128 C8 104 24 94 44 92 L58 92 C70 96 76 108 78 128 Z" fill="#7c6cff"/>
+  <!-- neck -->
+  <rect x="38" y="78" width="16" height="18" rx="4" fill="#d9a77c"/>
+  <!-- head (profile facing right) -->
+  <path d="M26 50 C26 30 40 20 56 22 C70 24 76 34 76 46 L80 56 L76 58 C76 66 72 74 64 78 C54 82 40 82 32 74 C27 68 26 60 26 50 Z" fill="#e8b78c"/>
+  <!-- hair -->
+  <path d="M24 50 C22 28 40 16 58 20 C68 22 74 28 76 36 C66 32 54 34 48 40 C42 46 40 56 34 60 C28 60 25 56 24 50 Z" fill="#3b2a20"/>
+  <!-- ear -->
+  <ellipse cx="44" cy="54" rx="5" ry="7" fill="#d9a77c"/>
+  <!-- loupe at the eye -->
+  <rect x="68" y="38" width="20" height="14" rx="3" fill="#2a2640" transform="rotate(12 78 45)"/>
+  <ellipse cx="89" cy="48" rx="4" ry="8" fill="#4fc3d9" transform="rotate(12 89 48)"/>
+  <!-- strap -->
+  <path d="M68 40 C58 32 44 34 36 42" stroke="#2a2640" stroke-width="3" fill="none"/>
+  <!-- hand holding the gem -->
+  <ellipse cx="104" cy="88" rx="10" ry="7" fill="#e8b78c"/>
+  <!-- gem -->
+  <polygon points="96,66 104,56 112,66 104,80" fill="#4fc3d9"/>
+  <polygon points="96,66 104,56 104,80" fill="#9be7f3"/>
+  <polygon points="96,66 112,66 104,60" fill="#d6f7fc"/>
+  <!-- sightline sparkle -->
+  <path d="M112 50 l2 4 4 2 -4 2 -2 4 -2 -4 -4 -2 4 -2z" fill="#fff"/>
+</svg>

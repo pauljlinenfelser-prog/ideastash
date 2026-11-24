@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Gem Miner draft icon: a miner's cart full of gems -->
+  <rect width="128" height="128" rx="28" fill="#14121f"/>
+  <!-- rails -->
+  <rect x="10" y="108" width="108" height="5" rx="2" fill="#6b6690"/>
+  <!-- gems piled above the cart -->
+  <polygon points="30,52 40,34 50,52 40,62" fill="#ff5c9a"/>
+  <polygon points="30,52 40,34 40,62" fill="#ff8fbb"/>
+  <polygon points="46,48 60,24 74,48 60,60" fill="#4fc3d9"/>
+  <polygon points="46,48 60,24 60,60" fill="#9be7f3"/>
+  <polygon points="70,50 82,32 94,50 82,60" fill="#3ed6a0"/>
+  <polygon points="70,50 82,32 82,60" fill="#8ff0c9"/>
+  <polygon points="86,54 96,42 106,54 96,62" fill="#ffb84d"/>
+  <polygon points="86,54 96,42 96,62" fill="#ffd796"/>
+  <polygon points="22,58 30,48 38,58 30,64" fill="#7c6cff"/>
+  <polygon points="22,58 30,48 30,64" fill="#b0a6ff"/>
+  <!-- cart body -->
+  <polygon points="14,56 114,56 104,96 24,96" fill="#8a5a2b"/>
+  <polygon points="14,56 114,56 112,64 16,64" fill="#b07a40"/>
+  <rect x="34" y="66" width="4" height="28" fill="#6e4520"/>
+  <rect x="62" y="66" width="4" height="28" fill="#6e4520"/>
+  <rect x="90" y="66" width="4" height="28" fill="#6e4520"/>
+  <!-- wheels -->
+  <circle cx="38" cy="102" r="9" fill="#3a3558" stroke="#a39fbd" stroke-width="3"/>
+  <circle cx="90" cy="102" r="9" fill="#3a3558" stroke="#a39fbd" stroke-width="3"/>
+  <!-- sparkle -->
+  <path d="M60 10 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#fff"/>
+</svg>

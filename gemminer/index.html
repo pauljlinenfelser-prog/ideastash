@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14121f">
+<title>Gem Miner</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#14121f; --panel:#1e1b2e; --panel2:#272340; --text:#f3f1fb; --muted:#a39fbd;
+  --accent:#ffb84d; --mine:#4fc3d9; --gold:#ffc24a; --ok:#3ed6a0; --line:#3a3558;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;width:100%;outline:none}
+input:focus{border-color:var(--mine)}
+#app{max-width:560px;margin:0 auto;padding:calc(var(--safe-t) + 8px) 16px calc(var(--safe-b) + 110px)}
+.top{display:flex;align-items:center;gap:10px;padding:6px 0 12px}
+.top img{width:46px;height:46px}
+.top h1{font-size:21px;margin:0;flex:1}.top h1 small{display:block;font-size:11px;font-weight:600;color:var(--mine);letter-spacing:.08em;text-transform:uppercase}
+.pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted);white-space:nowrap}
+.back{background:var(--panel2);border-radius:999px;padding:7px 13px;font-size:13px}
+.searchrow{display:flex;gap:8px;margin-bottom:10px}.searchrow button{background:var(--mine);color:#00262e;font-weight:800;border-radius:14px;padding:0 16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.chip{background:var(--panel2);border-radius:999px;padding:7px 12px;font-size:13px;color:var(--muted)}
+.chip.on{background:var(--mine);color:#00262e;font-weight:700}
+.sec{color:var(--muted);letter-spacing:.08em;font-size:12px;margin:18px 2px 10px;text-transform:uppercase}
+.packs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pack{border-radius:16px;padding:12px;min-height:96px;display:flex;flex-direction:column;justify-content:flex-end;font-weight:700;font-size:15px;text-align:left}
+.pack small{font-weight:400;font-size:12px;opacity:.9;margin-top:2px}
+.g0{background:linear-gradient(135deg,#1c4a52,#4fc3d9)}.g1{background:linear-gradient(135deg,#3b2a6e,#7c6cff)}.g2{background:linear-gradient(135deg,#5a3313,#ffb84d)}
+.g3{background:linear-gradient(135deg,#4a1d36,#ff5c9a)}.g4{background:linear-gradient(135deg,#1e3d2c,#3ed6a0)}.g5{background:linear-gradient(135deg,#2a2640,#6b6690)}
+.g6{background:linear-gradient(135deg,#3d1f1f,#ff7a59)}.g7{background:linear-gradient(135deg,#1f2d4a,#5c9dff)}
+.status{background:var(--panel);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.bar{height:6px;background:#2e2a44;border-radius:9px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--mine);width:0;transition:width .3s}
+.hdr{border-radius:18px;padding:16px;margin-bottom:12px}
+.hdr b{font-size:24px;display:block}.hdr small{font-size:13px;opacity:.92;line-height:1.4;display:block;margin-top:2px}
+.verse{margin-bottom:12px}.verse label{font-size:12px;color:var(--muted);display:block;margin:0 2px 6px}
+.item{display:flex;gap:10px;align-items:center;margin-bottom:8px;background:var(--panel);border-radius:14px;padding:9px}
+.item.off{opacity:.45}
+.th{width:50px;height:42px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px}
+.item .t{flex:1;min-width:0;font-size:14px;line-height:1.3}
+.item .t a{color:inherit;text-decoration:none}
+.item .t small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.tog{width:34px;height:34px;border-radius:50%;flex:none;font-size:17px;display:flex;align-items:center;justify-content:center}
+.tog.in{color:var(--ok)}.tog.out{color:var(--muted)}
+.tag{display:inline-block;font-size:10px;font-weight:800;background:var(--gold);color:#000;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.more{width:100%;background:var(--panel2);border-radius:12px;padding:11px;font-size:14px;color:var(--muted);margin:4px 0 8px}
+.empty{color:var(--muted);text-align:center;padding:30px 10px;line-height:1.5}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(var(--safe-b) + 14px);background:linear-gradient(transparent,var(--bg) 30%)}
+.dock button{display:block;width:100%;max-width:528px;margin:0 auto;border-radius:16px;padding:15px;font-weight:800;font-size:16px;background:var(--mine);color:#00262e}
+.dock button:disabled{opacity:.4}
+.saved{display:flex;gap:10px;align-items:center;background:var(--panel);border-radius:14px;padding:11px 12px;margin-bottom:8px;width:100%;text-align:left}
+.saved b{display:block;font-size:15px}.saved small{color:var(--muted);font-size:12px}.saved span{margin-left:auto;color:var(--muted);font-size:20px}
+.sheet{position:fixed;inset:0;background:rgba(5,4,10,.75);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet .box{background:var(--panel);border-radius:22px 22px 0 0;padding:22px 18px calc(var(--safe-b) + 22px);width:100%;max-width:560px;text-align:center}
+.sheet img{width:120px;height:120px}
+.sheet h2{margin:6px 0 4px;font-size:22px}.sheet p{color:var(--muted);font-size:14px;line-height:1.5;margin:6px 0 14px}
+.sheet .b{display:block;width:100%;border-radius:14px;padding:14px;font-weight:800;margin-top:8px;text-decoration:none;font-size:15px}
+.b.main{background:var(--mine);color:#00262e}.b.sec2{background:var(--panel2);color:var(--text)}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.5}
+</style>
+</head><body>
+<div id="app"></div>
+<div class="dock" id="dock" hidden><button id="sendBtn">💎 Send to GemStash</button></div>
+
+<script src="../app/sources.js"></script>
+<script>
+/* ===== Gem Miner beta 1 =====
+   Gathers one topic from jw.org into a bundle, then hands it to GemStash in a link (#focus=...).
+   Terms: only jw.org's own lists of videos (the same open video catalogue GemStash uses) and GemStash's lists of
+   narrated articles. It keeps titles, IDs and links only: no article text and no pictures from the website. */
+const BETA_NO = 1;
+const GEMSTASH = '../beta/';                  // the Focus control is built in the GemStash beta first
+const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
+const LS = 'gemminer:';                       // GemStash lives on the same site, so keep our own names
+const INDEX_DAYS = 7;                         // re-read jw.org's lists once a week
+const BUNDLE_SIZE = 14;                       // gems picked to start with; the rest wait under "More finds"
+
+// jw.org video channels (the same ones GemStash's Watch tab knows)
+const CHANNELS = {
+  VODPgmEvtMorningWorship:'Morning Worship', VODPgmEvtSpecial:'Special Programs', VODPgmEvtGilead:'Gilead Graduations', VODPgmEvtAnnMtg:'Annual Meetings',
+  StudioNewsReports:'News and Announcements', StudioTalks:'Talks', StudioMonthlyPrograms:'Monthly Programs', StudioFeatured:'Featured Videos',
+  VODIntExpTransformations:'Truth Transforms Lives', VODIntExpBlessings:'Blessings of Sacred Service', VODIntExpEndurance:'Enduring Trials', VODIntExpYouth:'Young People',
+  OriginsLife:'Science', VODIntExpArchives:'From Our Archives', SeriesBibleChangesLives:'The Bible Changes Lives', SeriesOriginsLife:'Viewpoints on the Origin of Life',
+  SeriesReasonsFaith:'Reasons for Faith', SeriesWCGVideos:'Walk Courageously With God', SeriesWTLessons:'Lessons From The Watchtower', SeriesLearnFromThem:'Learn From Them',
+  SeriesImitateFaith:'Imitate Their Faith', VODLovePeople:'Love People—Make Disciples', SeriesLFFVideos:'Enjoy Life Forever!—Videos', SeriesDigForTreasures:'Dig for Treasures',
+  SeriesOurHistory:'Our History in Motion', SeriesOrgAccomplishments:'Organizational Accomplishments', SeriesHappyMarriage:'For a Happy Marriage',
+  TeenSpiritualGrowth:'Teenagers: Spiritual Growth', TeenSocialLife:'Teenagers: Social Life', TeenGoals:'Teenagers: Goals', TeenWhatPeersSay:'Teenagers: Interviews',
+  SeriesMyTeenLife:'My Teen Life', SeriesWhatPeersSay:'What Your Peers Say',
+  FamilyChallenges:'Family Challenges', FamilyDatingMarriage:'Dating and Marriage', FamilyWorship:'Family Worship',
+  VODActivitiesReliefWork:'Relief Work', VODActivitiesSpecialEvents:'Special Events',
+  VODMoviesBibleTimes:'Dramas: Bible Times', VODMoviesModernDay:'Dramas: Modern Day', DramasGoodNews:'The Good News According to Jesus',
+  VODBiblePrinciples:'Apply Bible Principles', VODBibleTeachings:'Bible Teachings', BibleBooks:'Books of the Bible', VODBibleReadingStudy:'Bible Reading and Study',
+  VODBibleMedia:'People, Places, and Things', VODBibleCreation:'Creation', VODBibleAccounts:'Bible Accounts',
+  Reports:'Reports From Around the World', VODOrgBethel:'Bethel', SeriesADayInTheLifeOf:'A Day in the Life of…', VODOrgHistory:'History',
+  VODOriginalSongs:'Original Songs', VODSJJMeetings:'“Sing Out Joyfully”—Meetings', VODConvMusic:'Convention Music',
+  BJF:'Become Jehovah’s Friend', ChildrenSongs:'Children’s Songs', SeriesJehovahsFriends:'Learn From Jehovah’s Friends', ChildrenMovies:'Children’s Dramas',
+};
+const MW = 'VODPgmEvtMorningWorship';
+
+// narrated articles GemStash already knows (from sources.js): only the ones with a jw.org recording number
+const ARTICLE_LISTS = [
+  ['BQA', 'Bible Questions Answered', typeof BQA_LIST !== 'undefined' ? BQA_LIST : []],
+  ['BVE', 'Bible Verses Explained',   typeof BVE_LIST !== 'undefined' ? BVE_LIST : []],
+  ['FAM', 'Help for the Family',      typeof FAM_LIST !== 'undefined' ? FAM_LIST : []],
+  ['ARCH','From Our Archives',        typeof ARCH_LIST !== 'undefined' ? ARCH_LIST : []],
+  ['QFR', 'Questions From Readers',   typeof QFR_LIST !== 'undefined' ? QFR_LIST : []],
+];
+
+// starter packs: a theme, a verse, and the words to look for (a word also finds longer forms: "pray" finds "prayer")
+const PACKS = [
+  {n:'Courage', v:'“Be courageous and strong.” Joshua 1:9', w:['courage','brave','bold','fear','afraid']},
+  {n:'Prayer', v:'“Pray constantly.” 1 Thessalonians 5:17', w:['pray','prayer']},
+  {n:'Family', v:'“Let each one love his wife as himself.” Ephesians 5:33', w:['family','families','marriage','married','husband','wife','wives','parent','children','father','mother']},
+  {n:'Anxiety & peace', v:'“Do not be anxious over anything.” Philippians 4:6', w:['anxi','worr','peace','calm','stress','depress']},
+  {n:'Faith in hard times', v:'“The one who has endured to the end will be saved.” Matthew 24:13', w:['endur','trial','suffer','persecut','hardship','grief','loss','illness','disaster']},
+  {n:'Kindness', v:'“Become kind to one another.” Ephesians 4:32', w:['kind','compassion','merc','generous','hospitalit','tender']},
+  {n:'Hope', v:'“This hope we have as an anchor for the soul.” Hebrews 6:19', w:['hope','paradise','resurrect','future','everlasting','kingdom']},
+  {n:'Love for Jehovah', v:'“You must love Jehovah your God.” Matthew 22:37', w:['love jehovah','close to jehovah','friend of jehovah','jehovah’s friend','draw close','relationship with jehovah']},
+];
+
+/* ---------- Bible references: "Josh 1:9", "Joshua 1:9", "Jos 1:9" all mean the same verse ---------- */
+const BOOKS = [
+ ['Genesis','Ge','Gen'],['Exodus','Ex','Exod'],['Leviticus','Le','Lev'],['Numbers','Nu','Num'],['Deuteronomy','De','Deut'],['Joshua','Jos','Josh'],['Judges','Jg','Judg'],['Ruth','Ru'],
+ ['1 Samuel','1Sa','1 Sam'],['2 Samuel','2Sa','2 Sam'],['1 Kings','1Ki','1 Ki'],['2 Kings','2Ki','2 Ki'],['1 Chronicles','1Ch','1 Chron'],['2 Chronicles','2Ch','2 Chron'],
+ ['Ezra','Ezr'],['Nehemiah','Ne','Neh'],['Esther','Es','Esth'],['Job'],['Psalms','Ps','Psalm','Psa'],['Proverbs','Pr','Prov'],['Ecclesiastes','Ec','Eccl'],['Song of Solomon','Ca','Song of Sol','Song'],
+ ['Isaiah','Isa'],['Jeremiah','Jer'],['Lamentations','La','Lam'],['Ezekiel','Eze','Ezek'],['Daniel','Da','Dan'],['Hosea','Ho','Hos'],['Joel','Joe'],['Amos','Am'],['Obadiah','Ob','Obad'],
+ ['Jonah','Jon'],['Micah','Mic'],['Nahum','Na','Nah'],['Habakkuk','Hab'],['Zephaniah','Zep','Zeph'],['Haggai','Hag'],['Zechariah','Zec','Zech'],['Malachi','Mal'],
+ ['Matthew','Mt','Matt'],['Mark','Mr'],['Luke','Lu'],['John','Joh'],['Acts','Ac'],['Romans','Ro','Rom'],['1 Corinthians','1Co','1 Cor'],['2 Corinthians','2Co','2 Cor'],
+ ['Galatians','Ga','Gal'],['Ephesians','Eph'],['Philippians','Php','Phil'],['Colossians','Col'],['1 Thessalonians','1Th','1 Thess'],['2 Thessalonians','2Th','2 Thess'],
+ ['1 Timothy','1Ti','1 Tim'],['2 Timothy','2Ti','2 Tim'],['Titus','Tit'],['Philemon','Phm','Philem'],['Hebrews','Heb'],['James','Jas'],['1 Peter','1Pe','1 Pet'],['2 Peter','2Pe','2 Pet'],
+ ['1 John','1Jo'],['2 John','2Jo'],['3 John','3Jo'],['Jude'],['Revelation','Re','Rev'],
+];
+const bookKey = s => s.toLowerCase().replace(/[.\s]/g, '');
+const BOOK_NO = {};
+BOOKS.forEach((names, i) => names.forEach(n => BOOK_NO[bookKey(n)] = i + 1));
+const REF_RE = /([1-3]\s?)?(Song of Solomon|Song of Sol|[A-Z][a-z]+)\.?\s(\d{1,3})(?::(\d{1,3})(?:\s?[-–]\s?(\d{1,3}))?)?/g;
+function refsIn(text){
+  const out = [];
+  for (const m of String(text).matchAll(REF_RE)){
+    const b = BOOK_NO[bookKey((m[1] || '') + m[2])];
+    if (!b) continue;
+    out.push({b, c:+m[3], v1:m[4] ? +m[4] : 0, v2:m[5] ? +m[5] : (m[4] ? +m[4] : 0)});
+  }
+  return out;
+}
+function parseRef(q){   // the search box: "Josh 1:9", "Psalm 23", "1 Pet 5:7"
+  const m = q.trim().match(/^([1-3]\s?)?([a-z][a-z.]*(?:\s(?:of\s)?[a-z.]+)?)\s+(\d{1,3})(?::(\d{1,3}))?$/i);
+  if (!m) return null;
+  const b = BOOK_NO[bookKey((m[1] || '') + m[2])];
+  return b ? {b, c:+m[3], v:m[4] ? +m[4] : 0} : null;
+}
+const refHits = (r, q) => r.b === q.b && r.c === q.c && (!q.v || !r.v1 || (q.v >= r.v1 && q.v <= r.v2));
+
+/* ---------- small helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = s => String(s || '').replace(/\uFFFD+/g, '—').replace(/\s+/g, ' ').trim();
+const load = (k, d) => { try { const v = localStorage.getItem(LS + k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(LS + k, JSON.stringify(v)); return true; } catch { return false; } };
+const timed = (url, ms = 30000) => fetch(url, {signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined});
+const mins = s => { s = Math.round(s / 60); return s < 60 ? `${s} min` : `${Math.floor(s / 60)} h ${s % 60} min`; };
+const normT = t => t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/* ---------- the catalogue: jw.org's video lists + GemStash's narrated articles ---------- */
+let INDEX = null;           // [{k:'v'|'a', id, t, d, c, p, u}]
+let loading = null;         // {done, total}
+
+function articles(){
+  const out = [];
+  for (const [code, name, list] of ARTICLE_LISTS) for (const a of list){
+    if (!a.doc) continue;
+    out.push({k:'a', id:String(a.doc), t:clean(a.t || a.q), c:code, cn:name, u:a.u, r:a.ref || ''});
+  }
+  return out;
+}
+
+async function buildIndex(force){
+  const cached = load('index', null);
+  if (!force && cached && Date.now() - cached.at < INDEX_DAYS * 864e5 && cached.v?.length){ INDEX = cached.v.concat(articles()); return; }
+  const keys = Object.keys(CHANNELS), seen = new Map();
+  loading = {done:0, total:keys.length}; render();
+  let next = 0;
+  async function worker(){
+    while (next < keys.length){
+      const key = keys[next++];
+      try {
+        const j = await (await timed(`${JW_API}categories/E/${key}?detailed=1&clientType=www`)).json();
+        const walk = c => {
+          for (const m of c.media || []){
+            if (m.type !== 'video') continue;
+            const id = m.languageAgnosticNaturalKey, t = clean(m.title);
+            const same = normT(t);
+            const prev = seen.get(id) || seen.get(same);
+            if (prev){ if (key === MW) prev.c = MW; continue; }     // the same video in two channels, or published twice
+            const v = {k:'v', id, t, d:Math.round(m.duration || 0), c:key, p:(m.firstPublished || '').slice(0, 10)};
+            seen.set(id, v); seen.set(same, v);
+          }
+          (c.subcategories || []).forEach(walk);
+        };
+        walk(j.category || {});
+      } catch (e) { /* one channel missing is fine */ }
+      loading.done++; updateProgress();
+    }
+  }
+  await Promise.all(Array.from({length:6}, worker));
+  const vids = [...new Set(seen.values())];
+  loading = null;
+  if (vids.length){ save('index', {at:Date.now(), v:vids}); INDEX = vids.concat(articles()); }
+  else if (cached?.v) INDEX = cached.v.concat(articles());        // offline: keep last week's list
+  else INDEX = articles();
+}
+function updateProgress(){
+  const b = $('#prog'), t = $('#progT');
+  if (b && loading) b.style.width = Math.round(loading.done / loading.total * 100) + '%';
+  if (t && loading) t.textContent = `Reading jw.org's video lists… ${loading.done} of ${loading.total}`;
+}
+
+/* ---------- searching ---------- */
+const STOP = new Set('a an and the of to in on for with is are be your you my how what why when who can do does i it from at by as or not'.split(' '));
+function wordRe(w){ return new RegExp('(^|[^a-z])' + w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/’/g, "['’]"), 'i'); }
+
+const SCORE = new Map();   // how well each find matched the last search
+function search({words = [], ref = null, kind = 'all'}){
+  if (!INDEX) return [];
+  const res = [];
+  const pats = words.map((w, i) => ({re:wordRe(w), wt:i === 0 ? 2 : 1}));   // the main word (the pack's name) counts double
+  for (const it of INDEX){
+    if (kind === 'v' && it.k !== 'v') continue;
+    if (kind === 'a' && it.k !== 'a') continue;
+    const text = it.t + ' ' + (it.r || '');
+    let score = 0;
+    if (ref){
+      const rs = refsIn(text);
+      if (rs.some(r => refHits(r, ref))) score += 5;                       // the verse itself
+      else if (rs.some(r => r.b === ref.b && r.c === ref.c)) score += 2;   // the same chapter
+      else if (ref.v && rs.some(r => r.b === ref.b)) score += 1;           // the same Bible book
+    }
+    for (const p of pats) if (p.re.test(text)) score += p.wt;
+    if (score) res.push({it, score});
+  }
+  // best first; newest first among equals
+  res.sort((a, b) => b.score - a.score || (b.it.p || '').localeCompare(a.it.p || ''));
+  SCORE.clear(); res.forEach(r => SCORE.set(r.it, r.score));
+  return res.map(r => r.it);
+}
+function queryWords(q){
+  // "forgiveness" also finds forgive, forgiving, forgiven
+  const stem = w => w.length > 5 ? w.replace(/(ness|ings?|ed|es|ful|ly|ment|s)$/, '').replace(/e$/, '') : w;
+  const words = q.toLowerCase().split(/[^a-z’']+/).filter(w => w.length > 2 && !STOP.has(w)).map(stem);
+  // a word that belongs to a starter pack brings the pack's other words along (anxiety → worry, peace…)
+  const extra = [];
+  for (const p of PACKS) if (words.some(w => p.w.some(x => x.startsWith(w.slice(0, 4)) || w.startsWith(x)))) extra.push(...p.w);
+  return [...new Set(words.concat(extra))];
+}
+
+/* ---------- a bundle ---------- */
+let view = 'home', bundle = null, kindFilter = 'all', showMore = false;
+
+function makeBundle(theme, verse, found){
+  // one Morning Worship is featured at the top, then a mix of the best finds
+  // featured only if it's a good match (at least half as good as the best find)
+  const top = SCORE.get(found[0]) || 0;
+  const mw = found.find(i => i.c === MW && (SCORE.get(i) || 0) * 2 >= top);
+  // a mix: two videos, then a narrated article, and again (whatever runs out, the other fills in)
+  // (the very best matches, like the exact verse, come first whatever they are)
+  const rest = found.filter(i => i !== mw && top > 2 && SCORE.get(i) === top);
+  const vids = found.filter(i => i !== mw && !rest.includes(i) && i.k === 'v'), arts = found.filter(i => !rest.includes(i) && i.k === 'a');
+  while (vids.length || arts.length){
+    if (vids.length) rest.push(vids.shift());
+    if (vids.length) rest.push(vids.shift());
+    if (arts.length) rest.push(arts.shift());
+  }
+  const all = (mw ? [mw] : []).concat(rest).slice(0, 80);
+  const picked = all.slice(0, BUNDLE_SIZE);
+  return {theme, verse, all, on:new Set(picked.map(i => i.k + i.id)), made:Date.now()};
+}
+function openPack(p){
+  const found = search({words:p.w, kind:kindFilter});
+  bundle = makeBundle(p.n, p.v, found); view = 'bundle'; showMore = false; render(); scrollTo(0, 0);
+}
+function runSearch(){
+  const q = $('#q').value.trim();
+  if (!q) return;
+  const ref = parseRef(q);
+  const found = search({words: ref ? [] : queryWords(q), ref, kind:kindFilter});
+  const theme = ref ? q.replace(/\b\w/, c => c.toUpperCase()) : q.charAt(0).toUpperCase() + q.slice(1);
+  bundle = makeBundle(theme, ref ? q : '', found); view = 'bundle'; showMore = false; render(); scrollTo(0, 0);
+}
+const chosen = () => bundle.all.filter(i => bundle.on.has(i.k + i.id));
+function toggle(key){ bundle.on.has(key) ? bundle.on.delete(key) : bundle.on.add(key); render(); }
+
+function itemHTML(it){
+  const on = bundle.on.has(it.k + it.id);
+  const isV = it.k === 'v', mw = it.c === MW;
+  const link = isV ? `https://www.jw.org/finder?wtlocale=E&lank=${encodeURIComponent(it.id)}` : it.u;
+  const where = isV ? (CHANNELS[it.c] || 'Video') : it.cn;
+  const info = isV ? `🎬 Video · ${mins(it.d)} · ${esc(where)}` : `🎧 Listen (narrated article) · ${esc(where)}`;
+  const g = mw ? 'g2' : isV ? 'g0' : 'g1';
+  return `<div class="item ${on ? '' : 'off'}">
+    <div class="th ${g}">${isV ? '🎬' : '🎧'}</div>
+    <div class="t"><a href="${esc(link)}" target="_blank" rel="noopener">${esc(it.t)}</a>${mw && on && chosen()[0] === it ? '<span class="tag">FEATURED</span>' : ''}<small>${info}</small></div>
+    <button class="tog ${on ? 'in' : 'out'}" data-tog="${esc(it.k + it.id)}" aria-label="${on ? 'Leave out' : 'Add'}">${on ? '✓' : '＋'}</button>
+  </div>`;
+}
+
+/* ---------- sending to GemStash ---------- */
+function b64url(str){
+  const bytes = new TextEncoder().encode(str); let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function focusLink(){
+  const list = chosen();
+  const data = {v:1, th:bundle.theme, vs:bundle.verse || '', it:list.map(i => i.k === 'v' ? ['v', i.id, i.t, i.d, i.c] : ['a', i.id, i.t, i.c, i.u])};
+  return new URL(GEMSTASH, location.href).href + '#focus=' + b64url(JSON.stringify(data));
+}
+function keepBundle(){
+  const saved = load('bundles', []).filter(b => b.theme !== bundle.theme);
+  saved.unshift({theme:bundle.theme, verse:bundle.verse, items:chosen(), at:Date.now()});
+  save('bundles', saved.slice(0, 12));
+}
+function sendSheet(){
+  bundle.verse = ($('#verse')?.value || '').trim();
+  keepBundle();
+  const link = focusLink(), n = chosen().length;
+  const s = document.createElement('div'); s.className = 'sheet';
+  s.innerHTML = `<div class="box">
+    <img src="focus-loupe-320.png" alt="">
+    <h2>${esc(bundle.theme)}</h2>
+    <p>${n} gems are ready for a focused meditation in GemStash.<br>
+    <small>GemStash Beta learns to use them in its next update (the Focus control). Until then it opens as usual.</small></p>
+    <a class="b main" href="${esc(link)}">Open in GemStash Beta</a>
+    <button class="b sec2" id="copyL">Copy the link</button>
+    <button class="b sec2" id="closeS">Back</button></div>`;
+  document.body.appendChild(s);
+  s.addEventListener('click', e => { if (e.target === s || e.target.id === 'closeS') s.remove(); });
+  s.querySelector('#copyL').onclick = async e => {
+    try { await navigator.clipboard.writeText(link); e.target.textContent = 'Copied ✓'; } catch { prompt('Copy this link:', link); }
+  };
+}
+
+/* ---------- screens ---------- */
+function render(){
+  const app = $('#app'), dock = $('#dock');
+  if (view === 'home'){
+    dock.hidden = true;
+    const counts = INDEX ? PACKS.map(p => search({words:p.w}).length) : null;
+    const saved = load('bundles', []);
+    app.innerHTML = `
+      <div class="top"><img src="logo-cart-160.png" alt=""><h1>Gem Miner<small>Beta ${BETA_NO}</small></h1><span class="pill">jw.org only</span></div>
+      ${loading ? `<div class="status"><span id="progT"></span><div class="bar"><i id="prog"></i></div></div>` : ''}
+      <div class="searchrow"><input id="q" placeholder="Topic or verse… e.g. courage, Josh 1:9" enterkeyhint="search" autocomplete="off"><button id="go">Mine</button></div>
+      <div class="chips">${[['all','All'],['v','🎬 Videos'],['a','🎧 Narrated articles']].map(([k, l]) => `<button class="chip ${kindFilter === k ? 'on' : ''}" data-kind="${k}">${l}</button>`).join('')}</div>
+      <div class="sec">Starter packs</div>
+      <div class="packs">${PACKS.map((p, i) => `<button class="pack g${i % 8}" data-pack="${i}">${esc(p.n)}<small>${counts ? counts[i] + ' finds' : '…'}</small></button>`).join('')}</div>
+      ${saved.length ? `<div class="sec">Your bundles</div>${saved.map((b, i) => `<button class="saved" data-saved="${i}"><div><b>${esc(b.theme)}</b><small>${b.items.length} gems · ${new Date(b.at).toLocaleDateString()}</small></div><span>›</span></button>`).join('')}` : ''}
+      <div class="foot">Gem Miner looks through jw.org's own video lists and the narrated articles GemStash knows.<br>It keeps titles and links only.<br><button id="refresh" style="text-decoration:underline;color:var(--muted)">Read jw.org's lists again</button></div>`;
+    updateProgress();
+  } else {
+    const list = chosen(), vids = list.filter(i => i.k === 'v'), arts = list.length - vids.length;
+    const secs = vids.reduce((s, i) => s + i.d, 0);
+    const extra = bundle.all.filter(i => !bundle.on.has(i.k + i.id));
+    dock.hidden = false; $('#sendBtn').disabled = !list.length;
+    // chosen ones in order (the featured Morning Worship first), then the others
+    const shown = bundle.all.filter(i => bundle.on.has(i.k + i.id));
+    app.innerHTML = `
+      <div class="top"><img src="logo-cart-160.png" alt=""><h1>${esc(bundle.theme)}</h1><button class="back" id="back">‹ Back</button></div>
+      <div class="hdr g0"><b>💎 ${esc(bundle.theme)}</b><small>${list.length} gems${secs ? ' · about ' + mins(secs) + ' of video' : ''} · ${vids.length} videos, ${arts} narrated articles</small></div>
+      <div class="verse"><label>Theme verse for the opening screen (optional)</label><input id="verse" value="${esc(bundle.verse)}" placeholder="e.g. “Be courageous and strong.” Joshua 1:9"></div>
+      ${bundle.all.length ? shown.map(itemHTML).join('') : `<div class="empty">No gems found for “${esc(bundle.theme)}”.<br>Try another word, or a verse like Ps 23.</div>`}
+      ${extra.length ? `<button class="more" id="more">${showMore ? 'Hide' : 'Show'} more finds (${extra.length})</button>${showMore ? extra.map(itemHTML).join('') : ''}` : ''}`;
+  }
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.pack != null) return openPack(PACKS[+t.dataset.pack]);
+  if (t.dataset.kind){ kindFilter = t.dataset.kind; return render(); }
+  if (t.dataset.tog){ if ($('#verse')) bundle.verse = $('#verse').value; return toggle(t.dataset.tog); }
+  if (t.dataset.saved != null){
+    const b = load('bundles', [])[+t.dataset.saved];
+    bundle = {theme:b.theme, verse:b.verse, all:b.items, on:new Set(b.items.map(i => i.k + i.id)), made:b.at};
+    view = 'bundle'; showMore = false; render(); return scrollTo(0, 0);
+  }
+  if (t.id === 'go') return runSearch();
+  if (t.id === 'back'){ view = 'home'; return render(); }
+  if (t.id === 'more'){ bundle.verse = $('#verse').value; showMore = !showMore; return render(); }
+  if (t.id === 'sendBtn') return sendSheet();
+  if (t.id === 'refresh'){ buildIndex(true).then(render); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'q') runSearch(); });
+
+render();
+buildIndex(false).then(render);
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).catch(() => {});
+</script>
+</body></html>

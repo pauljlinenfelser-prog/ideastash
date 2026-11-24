@@ -221,6 +221,15 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 86: Today stops repeating: choose how many videos over 5 min a day (1, 3 or no limit; was always 1), new cards from your Shelf sources past today's set, and no card you saw this week comes back.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
+GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
+  Gathers jw.org videos and narrated articles on one topic into a bundle, and sends it to GemStash
+  for a focused meditation. Lives in the gemminer folder. Icon: Mike's gem cart.
+  Gem Miner Beta 1: starter packs (Courage, Prayer, Family, Anxiety & peace, Faith in hard times,
+      Kindness, Hope, Love for Jehovah), topic or verse search (e.g. anxiety, Josh 1:9), the bundle
+      (a featured Morning Worship first, ✓ to keep, ＋ to add more finds, a theme verse), Your bundles,
+      and Send to GemStash (opens GemStash Beta with the bundle in the link; GemStash learns to use
+      it in its Focus update, which comes next).
+
 VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup
   v2  My Shelf — daily auto-delivery from books, Daily Text, Questions From Readers,
