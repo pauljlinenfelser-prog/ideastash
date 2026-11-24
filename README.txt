@@ -229,6 +229,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 89: Full focus (now the start): every gem in the bundle is in Today and only this topic (plus Daily Text and
       Bible reading); gems you don't get to come back the next day. "All shares from my circle (during full focus)"
       lets your circle's posts in. "Spread this meditation out": 1 to 10 gems a day (was 1 to 6).
+  Beta 90: Full focus has no daily scrolling limit (unless a parent set it with a PIN).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)

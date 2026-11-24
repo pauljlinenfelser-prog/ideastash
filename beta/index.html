@@ -480,9 +480,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 89;
+const BETA_NO = 90;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [90, 'Full focus has no daily scrolling limit (unless a parent set it with a PIN). Spread-out focus and normal days keep your limit.', ''],
   [89, 'Full focus (Shelf → Focus, now the start): every gem in the bundle is in Today and only this topic, besides the Daily Text and Bible reading. Gems you don’t get to come back the next day. “All shares from my circle (during full focus)” lets your circle’s posts in. Or “Spread this meditation out”: 1 to 10 gems a day.', ''],
   [88, 'Focus: a Bible chapter from your topic. The gems name verses (like “Take Courage!” (John 16:33)); each day the most-named chapter you haven’t heard yet comes as the theme chapter. Shelf → Focus → Bible reading: Theme chapter + my reading, Theme chapter instead, or My reading only.', ''],
   [87, 'Focus: Gem Miner (its own app) gathers one topic into a bundle and sends it here. While a focus is on, Today opens with the theme, then the Daily Text, a featured Morning Worship from the bundle, and your chosen number of gems a day instead of the usual mix. Shelf → Focus: gems a day, long videos (no limit / 30 / 60 min), see the list, switch off or end.', ''],
@@ -1275,7 +1276,9 @@ function slideHTML(x, k){
 /* ---- (v8) daily scrolling time ---- */
 const LIMITS = [5, 10, 20, 30, 60, 0];
 const usedSecs = () => ((db.usage && db.usage[today()]) || 0) + (db.sync ? syncOthersToday() : 0);   // beta 46: your other devices' time counts too
-const timeUp = () => db.limitMin > 0 && usedSecs() >= db.limitMin * 60;
+const timeUp = () => db.limitMin > 0 && !focusLiftsLimit() && usedSecs() >= db.limitMin * 60;
+// beta 90 (Mike): no daily scrolling limit during a Full focus (it's all one topic). A parent's PIN keeps its limit.
+function focusLiftsLimit(){ return !!(db && db.focus && db.focus.on && (db.focus.mode || 'full') === 'full' && !parentOn()); }
 setInterval(() => {                               // counts only while Today is on screen
   if (currentView !== 'feed' || document.hidden || !db) return;
   const t = today(); if (!db.usage || !(t in db.usage)) db.usage = {[t]: 0};
@@ -5003,7 +5006,7 @@ function focusShelfHTML(){
   return `<div class="focusbox"><div class="fh"><img src="focus-loupe-320.webp" alt=""> Focus on: ${esc(f.theme)}
       <button class="fsw on" onclick="focusSwitch()" title="Switch the focus off"></button></div>
     <div class="fp">From Gem Miner · <b>${done} of ${total} gems</b> given${focusFull() ? '' : ` · <b>${f.perDay} a day</b>`}<br>While this is on, Today brings this topic instead of your Shelf mix. The Daily Text stays. When you've been through the bundle, your usual mix comes back.</div>
-    <button class="fmode ${focusFull() ? 'on' : ''}" onclick="focusMode('full')"><i></i><span><b>Full focus</b><small>Every gem in Today, only this topic. Gems you don't get to come back the next day.</small></span></button>
+    <button class="fmode ${focusFull() ? 'on' : ''}" onclick="focusMode('full')"><i></i><span><b>Full focus</b><small>Every gem in Today, only this topic, with no daily scrolling limit. Gems you don't get to come back the next day.</small></span></button>
     <button class="fsub ${focusFull() ? '' : 'dim'}" onclick="focusSet('circle', !db.focus.circle)"><i class="${f.circle ? 'on' : ''}">${f.circle ? '✓' : ''}</i><span>All shares from my circle (during full focus)</span></button>
     <button class="fmode ${focusFull() ? '' : 'on'}" onclick="focusMode('spread')"><i></i><span><b>Spread this meditation out</b><small>A few gems a day</small></span>
       <select onclick="event.stopPropagation()" onchange="focusMode('spread', +this.value)">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option ${f.perDay === n ? 'selected' : ''}>${n}</option>`).join('')}</select><small style="flex:none;color:var(--muted)">a day</small></button>
