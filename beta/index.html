@@ -431,7 +431,7 @@ nav .ic[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;t
     <section class="view" id="focus"></section>   <!-- beta 92 -->
   </main>
   <nav>
-    <button data-v="circle" class="circlenav"><span class="ic"><img src="circle-miners-128.webp" alt=""></span>Circle</button>   <!-- beta 93: Mike's circle of miners -->   <!-- beta 67 (Mike): Circle · GemStash chest (Treasures) · Add -->
+    <button data-v="circle" class="circlenav"><span class="ic"><img src="circle-family-128.webp" alt=""></span>Circle</button>   <!-- beta 93: Mike's circle of miners; beta 100: his three miners sharing a gem -->   <!-- beta 67 (Mike): Circle · GemStash chest (Treasures) · Add -->
     <button data-v="library" class="chestnav" title="Treasures (tap again for Today)"><img src="logo-chest-128.png" alt=""><span>Treasures</span></button>
     <button data-v="focus" class="focusnav" title="Focus and your Gem Miner cart"><img src="focus-loupe-320.webp" alt=""><span>Focus</span></button>   <!-- beta 92 (Mike) -->
     <button data-v="mine" class="addnav"><span class="ic"><img src="add-pickaxe-96.webp" alt=""></span>Add</button>   <!-- beta 96: Mike's pickaxe -->
@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 99;
+const BETA_NO = 100;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [100, 'Circle has Mike’s new picture: three miners (grandfather, boy and mother) sharing a blue gem.', ''],
   [99, 'A new opening screen, once a day: the miner finds a gem and holds it up to the light, with “Turn your doom-scrolling into LIFE-scrolling” and Proverbs 2:4, 5. Tap to begin.', ''],
   [98, 'Focus → Other gems: None (nothing else until the focus is done, not your circle, not your own posts) or a short break after every 3rd … 10th focus gem (your circle’s shares first, then gems you’ve kept). This replaces “All shares from my circle”.', ''],
   [97, 'When you’ve been through a whole focus list, a screen asks whether you’d like more time with it: Go through it again, Pick another list, or Back to my usual mix. A finished focus on the Focus page also has “Go through it again”.', ''],
@@ -3292,7 +3293,7 @@ function renderLibrary(){
         <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
         <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
         ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${postsState === 'loading' && !myPosts().length ? 'Loading…' : myPosts().length + ' shared'}</small><span class="pk">${postPeek(myPosts())}</span></button>
-        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
+        ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e"><img src="circle-family-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
         <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
       </div>
       ${tags.length ? `<div class="sec" style="margin-top:16px">Tags</div><div class="chips">${tags.map(t => `<button class="chip" onclick="libOpen('gem','${t.id}')">🏷️ ${esc(t.name)}<small>${db.ideas.filter(i => (i.stashes || []).includes(t.id)).length}</small></button>`).join('')}</div>` : ''}
@@ -4469,9 +4470,9 @@ function renderShelf(){
       <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${focusOn() ? 'Resting during the focus · ' : ''}${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
       <span>›</span></button>
     <div class="sec">Your circle</div>
-    ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
+    ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e"><img src="circle-family-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
       <span class="t" style="flex:1;min-width:0"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">${esc(circShelfSub())}</small></span>
-      <span>›</span></button>` : `<button class="shelfitem" onclick="go('circle')"><span class="e"><img src="circle-miners-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
+      <span>›</span></button>` : `<button class="shelfitem" onclick="go('circle')"><span class="e"><img src="circle-family-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span>
       <span class="t" style="flex:1"><b>Photos from your circle</b><small style="display:block;color:var(--muted)">Set up your circle on the Circle tab first</small></span>
       <span>›</span></button>`}
     <div class="sec">Add to shelf</div>

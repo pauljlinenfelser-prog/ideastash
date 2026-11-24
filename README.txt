@@ -242,6 +242,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 99: GemStash's opening screen once a day (purple): Mike's video of the miner picking at the ore, finding a gem and examining it
       (black background removed, fading in), then "Turn your
       doom-scrolling into LIFE-scrolling" and Proverbs 2:4, 5. Also: switching lists on the same day shows only the new list.
+  Beta 100: Circle has Mike's new picture: three miners (grandfather, boy and mother) sharing a blue gem.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
