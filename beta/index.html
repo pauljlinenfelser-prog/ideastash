@@ -480,9 +480,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 86;
+const BETA_NO = 87;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [87, 'Focus: Gem Miner (its own app) gathers one topic into a bundle and sends it here. While a focus is on, Today opens with the theme, then the Daily Text, a featured Morning Worship from the bundle, and your chosen number of gems a day instead of the usual mix. Shelf → Focus: gems a day, long videos (no limit / 30 / 60 min), see the list, switch off or end.', ''],
   [77, 'In “See all” (Shelf → Bible Character Cards or Illustrated Bible Stories), tap any card or story to open it. “← Back to the list” takes you back.', ''],
   [76, 'Fixed: 13 of the Bible Character Cards (the older ones, like Paul, Peter, Noah and Samuel) showed only a strip from the middle. Their PDFs are laid out differently. Those cards need adding once more: Shelf → Bible Character Cards shows which ones (their PDFs are still in your Downloads).', ''],
   [75, 'Shelf → Bible Character Cards or Illustrated Bible Stories now shows which ones are missing on this phone, each with its own Download button, and “See all” shows every card or story that’s already on your phone.', ''],
@@ -716,7 +717,7 @@ function ensureDailyShelf(){
 function todaysText(){ const it = dailyShelf(), t = today(); return it && db.ideas.find(i => i.pulledOn === t && i.shelfId === it.id); }
 function dailyTextUrl(){ const d = new Date(); return `https://wol.jw.org/en/wol/h/r1/lp-e/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
 // beta 62: a card from a Shelf entry you've paused stays out of Today (it's still in Treasures if you kept it)
-function shelfPaused(i){ if (!i || !i.shelfId) return false; const it = (db.shelf || []).find(x => x.id === i.shelfId); return !!(it && it.paused); }
+function shelfPaused(i){ if (!i || !i.shelfId) return false; const it = (db.shelf || []).find(x => x.id === i.shelfId); return !!(it && (it.paused || focusRests(it))); }   // beta 87: + resting during a focus
 function ensureDaily(){
   const t = today();
   if (db.daily.date !== t) db.daily = {date:t, ids:[]};
@@ -1115,7 +1116,7 @@ function cardHTML(i){
 
 /* ================= feed ================= */
 let exploreQueue = [];
-function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
+function shelfNeedsPull(){ return (db.shelf||[]).some(it => !it.paused && !focusRests(it) && it.lastPull !== today() && !(it.total && it.pos >= it.total)); }
 // (v8) ONE feed: Daily Text → video → video → Questions From Readers → video → Bible Questions Answered →
 // then more cards and videos mixed, until the daily scrolling time runs out.
 let fsSlide = null, viewHold = 0;   // (v29) the video that's full screen; ignore feed moves until this time
@@ -1125,12 +1126,13 @@ async function renderFeed(){
   const W = db.watch;
   const gen = ++feedGen; tlog('feed drawn');   // (v39)
   dedupeVideos();
-  const needVideos = navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
-  if ((shelfNeedsPull() || needVideos) && navigator.onLine !== false){
+  const needVideos = !focusOn() && navigator.onLine !== false && (W.daily.date !== today() || W.cats.some(c => !W.daily.done[c.key]));
+  if ((shelfNeedsPull() || needVideos || focusNeedsBuild()) && navigator.onLine !== false){
     el0.innerHTML = `<div class="slide endslide"><div class="card"><div class="big">📖</div><h2>Gathering today's ideas…</h2>
       <p style="color:var(--muted)">Pulling from your shelf and video channels</p></div></div>`;
     if (shelfNeedsPull()) await pullShelf();
     if (needVideos) { try { await buildWatchDaily(); } catch(e){} }
+    if (focusNeedsBuild()) { try { await buildFocusDaily(); } catch(e){} }   // beta 87
     if (currentView !== 'feed' || gen !== feedGen) return;
   }
   dedupeVideos();
@@ -1148,11 +1150,12 @@ async function renderFeed(){
   ccCards(); ccWideFix().then(ccTrimOld);                // beta 73; beta 74; beta 76
   ensureDaily();
   const el = document.getElementById('feed');
-  const daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link), dt = todaysText();
+  const dt = todaysText(), daily = db.daily.ids.map(findIdea).filter(i => isJwGem(i) && !i.link
+    && (!focusOn() || i === dt || i.lkind === 'nwt' || (i.focus && i.pulledOn === today())));   // beta 87: during a focus only its gems (+ Daily Text, Bible)
   const ofKind = k => { const it = db.shelf.find(x => x.kind === k); return it ? daily.filter(i => i.shelfId === it.id && i.pulledOn === today()) : []; };
   const qfr = ofKind('qfr'), bqa = ofKind('bqa');
   const rest = daily.filter(i => i !== dt && !qfr.includes(i) && !bqa.includes(i));
-  const vq = W.daily.items.map((v, n) => ({v, n})).filter(x => !x.v.series);   // (v9) series videos come with their card
+  const vq = W.daily.items.map((v, n) => ({v, n})).filter(x => !x.v.series && (!focusOn() || x.v.focus));   // beta 87: only the focus videos   // (v9) series videos come with their card
   const C = card => ({card}), V = vid => ({vid});
   const seq = [dt ? C(dt) : {retry:true}];
   vq.splice(0, 2).forEach(x => seq.push(V(x)));
@@ -1166,7 +1169,7 @@ async function renderFeed(){
     if (bib.length){ const keep = bib.sort((a, b) => (b.card.bibleAt || b.card.created || 0) - (a.card.bibleAt || a.card.created || 0))[0];
       bib.forEach(x => seq.splice(seq.indexOf(x), 1)); seq.splice(Math.min(2, seq.length), 0, keep); feedCore = Math.max(0, seq.indexOf(coreObj)); } }
   { const coreObj = seq[feedCore]; feedPosts().forEach((p, i) => seq.splice(Math.min(seq.length, 2 + i * circEvery()), 0, {post: p})); feedCore = seq.indexOf(coreObj); }   // beta 22
-  exploreQueue = shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i) && !shelfPaused(i) && !shownRecently(i)));   // beta 25; beta 86
+  exploreQueue = focusOn() ? [] : shuffle(db.ideas.filter(i => isJwGem(i) && !i.video && !i.link && !db.daily.ids.includes(i.id) && !resting(i) && !shelfPaused(i) && !shownRecently(i)));   // beta 25; beta 86
   feedCurrent = null;
   el.innerHTML = timeUp() ? slideHTML(seq[0], 0) + timeUpHTML() : seq.map(slideHTML).join('');
   el.querySelectorAll('.vslide[data-n]').forEach(wireVideoSlide);
@@ -4324,7 +4327,7 @@ async function doPull(){
   const have = new Set(db.ideas.map(key));
   const keep = card => { if (have.has(key(card))) return; have.add(key(card)); card.pulledOn = t; db.ideas.push(card); added++; };
   for (const it of db.shelf){
-    if (it.paused || it.lastPull === t || (it.total && it.pos >= it.total)) continue;
+    if (it.paused || focusRests(it) || it.lastPull === t || (it.total && it.pos >= it.total)) continue;   // beta 87: resting during a focus
     try {
       if (it.kind === 'daily'){
         const c = await getDailyCard();
@@ -4372,7 +4375,7 @@ async function pullExtra(n){   // beta 86
   const t = today(), out = [];
   const key = c => (c.layered || c.video || c.image || c.pics || c.ibs || c.kids || !c.body) && c.url ? c.url : c.body;   // same as doPull
   const have = new Set(db.ideas.map(key));
-  const src = db.shelf.filter(it => !it.paused && KIND_LIST[it.kind] && !['daily', 'nwt', 'book', 'ibs', 'cc'].includes(it.kind) && !(it.total && it.pos >= it.total));
+  const src = db.shelf.filter(it => !it.paused && !focusRests(it) && KIND_LIST[it.kind] && !['daily', 'nwt', 'book', 'ibs', 'cc'].includes(it.kind) && !(it.total && it.pos >= it.total));
   for (let k = 0; k < src.length && out.length < n; k++){
     const it = src[(extraTurn + k) % src.length];
     try {
@@ -4402,19 +4405,20 @@ function renderShelf(){
   const el = document.getElementById('shelf');
   const missing = ['daily', ...Object.keys(KIND_LIST)].filter(k => !db.shelf.some(it => it.kind === k));
   el.innerHTML = `
+    ${focusShelfHTML()}
     <div class="sec">My Shelf</div>
     ${db.shelf.length ? '' : '<p style="color:var(--muted)">Your shelf is empty. Add the sources you want — new ideas from each one arrive in Today every morning.</p>'}
-    ${db.shelf.map(it => `<button class="shelfitem ${it.paused?'paused':''}" onclick="shelfSheet('${it.id}')">
+    ${db.shelf.map(it => `<button class="shelfitem ${it.paused || focusRests(it) ?'paused':''}" onclick="shelfSheet('${it.id}')">
       <span class="e">${SHELF_KINDS[it.kind].emoji}</span>
       <span class="t" style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title)}</b>
-        <small style="color:var(--muted)">${it.paused ? 'Paused · ' : ''}${esc(shelfSub(it))}</small>
+        <small style="color:var(--muted)">${focusRests(it) ? 'Resting during the focus · ' : it.paused ? 'Paused · ' : ''}${esc(shelfSub(it))}</small>
         ${it.error ? `<small style="display:block;color:var(--danger)">Last try failed — will retry</small>` : ''}
         ${it.total ? `<div class="prog"><i style="width:${Math.min(100, 100*it.pos/it.total)}%"></i></div>` : ''}</span>
       <span>›</span></button>`).join('')}
     ${db.shelf.length ? `<button class="btn alt" onclick="pullNow()">🔄 Get today's ideas now</button>` : ''}
     <div class="sec">Videos</div>
     <button class="shelfitem" onclick="channelsSheet()"><span class="e">📺</span>
-      <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
+      <span class="t" style="flex:1;min-width:0"><b>Video channels</b><small style="display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${focusOn() ? 'Resting during the focus · ' : ''}${db.watch.cats.length} on · ${esc(db.watch.cats.map(c => CAT_NAME[c.key] || c.key).join(', ') || 'none yet')}</small></span>
       <span>›</span></button>
     <div class="sec">Your circle</div>
     ${circleReady() ? `<button class="shelfitem" onclick="circleShelfSheet()"><span class="e">👥</span>
@@ -4582,7 +4586,7 @@ function dedupeVideos(){
 }
 // (v8) more short videos for the explore part of the feed, one per channel in turn (no extra Morning Worship)
 async function moreVideos(k){
-  const W = db.watch; if (!W.cats.length || navigator.onLine === false) return [];
+  const W = db.watch; if (!W.cats.length || navigator.onLine === false || focusOn()) return [];   // beta 87: no extras during a focus
   const out = [], used = new Set(W.daily.items.map(v => v.lank));
   for (let round = 0; round < 3 && out.length < k; round++){
     for (const c of W.cats){
@@ -4615,7 +4619,7 @@ function videoSlideHTML(v, n){
     </div>
     <button title="Full screen (turns sideways)" class="fsb" onclick="videoFull(this)">⛶</button>
     <button class="fsx" title="Back to the feed" onclick="videoFullExit()">✕</button>
-    <div class="info"><b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
+    <div class="info">${v.featured && focusOn() ? `<span class="ffeat">⭐ FEATURED · ${esc(db.focus.theme)}</span><br>` : v.focus && focusOn() ? `<span class="ffeat" style="background:#4fc3d9">💎 ${esc(db.focus.theme)}</span><br>` : ''}<b>${esc(v.title)}</b><small>${esc(CAT_NAME[v.cat] || 'jw.org')}${v.dur ? ' · ' + fmtDur(v.dur) : ''}</small></div>
     <div class="seek"><div class="track"><div class="bar"></div></div><b class="knob"></b><span class="stime"></span></div></div>`;   // beta 54
 }
 // (v27) full screen: the video fills the screen turned sideways; ✕ (or Back) returns to the feed
@@ -4840,6 +4844,159 @@ function importData(file){
   }).catch(e => toast('Import failed: ' + e.message));
 }
 
+/* ================= beta 87: Focus (from Gem Miner) =================
+   Gem Miner gathers one topic into a bundle and opens GemStash with it in the link (#focus=…). While a focus is on,
+   Today brings that bundle's gems instead of the usual mix: the Daily Text and your Bible reading stay, a Morning Worship
+   from the bundle is the featured card, then N gems a day. The rest of the Shelf rests (nothing is lost). When every gem
+   has been given, the focus ends by itself and the usual mix comes back. Long videos: the focus has its own length limit
+   (no limit / up to 30 / up to 60 min) instead of the usual "videos over 5 min a day". */
+const FOCUS_KEEP = ['daily', 'nwt'];                    // Shelf entries that keep going during a focus
+const FOCUS_MW = 'VODPgmEvtMorningWorship';
+const focusOn = () => !!(db.focus && db.focus.on);
+const focusRests = it => focusOn() && !!it && !FOCUS_KEEP.includes(it.kind);
+const focusDone = f => f.items.filter(x => x.done).length;
+function focusFromHash(){
+  const m = location.hash.match(/^#focus=([\w-]+)/); if (!m) return null;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const b = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(b, c => c.charCodeAt(0))));
+    if (d.v !== 1 || !Array.isArray(d.it) || !d.it.length) return null;
+    const items = d.it.map(a => a[0] === 'v' ? {k:'v', id:String(a[1]), t:String(a[2] || ''), d:+a[3] || 0, c:String(a[4] || '')}
+      : {k:'a', id:String(a[1]), t:String(a[2] || ''), c:String(a[3] || '').toLowerCase(), u:String(a[4] || '')})
+      .filter(x => x.id && (x.k === 'v' || (LISTEN_SERIES[x.c] && /^https:\/\/([a-z0-9-]+\.)*jw\.org\//.test(x.u))));   // jw.org only
+    return items.length ? {theme:String(d.th || 'Focus').slice(0, 60), verse:String(d.vs || '').slice(0, 200), items} : null;
+  } catch(e){ return null; }
+}
+function focusOffer(f){
+  const old = db.focus && db.focus.on ? db.focus : null;
+  openSheet(`<div style="text-align:center"><img src="focus-loupe-320.webp" alt="" style="width:130px;height:130px">
+    <h3 style="margin:6px 0 4px">${esc(f.theme)}</h3>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 12px">${f.items.length} gems from Gem Miner for a focused meditation.<br>
+    While it's on, Today brings these gems instead of your usual mix. The Daily Text and your Bible reading stay.
+    ${old ? `<br><b style="color:var(--text)">This replaces your “${esc(old.theme)}” focus.</b>` : ''}</p>
+    <button class="btn" id="focusGo">Start the focus</button>
+    <button class="btn alt" onclick="closeSheet()">Not now</button></div>`);
+  document.getElementById('focusGo').onclick = () => {
+    db.focus = {...f, on:true, perDay:3, longMax:0, started:today(), day:'', todayIds:[], splash:''};
+    save(); closeSheet(); tlog('focus started: ' + f.theme); feedRefresh(); focusSplash(true);
+  };
+}
+// the next gems, without changing anything: one Morning Worship to feature, then perDay others
+function focusPick(){
+  const f = db.focus, cap = f.longMax ? f.longMax * 60 : Infinity;
+  const open = f.items.filter(x => !x.done && !(x.k === 'v' && x.d > cap));
+  const mw = open.find(x => x.k === 'v' && x.c === FOCUS_MW);
+  return {mw, rest: open.filter(x => x !== mw).slice(0, f.perDay)};
+}
+const focusNeedsBuild = () => focusOn() && db.focus.day !== today() && navigator.onLine !== false;
+async function buildFocusDaily(){
+  const f = db.focus, t = today(), W = db.watch;
+  if (W.daily.date !== t) W.daily = {date:t, items:W.daily.items.filter(v => v.pasted && !W.seen[v.lank]), done:{}};
+  const cap = f.longMax ? f.longMax * 60 : Infinity;
+  f.items.forEach(x => { if (!x.done && x.k === 'v' && x.d > cap) x.done = 'long'; });   // longer than this focus allows
+  const {mw, rest} = focusPick(), picks = (mw ? [mw] : []).concat(rest), vids = []; let failed = false;
+  for (const x of picks){
+    try {
+      if (x.k === 'v'){
+        const r = await timed(`${JW_API}media-items/E/${encodeURIComponent(x.id)}?clientType=www`, 30000);
+        const v = slimVideo(((await r.json()).media || [])[0] || {});
+        if (!v) throw new Error('video not found');
+        vids.push({...v, cat: x.c || v.cat, focus:true, featured: x === mw});
+      } else {
+        const n = listenCard({t:x.t, u:x.u, doc:x.id, ref:'jw.org'}, x.c);
+        const ex = db.ideas.find(i => i.url === x.u && i.layered);
+        if (ex){ ex.pulledOn = t; ex.focus = true; } else { n.pulledOn = t; n.focus = true; db.ideas.push(n); }
+      }
+      x.done = t;
+    } catch(e){ if (/fetch|network|abort|timed/i.test(e.message || '')){ failed = true; break; } x.done = 'skip'; }   // offline: try again later
+  }
+  W.daily.items = [...vids, ...W.daily.items.filter(v => !vids.some(n => n.lank === v.lank))];
+  if (!failed) f.day = t;
+  f.todayIds = f.day === t ? picks.filter(x => x.done === t).map(x => x.k + x.id) : [];
+  if (!f.items.some(x => !x.done) && !picks.length){ f.on = false; f.finished = t; toast(`Your “${f.theme}” focus is finished. Your usual mix is back.`); }
+  save();
+}
+function focusSplash(force){
+  if (!focusOn() || (!force && db.focus.splash === today())) return;
+  const f = db.focus; f.splash = today(); save();
+  const {mw, rest} = f.day === today() ? {mw: f.items.find(x => f.todayIds.includes(x.k + x.id) && x.c === FOCUS_MW), rest: f.todayIds} : focusPick();
+  const n = f.day === today() ? f.todayIds.length - (mw ? 1 : 0) : rest.length;
+  const done = focusDone(f), total = f.items.length;
+  const day = Math.max(1, Math.round((new Date(today()) - new Date(f.started)) / 864e5) + 1);
+  const el = document.createElement('div'); el.id = 'focusSplash';
+  el.innerHTML = `<img src="focus-loupe-320.webp" alt="">
+    <div class="k">Focused meditation</div><div class="th">${esc(f.theme)}</div>
+    ${f.verse ? `<div class="vs">${esc(f.verse)}</div>` : ''}
+    <div class="st">Today: ${mw ? '<b>Morning Worship</b> + ' : ''}${n} gem${n === 1 ? '' : 's'}<br>Day ${day} of your focus</div>
+    <div class="fbar"><i style="width:${Math.round(100 * done / total)}%"></i></div><div class="st" style="font-size:12px">${done} of ${total} gems given</div>
+    <button class="go">Begin</button><div class="sm">Daily Text plays as usual</div>`;
+  document.body.appendChild(el);
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 400); };
+  el.querySelector('.go').onclick = close; setTimeout(close, 9000);
+}
+function focusShelfHTML(){
+  const f = db.focus; if (!f) return '';
+  const done = focusDone(f), total = f.items.length;
+  if (!f.on) return `<div class="focusbox off"><div class="fh"><img src="focus-loupe-320.webp" alt=""> Focus: ${esc(f.theme)}
+      <button class="fsw" onclick="focusSwitch()" title="Switch the focus on"></button></div>
+    <div class="fp">${f.finished ? `Finished: all ${total} gems given. Your usual mix is back.` : `Off · ${done} of ${total} gems given. Switch it on to carry on where you left off.`}</div>
+    <div class="facts"><button onclick="focusList()">See list</button><button onclick="focusEnd()">Remove</button></div></div>`;
+  return `<div class="focusbox"><div class="fh"><img src="focus-loupe-320.webp" alt=""> Focus on: ${esc(f.theme)}
+      <button class="fsw on" onclick="focusSwitch()" title="Switch the focus off"></button></div>
+    <div class="fp">From Gem Miner · <b>${done} of ${total} gems</b> given · <b>${f.perDay} a day</b><br>While this is on, Today brings this topic instead of your Shelf mix. The Daily Text and Bible reading stay. When the bundle is used up, your usual mix comes back.</div>
+    <div class="flv"><span>🎬 Long videos during focus</span><select onchange="focusSet('longMax', +this.value)">
+      ${[[0, 'No time limit'], [30, 'Up to 30 min'], [60, 'Up to 60 min']].map(([v, l]) => `<option value="${v}" ${f.longMax === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="facts"><label>Gems a day <select onchange="focusSet('perDay', +this.value)">${[1, 2, 3, 4, 5, 6].map(n => `<option ${f.perDay === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <button onclick="focusList()">See list</button><button onclick="focusEnd()">End focus</button></div></div>`;
+}
+function focusSet(k, v){ db.focus[k] = v; save(); renderShelf(); toast(k === 'perDay' ? `${v} gem${v === 1 ? '' : 's'} a day, from tomorrow` : 'Saved: it counts from the next gems'); }
+function focusSwitch(){
+  const f = db.focus; f.on = !f.on; if (f.on){ f.finished = ''; f.splash = ''; } save(); renderShelf();
+  toast(f.on ? `Focus on: ${f.theme}` : 'Focus off: your usual mix is back');
+  feedRefresh(); if (f.on) focusSplash(true);
+}
+function focusEnd(){
+  openSheet(`<h3>End the “${esc(db.focus.theme)}” focus?</h3><p style="color:var(--muted)">Your usual mix comes back. Cards you already got stay in Today and Treasures.</p>
+    <button class="btn" onclick="db.focus=null;save();closeSheet();renderShelf();feedRefresh()">End it</button><button class="btn alt" onclick="closeSheet()">Keep it</button>`);
+}
+function focusList(){
+  const f = db.focus, link = x => x.k === 'v' ? finderUrl(x.id) : x.u;
+  const mark = x => x.done === 'skip' ? '✕ not found' : x.done === 'long' ? '⏱ too long' : x.done ? '✓ ' + x.done.slice(5).replace('-', '/') : '';
+  openSheet(`<h3>${esc(f.theme)}</h3>${f.verse ? `<p style="color:var(--muted);margin-top:0">${esc(f.verse)}</p>` : ''}
+    ${f.items.map(x => `<a class="flist ${x.done ? 'dn' : ''}" href="${esc(link(x))}" target="_blank" rel="noopener"><span>${x.k === 'v' ? '🎬' : '🎧'}</span>
+      <span style="flex:1">${esc(x.t)}${x.c === FOCUS_MW ? ' <small class="ftag">MORNING WORSHIP</small>' : ''}</span><small>${mark(x)}</small></a>`).join('')}
+    <button class="btn alt" onclick="closeSheet()">Close</button>`);
+}
+document.head.insertAdjacentHTML('beforeend', `<style>
+#focusSplash{position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 38%,#2b5d69 0,#14121f 70%);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:30px;transition:opacity .4s}
+#focusSplash.out{opacity:0}
+#focusSplash img{width:150px;height:150px;margin-bottom:10px;filter:drop-shadow(0 0 30px #4fc3d955)}
+#focusSplash .k{color:#4fc3d9;letter-spacing:.18em;font-size:12px;font-weight:800;text-transform:uppercase}
+#focusSplash .th{font-size:40px;font-weight:800;margin:8px 0 6px;line-height:1.1}
+#focusSplash .vs{opacity:.85;font-style:italic;font-size:16px;margin-bottom:20px;line-height:1.4;max-width:420px}
+#focusSplash .st{color:var(--muted);font-size:14px;line-height:1.6}#focusSplash .st b{color:var(--text)}
+#focusSplash .fbar{width:220px;height:8px;background:#2e2a44;border-radius:9px;margin:14px auto 6px;overflow:hidden}#focusSplash .fbar i{display:block;height:100%;background:#4fc3d9}
+#focusSplash .go{margin-top:26px;background:#4fc3d9;color:#00262e;border-radius:999px;padding:12px 38px;font-weight:800;font-size:16px}
+#focusSplash .sm{margin-top:14px;color:var(--muted);font-size:12px}
+.focusbox{border-radius:18px;padding:14px;background:var(--panel);border:1px solid #2f6b77;margin-bottom:14px}
+.focusbox.off{border-color:#3a3558}
+.focusbox .fh{display:flex;align-items:center;gap:8px;font-weight:800}.focusbox .fh img{width:34px;height:34px}
+.fsw{margin-left:auto;width:46px;height:27px;border-radius:99px;background:#3a3558;position:relative;flex:none}
+.fsw:after{content:"";position:absolute;left:3px;top:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .2s}
+.fsw.on{background:#4fc3d9}.fsw.on:after{left:22px}
+.focusbox .fp{color:var(--muted);font-size:13px;margin:8px 0;line-height:1.45}.focusbox .fp b{color:var(--text)}
+.focusbox .flv{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#17363d;border:1px solid #2f6b77;border-radius:10px;padding:8px 10px;font-size:13px}
+.focusbox select{width:auto;padding:5px 8px;border-radius:8px;font-size:13px}
+.focusbox .facts{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.focusbox .facts button,.focusbox .facts label{flex:1;text-align:center;background:var(--panel2);border-radius:10px;padding:8px;font-size:13px;white-space:nowrap}
+.flist{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #2a2640;color:var(--text);text-decoration:none;font-size:14px}
+.flist small{color:var(--muted);white-space:nowrap}.flist.dn{opacity:.6}
+.ftag{background:#ffc24a;color:#000;border-radius:5px;padding:0 5px;font-size:10px;font-weight:800}
+.vslide .info .ffeat{display:inline-block;background:#ffc24a;color:#000;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:800;margin-bottom:4px}
+</style>`);
+
 /* ================= boot ================= */
 db = load();
 db.ideas = db.ideas.filter(i => !(/ guide$/.test(i.source || '') && !(i.stashes || []).length));
@@ -4847,6 +5004,7 @@ ensureDailyShelf();
 applyVol(); autoOn = !!db.auto; setAutoButton();   // beta 53: applyVol if (autoOn) requestAnimationFrame(t => { autoLast = t; autoTick(t); });   // (v18)
 try { speechSynthesis.getVoices(); } catch(e){}   // (v4) Chrome loads its voice list on first ask
 renderStreak(); renderFeed(); bellDraw();   // beta 42
+{ const f = focusFromHash(); if (f) setTimeout(() => focusOffer(f), 300); else focusSplash(); }   // beta 87: a bundle from Gem Miner; the focus opening screen once a day
 if (circleReady()) setTimeout(circleStart, 1500);   // beta 22
 if (syncOn()) setTimeout(syncStart, 1200);   // beta 46
 if (window._joinFromLink){ db.pendingJoin = window._joinFromLink; delete db.pendingJoinName; save(); go('circle'); inviterName(); if (circleReady()) joinPending(); }   // beta 35

@@ -229,6 +229,12 @@ A **separate app with its own link and icon** that searches jw.org and gathers a
   - **Focus link format** (for the GemStash Focus beta): `../beta/#focus=` + base64url(UTF-8 JSON) `{v:1, th:theme, vs:verse, it:[['v', lank, title, seconds, channelKey] | ['a', doc, title, listCode, url]]}`. Videos open at `https://www.jw.org/finder?wtlocale=E&lank=<lank>`; narrated articles play via pub-media `GETPUBMEDIALINKS?docid=<doc>` like GemStash's listen cards. ~2 KB for 14 gems.
   - Note: GemStash's sw.js deletes every cache that isn't its own (same site), so Gem Miner's offline copy gets re-filled from the network after a GemStash update. Harmless.
 - Proposed first step: a mockup of both sides
+- **GemStash Beta 87 = Focus (built 2026-11-24, Mike said "start Focus").** Module "beta 87: Focus" just above boot in beta/index.html. `db.focus` = {theme, verse, items:[{k:'v'|'a', id, t, d|c, u, done:''|date|'skip'|'long'}], on, perDay:3, longMax:0|30|60, started, day, todayIds, splash, finished}. Per device (not synced).
+  - Link: `#focus=` read at boot (`focusFromHash`, jw.org URLs only), `focusOffer` sheet → Start. `focusSplash` once a day (or on start/switch on), closes after 9 s.
+  - `focusRests(it)`: every Shelf entry except Daily Text (`daily`) and Listen to the Bible (`nwt`) rests (doPull, shelfNeedsPull, pullExtra, shelfPaused; labelled "Resting during the focus"). Watch channels rest too (no buildWatchDaily, no moreVideos, explore queue empty). Circle posts still come.
+  - `buildFocusDaily` once a day: one Morning Worship from the bundle is FEATURED (first video), then `perDay` gems; videos via mediator `media-items` → `slimVideo` with `{focus, featured}` at the front of `W.daily.items`; narrated articles via `listenCard` with `focus:true`. Videos longer than `longMax` are marked 'long' and skipped. Offline: tries again later. Everything given → focus switches off with `finished`, the usual mix comes back.
+  - Today during a focus shows only Daily Text, Bible reading, today's focus cards and focus videos (the 💎 theme label on each video; ⭐ FEATURED on the Morning Worship).
+  - Mike's open choices (defaults used, ask him): 3 gems a day; opening screen first open each day; verse typed in Gem Miner (packs come with one); ends by itself.
 - (was) Proposed first step: a mockup of both sides (Gem Miner topic bundle + GemStash Focus control) for Mike to approve. Then Gem Miner beta 1 in its own folder, then the Focus control as a GemStash beta.
 
 ### Later

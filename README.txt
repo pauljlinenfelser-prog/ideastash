@@ -219,6 +219,10 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 84: trim a video before sharing it (slide the two ends; up to 1 minute is kept, so longer videos work too).
   Beta 85: add background music from your phone to a video, with a Video/Music balance slider.
   Beta 86: Today stops repeating: choose how many videos over 5 min a day (1, 3 or no limit; was always 1), new cards from your Shelf sources past today's set, and no card you saw this week comes back.
+  Beta 87: Focus. Gem Miner sends a topic bundle here (Start the focus). While it's on, GemStash opens with the theme
+      (Mike's loupe miner, the verse, today's plan) once a day; Today brings the Daily Text, Bible reading, a featured
+      Morning Worship from the bundle and 3 gems a day instead of the usual mix. Shelf → Focus: gems a day, long videos
+      (no limit / up to 30 / up to 60 min), see the list, switch off, end. It ends by itself when every gem is given.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
