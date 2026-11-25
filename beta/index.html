@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 106;
+const BETA_NO = 107;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [107, 'New words when your scrolling time is up. If a parent set the time, it says so, and only a parent can change it. If you set it yourself, it says you reached the time you set aside, and “Want more time? Settings” takes you there. Both suggest putting the phone down and doing something else.', ''],
   [106, 'When you invite someone to your circle, the message also has a link to the Getting started video, so they can see how to put GemStash on their phone. The video page picks the Microsoft Edge or Chrome version for their phone (both are a tap away). Gem Miner’s share messages have it too.', ''],
   [105, 'New how-to videos for this beta (Settings → About → How-to videos): Getting started for Microsoft Edge and for Chrome, the seven updated videos, and three new ones: Gem Miner, Using a Focus, and the Gem Miner cart. They use sample cards instead of jw.org content.', ''],
   [104, 'The Daily Text setup now says it plainly: GemStash opens your own copy of Examining the Scriptures Daily, which stays on your phone. Buttons: “Get your copy from jw.org” and “Link your copy to GemStash”.', ''],
@@ -1326,12 +1327,17 @@ setInterval(() => {                               // counts only while Today is 
   const t = today(); if (!db.usage || !(t in db.usage)) db.usage = {[t]: 0};
   db.usage[t]++; if (db.usage[t] % 10 === 0) save();
 }, 1000);
+// beta 107 (Mike): the words depend on who set the time. A parent's limit says so; your own limit points to Settings for more time.
+// Both suggest putting the phone down, for anyone cutting back on screen time or social media.
 function timeUpHTML(){
+  const p = parentOn(), m = db.limitMin;
   return `<div class="slide endslide timeup"><div class="card"><div class="big">⏳</div>
     <h2>That's your time for today</h2>
-    <p style="color:var(--muted)">You've had your ${db.limitMin} minutes. New ideas and videos come tomorrow.</p>
-    <button class="btn sm alt" onclick="go('library')">💎 Open your stashes</button>
-    <p style="color:var(--muted);font-size:13px">You can change the limit in More.</p></div></div>`;
+    <p style="color:var(--muted)">${p ? `You've used the ${m} minutes your parents chose for scrolling GemStash today.` : `You've reached the end of the ${m} minutes you set aside for scrolling GemStash today.`} New gems come tomorrow.</p>
+    <p style="color:var(--muted)">${p ? '' : 'Working on less screen time or less social media? Well done for keeping to it. '}Now's a good time to put the phone down and do something else.</p>
+    ${p ? `<p style="color:var(--muted);font-size:13px">Only a parent can change the time.</p>`
+        : `<button class="btn sm alt" onclick="go('more')">⚙️ Want more time? Settings</button>`}
+    <button class="btn sm alt" onclick="go('library')">💎 Open Treasures</button></div></div>`;
 }
 // time ran out: the slide you're on stays (videos aren't cut off); the next swipe ends the feed
 function cutFeedAt(s){
