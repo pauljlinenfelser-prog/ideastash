@@ -250,6 +250,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 105: new how-to videos (Settings → About → How-to videos): Getting started for Edge and for Chrome, the 7 updated ones and 3 new ones (Gem Miner, Using a Focus, the Gem Miner cart), with sample cards instead of jw.org content. The old video files stay on the site, off the list.
   Beta 106: invite messages (circle code and Friends code) also link to the Getting started video page (getting-started.html: picks the Edge or Chrome video for the phone; iPhone gets written steps). Gem Miner Beta 5: its share messages have the same link.
   Beta 107: new words when the scrolling time is up: a parent's limit says your parents chose it (only a parent can change it); your own limit says you reached the time you set aside, with "Want more time? Settings". Both suggest putting the phone down.
+  Beta 108: the "A book" row is gone from the bottom of the Shelf (jw.org only); books already on a shelf keep working. The jw.org video link row stays. FAQ "What about books?" and the Gutenberg words in About are gone.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)

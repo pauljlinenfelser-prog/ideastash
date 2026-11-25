@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 107;
+const BETA_NO = 108;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [108, 'The “A book” row is gone from the bottom of the Shelf, so GemStash stays with jw.org. (A book already on your shelf keeps working.) The “A jw.org video link” row stays, for a video that isn’t in the channels.', ''],
   [107, 'New words when your scrolling time is up. If a parent set the time, it says so, and only a parent can change it. If you set it yourself, it says you reached the time you set aside, and “Want more time? Settings” takes you there. Both suggest putting the phone down and doing something else.', ''],
   [106, 'When you invite someone to your circle, the message also has a link to the Getting started video, so they can see how to put GemStash on their phone. The video page picks the Microsoft Edge or Chrome version for their phone (both are a tap away). Gem Miner’s share messages have it too.', ''],
   [105, 'New how-to videos for this beta (Settings → About → How-to videos): Getting started for Microsoft Edge and for Chrome, the seven updated videos, and three new ones: Gem Miner, Using a Focus, and the Gem Miner cart. They use sample cards instead of jw.org content.', ''],
@@ -655,8 +656,7 @@ const FAQ = [
    'Your friend gets jw.org’s own link, so they read or watch it on jw.org itself.'],
   ['What is kept, and where?',
    'Your hearts, gems, shelf, books and Daily Text stay on your phone. If you join a friends circle, only your name, your comments and jw.org links are kept online, in a private circle. No jw.org text or media is stored there.'],
-  ['What about books?',
-   'Free books from Project Gutenberg are public domain. Books you add yourself (PDF or EPUB) are read and kept only on your phone.']];
+];   // beta 108: "What about books?" removed with the A book row
 // beta 45 (Mike): the how-to videos (made from the beta, with music), kept on the site at /ideastash/video/howto/
 // beta 105 (Mike): new videos for the current beta, with sample cards instead of jw.org content. The old files stay on the site, off the list.
 const HOWTO = [['GemStash-0-Getting-started.mp4', '📲', 'Getting started (Microsoft Edge)', '0:38'], ['GemStash-0-Getting-started-Chrome.mp4', '📲', 'Getting started (Chrome)', '0:43'],
@@ -4505,9 +4505,7 @@ function renderShelf(){
     ${missing.map(k => `<button class="shelfitem" onclick="addSourceToShelf('${k}')"><span class="e">${SHELF_KINDS[k].emoji}</span>
       <span class="t" style="flex:1"><b>${SHELF_KINDS[k].title}</b><small style="display:block;color:var(--muted)">${SHELF_KINDS[k].sub}${KIND_LIST[k] ? ' · ' + KIND_LIST[k]().length + ' ' + (SHELF_KINDS[k].unit || 'questions') : ''}</small></span>
       <span style="font-size:22px">＋</span></button>`).join('')}
-    <button class="shelfitem" onclick="addTab='books';go('add')"><span class="e">📚</span>
-      <span class="t" style="flex:1"><b>A book</b><small style="display:block;color:var(--muted)">Your own PDF or EPUB, or 60,000+ free books on Project Gutenberg</small></span>
-      <span style="font-size:22px">＋</span></button>
+    <!-- beta 108 (Mike): the "A book" row is gone (jw.org only). Books already on a shelf keep working. -->
     <button class="shelfitem" onclick="addTab='video';go('add')"><span class="e">🎬</span>
       <span class="t" style="flex:1"><b>A jw.org video link</b><small style="display:block;color:var(--muted)">Paste a video’s share link to watch it in Today</small></span>
       <span style="font-size:22px">＋</span></button>`;   // beta 31: these used to be the Add tab   // (v23) back
@@ -4901,8 +4899,8 @@ function renderMore(){
     <div class="sec">About</div>
     <button class="btn" onclick="openHowto()">🎬 How-to videos</button>
     <button class="btn alt" onclick="openFaq()">❓ How does GemStash work?</button>
-    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy of GemStash v50) — free, private, no account. Everything comes from jw.org and wol.jw.org, plus books you add: free ones from Project Gutenberg, or your own PDF / EPUB files (read and kept on this phone).
-    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). Gutenberg books are read through the free r.jina.ai reader. jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
+    <p style="color:var(--muted);font-size:14px;line-height:1.5">GemStash Beta ${BETA_NO} (test copy of GemStash v50) — free, private, no account. Everything comes from jw.org and wol.jw.org.
+    jw.org articles aren't copied: GemStash plays jw.org's own narration and pictures, shows the title, and links to the article (v26). Only narrated articles are used. Today's text comes from jw.org's Daily Text download that you add once a year (beta 12). jw.org content is © Watch Tower Bible and Tract Society — for your personal study only.</p>`;
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
