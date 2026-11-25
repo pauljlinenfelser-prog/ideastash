@@ -246,6 +246,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 101: the opening screen plays every time GemStash is opened fresh (was once a day); switching back from another app doesn't replay it.
   Beta 102: the opening screen plays the video's own sound (pickaxe and gem); 🔊 at the top right turns it off/on and remembers.
   Beta 103: the opening screen is flipped: still screen with "Tap to begin" first; the tap plays the miner video with its sound, then GemStash opens.
+  Beta 104: Daily Text setup reworded: "your own copy" (stays on this phone; GemStash opens it to today's page); buttons "Get your copy from jw.org" / "Link your copy to GemStash". FAQ answer matches.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)

@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 103;
+const BETA_NO = 104;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [104, 'The Daily Text setup now says it plainly: GemStash opens your own copy of Examining the Scriptures Daily, which stays on your phone. Buttons: “Get your copy from jw.org” and “Link your copy to GemStash”.', ''],
   [103, 'The opening screen is flipped: first the miner with the words and “Tap to begin”. Your tap plays the miner video with its sound (phones only allow sound after a tap), and GemStash opens when it ends. Tap again to skip.', ''],
   [102, 'The opening screen plays the video’s own sound (the pickaxe and the gem). The 🔊 button at the top right turns it off or on, and remembers. If the phone holds the sound back, the button says “Tap for sound”.', ''],
   [101, 'The opening screen with the miner video now plays every time you open GemStash fresh (after closing it completely), not just once a day. Switching back from another app doesn’t replay it. Tap to skip.', ''],
@@ -644,7 +645,7 @@ const FAQ = [
   ['Where do the videos, narration and pictures come from?',
    'Straight from jw.org’s own servers: the same video and audio files jw.org offers for download, found through jw.org’s public media service. An article card’s picture is the artwork jw.org packs inside that article’s MP3, and the “🎧 from jw.org’s MP3 download” line on each card links to that file. Everything plays and shows from jw.org; GemStash never copies it to another server or website.'],
   ['Where does the Daily Text come from?',
-   'From jw.org’s own download of <i>Examining the Scriptures Daily</i> (the EPUB file). You download it from jw.org once a year and pick it in GemStash, and it stays on your phone. Each Daily Text card links to that download, so you can always see where the text came from.'],
+   'From your own copy of <i>Examining the Scriptures Daily</i> (the EPUB file, free from jw.org). You download it once a year and link it to GemStash; it stays on your phone, and GemStash just opens it to today’s page. Each Daily Text card links to that download, so you can always see where the text came from.'],
   ['What do jw.org’s Terms of Use say, and how does GemStash fit them?',
    'jw.org lets you download its publications, videos and audio for your own personal, non-commercial use. It also lets you share links to them, and allows free, non-commercial apps that download its EPUB, PDF, MP3 and MP4 files. It doesn’t allow tools that scrape the site’s text or pictures, re-posting its material on other websites or apps, or any commercial use. GemStash is built to stay inside those lines. It is free and personal. It uses jw.org’s own media files and the Daily Text file you download yourself, and it doesn’t scrape article pages. Nothing from jw.org is stored on any server of ours, and sharing sends jw.org’s own links. You can read the Terms here: <a href="https://www.jw.org/en/terms-of-use/" target="_blank" rel="noopener">jw.org Terms of Use ↗</a>'],
   ['What happens when I share something?',
@@ -3617,9 +3618,9 @@ async function fillDtLink(){
 function dtAddHTML(){
   const y = new Date().getFullYear();
   setTimeout(fillDtLink, 0);
-  return `<p style="color:var(--muted);line-height:1.5;margin:6px 0 12px">GemStash shows the Daily Text from jw.org’s own download of <i>Examining the Scriptures Daily—${y}</i>. Once a year:</p>
-    <a class="btn" id="dtDl" style="display:block;text-align:center;text-decoration:none" href="https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">1. ⬇️ Download it from jw.org</a>
-    <label class="btn alt" style="display:block;text-align:center;margin-top:10px" onclick="event.stopPropagation()">2. 📂 Pick the downloaded file
+  return `<p style="color:var(--muted);line-height:1.5;margin:6px 0 12px">GemStash starts each day with the daily text from your own copy of <i>Examining the Scriptures Daily—${y}</i>. Your copy stays on this phone; GemStash just opens it to today’s page. To get started, link your copy once a year. If you don’t have it yet, it’s a free download from jw.org.</p>
+    <a class="btn" id="dtDl" style="display:block;text-align:center;text-decoration:none" href="https://www.jw.org/finder?wtlocale=E&pub=es${String(y).slice(2)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">1. ⬇️ Get your copy from jw.org</a>
+    <label class="btn alt" style="display:block;text-align:center;margin-top:10px" onclick="event.stopPropagation()">2. 📂 Link your copy to GemStash
       <input type="file" ${isApple() ? '' : 'accept=".epub,application/epub+zip"'} hidden onchange="pickDailyText(this.files[0]); this.value=''"></label>
     ${isApple() ? `<p style="color:var(--muted);font-size:13px;line-height:1.5;margin:10px 2px 0"><b>On iPhone or iPad:</b> after step 1, tap <b>Download</b>
       (not “Open in Books”: GemStash can’t reach Apple Books). In step 2 tap <b>Browse</b>, then <b>Downloads</b>, then <b>es${String(y).slice(2)}_E.epub</b>.
