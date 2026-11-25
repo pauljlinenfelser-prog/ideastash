@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 102;
+const BETA_NO = 103;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [103, 'The opening screen is flipped: first the miner with the words and “Tap to begin”. Your tap plays the miner video with its sound (phones only allow sound after a tap), and GemStash opens when it ends. Tap again to skip.', ''],
   [102, 'The opening screen plays the video’s own sound (the pickaxe and the gem). The 🔊 button at the top right turns it off or on, and remembers. If the phone holds the sound back, the button says “Tap for sound”.', ''],
   [101, 'The opening screen with the miner video now plays every time you open GemStash fresh (after closing it completely), not just once a day. Switching back from another app doesn’t replay it. Tap to skip.', ''],
   [100, 'Circle has Mike’s new picture: three miners (grandfather, boy and mother) sharing a blue gem.', ''],
@@ -5160,39 +5161,46 @@ function focusRepeat(){
 function gsSplash(then){
   if (document.getElementById('gsSplash')){ then && then(); return; }   // beta 101 (Mike): every fresh open (was once a day).
   db.gsSplash = today(); save();   // (kept for reference; not checked any more) Coming back from another app doesn't reload the page, so it doesn't play then.
-  const el = document.createElement('div'); el.id = 'gsSplash';
+  const el = document.createElement('div'); el.id = 'gsSplash'; el.className = 'ready';
   el.innerHTML = `<div class="rays"></div><div class="beam"></div>
     <div class="brand"><img src="logo-chest-128.png" alt="">GemStash</div>
     <div class="dust">${'<i></i>'.repeat(14)}</div>
-    <div class="stage vid"><video class="mvid" muted playsinline preload="auto"></video></div>
+    <div class="stage"><div class="lift"><img class="miner" src="focus-loupe-320.webp" alt=""><i class="glow"></i><i class="glint"></i><i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i></div></div>
     <div class="tag">Turn your doom-scrolling into<b>LIFE-scrolling</b></div>
     <div class="scr">“If you keep seeking for it as for silver,<br>And you keep searching for it as for hidden treasures;<br>Then you will understand the fear of Jehovah,<br>And you will find the knowledge of God.”<span>Proverbs 2:4, 5</span></div>
     <div class="tap">Tap to begin</div><button class="sndb" title="Sound on or off"></button>`;
   document.body.appendChild(el);
-  let gone = false;
+  let gone = false, playing = false;
   const close = () => { if (gone) return; gone = true; fadeOut(); el.classList.add('out'); setTimeout(() => { el.remove(); then && then(); }, 500); };
   // beta 99c (Mike): his video of the miner picking at the ore, finding the gem and examining it. The black background is
   // taken out (see-through WebM); iPhones can't show see-through WebM, so they get the MP4 blended onto the purple instead.
-  const v = el.querySelector('.mvid'), stage = el.querySelector('.stage');
+  // beta 103 (Mike 2026-11-25): flipped. Phones only allow sound after a tap, so the still opening screen comes first with
+  // "Tap to begin"; that tap plays the video and its sound together, and GemStash opens when the video ends (tap again to skip).
+  const stage = el.querySelector('.stage');
   const apple = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|CriOS|FxiOS|Android/.test(navigator.userAgent));
-  const still = () => { stage.className = 'stage'; stage.innerHTML = '<div class="lift"><img class="miner" src="focus-loupe-320.webp" alt=""><i class="glow"></i><i class="glint"></i><i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i></div>'; };   // no video? the still miner, lifting the gem
-  if (apple){ v.src = 'miner-finds-gem.mp4'; v.classList.add('blend'); } else v.src = 'miner-finds-gem.webm';
-  v.addEventListener('error', () => { still(); startSound(); });
-  v.play().catch(() => { if (!v.currentTime){ still(); startSound(); } });
-  // beta 102 (Mike 2026-11-25): the video's own sound. Phones may hold sound back until a tap: then the button says "Tap for sound".
+  const v = document.createElement('video'); v.className = 'mvid'; v.muted = true; v.playsInline = true; v.preload = 'auto';
+  if (apple){ v.src = 'miner-finds-gem.mp4'; v.classList.add('blend'); } else v.src = 'miner-finds-gem.webm';   // loads while the still screen shows
   const snd = new Audio('miner-finds-gem-sound.m4a'); snd.preload = 'auto'; snd.volume = 0.85;
-  const sb = el.querySelector('.sndb'); let soundOn = db.splashSound !== false, started = false;
-  const drawSb = (blocked) => { sb.textContent = !soundOn ? '🔇' : blocked ? '🔈 Tap for sound' : '🔊'; sb.classList.toggle('wide', !!blocked && soundOn); };
-  const startSound = () => { if (!soundOn || gone) return; try { snd.currentTime = Math.min(v.currentTime || 0, 5.9); } catch(e){}
-    snd.play().then(() => { started = true; drawSb(false); }).catch(() => drawSb(true)); };
-  v.addEventListener('playing', startSound, {once: true});
-  sb.addEventListener('click', e => { e.stopPropagation();
-    if (soundOn && started && !snd.paused){ soundOn = false; snd.pause(); }
-    else { soundOn = true; startSound(); }
-    db.splashSound = soundOn; save(); drawSb(false); });
-  drawSb(false);
+  const sb = el.querySelector('.sndb'); let soundOn = db.splashSound !== false;
+  const drawSb = () => { sb.textContent = soundOn ? '🔊' : '🔇'; };
+  const startSound = () => { if (!soundOn || gone) return; try { snd.currentTime = Math.min(v.currentTime || 0, 5.9); } catch(e){} snd.play().catch(() => {}); };
+  sb.addEventListener('click', e => { e.stopPropagation(); soundOn = !soundOn; db.splashSound = soundOn; save(); drawSb();
+    if (!soundOn) snd.pause(); else if (playing) startSound(); });
+  drawSb();
   const fadeOut = () => { const v0 = snd.volume; let k = 0; const h = setInterval(() => { k++; snd.volume = Math.max(0, v0 * (1 - k / 8)); if (k >= 8){ clearInterval(h); snd.pause(); } }, 50); };
-  el.addEventListener('click', close); setTimeout(close, 12000);
+  const begin = () => {
+    playing = true; el.className = 'ready play';   // keeps 'ready' so the words already shown don't fade in again
+    if (soundOn){ snd.currentTime = 0; snd.play().catch(() => {}); }   // started inside the tap, so the phone allows it
+    const noVideo = () => { if (!stage.contains(v)) return; stage.className = 'stage'; stage.innerHTML = el.dataset.still; setTimeout(close, 6000); };
+    el.dataset.still = stage.innerHTML;
+    stage.className = 'stage vid'; stage.innerHTML = ''; stage.appendChild(v);
+    v.addEventListener('playing', startSound, {once: true});   // keeps the sound in step if the video starts a moment late
+    v.addEventListener('ended', () => setTimeout(close, 700));
+    v.addEventListener('error', noVideo);
+    v.play().catch(noVideo);
+    setTimeout(close, 12000);   // in case the video never reports its end
+  };
+  el.addEventListener('click', () => { if (!playing) begin(); else close(); });
 }
 function focusMode(m, n){                                 // beta 89
   const f = db.focus, was = f.mode || 'full'; f.mode = m; if (n) f.perDay = n; save(); focusRedraw();
@@ -5266,6 +5274,11 @@ ${[...Array(14)].map((_, k) => `#gsSplash .dust i:nth-child(${k + 1}){left:${8 +
   border-radius:999px;min-width:42px;height:42px;padding:0 12px;font-size:18px;opacity:0;animation:gsFade .6s .8s forwards}
 #gsSplash .sndb.wide{font-size:14px;font-weight:700;background:#ffc24a;color:#2a1700;border-color:#ffc24a}
 #gsSplash .tap{position:absolute;bottom:calc(var(--safe-b) + 26px);font-size:12px;color:#b9b0e0;opacity:0;animation:gsFade 1s 6.6s forwards}
+/* beta 103 (Mike): flipped. First the still opening screen with "Tap to begin"; the tap plays the miner video with its sound. */
+#gsSplash.ready .tag{animation-delay:1.4s}#gsSplash.ready .tag b{animation-delay:1.9s,2.7s}#gsSplash.ready .scr{animation-delay:2.4s}
+#gsSplash.ready .tap{font-size:17px;font-weight:800;color:#2a1700;background:#ffc24a;border-radius:999px;padding:12px 30px;box-shadow:0 0 24px #ffb84d66;animation:gsFade .8s 3s forwards,gsTapPulse 1.6s 3.8s ease-in-out infinite alternate}
+#gsSplash.play .tap{display:none}
+@keyframes gsTapPulse{from{transform:scale(1)}to{transform:scale(1.07);box-shadow:0 0 34px #ffc24aaa}}
 @keyframes gsFade{to{opacity:1}}
 @keyframes gsLift{0%{transform:none}55%{transform:translateY(-14px) rotate(-3deg) scale(1.06)}100%{transform:translateY(-8px) rotate(-1deg) scale(1.04)}}
 @keyframes gsBob{0%{transform:translateY(-8px) rotate(-1deg) scale(1.04)}100%{transform:translateY(-14px) rotate(1deg) scale(1.04)}}
