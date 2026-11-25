@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 104;
+const BETA_NO = 105;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [105, 'New how-to videos for this beta (Settings → About → How-to videos): Getting started for Microsoft Edge and for Chrome, the seven updated videos, and three new ones: Gem Miner, Using a Focus, and the Gem Miner cart. They use sample cards instead of jw.org content.', ''],
   [104, 'The Daily Text setup now says it plainly: GemStash opens your own copy of Examining the Scriptures Daily, which stays on your phone. Buttons: “Get your copy from jw.org” and “Link your copy to GemStash”.', ''],
   [103, 'The opening screen is flipped: first the miner with the words and “Tap to begin”. Your tap plays the miner video with its sound (phones only allow sound after a tap), and GemStash opens when it ends. Tap again to skip.', ''],
   [102, 'The opening screen plays the video’s own sound (the pickaxe and the gem). The 🔊 button at the top right turns it off or on, and remembers. If the phone holds the sound back, the button says “Tap for sound”.', ''],
@@ -655,10 +656,13 @@ const FAQ = [
   ['What about books?',
    'Free books from Project Gutenberg are public domain. Books you add yourself (PDF or EPUB) are read and kept only on your phone.']];
 // beta 45 (Mike): the how-to videos (made from the beta, with music), kept on the site at /ideastash/video/howto/
-const HOWTO = [['GemStash-1-Today.mp4', '✨', 'Today: your daily feed', '1:06'], ['GemStash-2-Treasures.mp4', '💎', 'Treasures: hearts, gems and tags', '0:57'],
-  ['GemStash-3-Shelf.mp4', '📚', 'The Shelf: choose what comes each day', '1:01'], ['GemStash-4-Circle.mp4', '👥', 'Your circle: invite family with one link', '0:53'],
-  ['GemStash-5-Sharing.mp4', '📸', 'Sharing, comments and messages', '1:07'], ['GemStash-6-Parental-controls.mp4', '🔒', 'Parental controls', '0:52'],
-  ['GemStash-7-Settings-and-help.mp4', '⚙️', 'Settings and help (More)', '0:40']];
+// beta 105 (Mike): new videos for the current beta, with sample cards instead of jw.org content. The old files stay on the site, off the list.
+const HOWTO = [['GemStash-0-Getting-started.mp4', '📲', 'Getting started (Microsoft Edge)', '0:38'], ['GemStash-0-Getting-started-Chrome.mp4', '📲', 'Getting started (Chrome)', '0:43'],
+  ['GemStash-1-Today-v2.mp4', '✨', 'Today: your daily feed', '1:07'], ['GemStash-2-Treasures-v2.mp4', '💎', 'Treasures: hearts, gems and tags', '0:55'],
+  ['GemStash-3-Shelf-v2.mp4', '📚', 'The Shelf: choose what comes each day', '1:08'], ['GemStash-4-Circle-v2.mp4', '👥', 'Your circle: invite family with one link', '0:57'],
+  ['GemStash-5-Sharing-v2.mp4', '📸', 'Sharing, comments and messages', '1:19'], ['GemStash-6-Parental-controls-v2.mp4', '🔒', 'Parental controls', '1:10'],
+  ['GemStash-7-Settings-and-help-v2.mp4', '⚙️', 'Settings and help', '0:50'], ['GemStash-8-Gem-Miner.mp4', '⛏️', 'Gem Miner: gather a topic', '0:53'],
+  ['GemStash-9-Using-a-Focus.mp4', '🔎', 'Using a Focus', '0:49'], ['GemStash-10-Gem-Miner-cart.mp4', '🛒', 'The Gem Miner cart: your saved lists', '0:35']];
 const howtoUrl = f => APP_URL + 'video/howto/' + f;
 function howtoHTML(){
   return `<div class="howto">${HOWTO.map(([f, e, t, d], n) => `<button class="shelfitem" onclick="playHowto(${n})"><span class="e">${e}</span>

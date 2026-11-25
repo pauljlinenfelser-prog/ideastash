@@ -247,6 +247,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 102: the opening screen plays the video's own sound (pickaxe and gem); 🔊 at the top right turns it off/on and remembers.
   Beta 103: the opening screen is flipped: still screen with "Tap to begin" first; the tap plays the miner video with its sound, then GemStash opens.
   Beta 104: Daily Text setup reworded: "your own copy" (stays on this phone; GemStash opens it to today's page); buttons "Get your copy from jw.org" / "Link your copy to GemStash". FAQ answer matches.
+  Beta 105: new how-to videos (Settings → About → How-to videos): Getting started for Edge and for Chrome, the 7 updated ones and 3 new ones (Gem Miner, Using a Focus, the Gem Miner cart), with sample cards instead of jw.org content. The old video files stay on the site, off the list.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
