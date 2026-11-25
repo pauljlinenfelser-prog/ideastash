@@ -248,6 +248,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 103: the opening screen is flipped: still screen with "Tap to begin" first; the tap plays the miner video with its sound, then GemStash opens.
   Beta 104: Daily Text setup reworded: "your own copy" (stays on this phone; GemStash opens it to today's page); buttons "Get your copy from jw.org" / "Link your copy to GemStash". FAQ answer matches.
   Beta 105: new how-to videos (Settings → About → How-to videos): Getting started for Edge and for Chrome, the 7 updated ones and 3 new ones (Gem Miner, Using a Focus, the Gem Miner cart), with sample cards instead of jw.org content. The old video files stay on the site, off the list.
+  Beta 106: invite messages (circle code and Friends code) also link to the Getting started video page (getting-started.html: picks the Edge or Chrome video for the phone; iPhone gets written steps). Gem Miner Beta 5: its share messages have the same link.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
@@ -264,6 +265,7 @@ GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/
   Gem Miner Beta 3: 📤 Share at the top shares the Gem Miner link (the phone's share menu); "Share this list with a
       friend" on the send screen shares a bundle's link. The send screen no longer says GemStash's Focus is coming.
   Gem Miner Beta 4: the opening screen plays the video's own sound (with the same smooth dissolve); 🔊 button to turn it off.
+  Gem Miner Beta 5: share messages also link to GemStash's Getting started video (the page picks the Edge or Chrome version).
 
 VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup

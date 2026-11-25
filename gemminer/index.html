@@ -101,7 +101,7 @@ input:focus{border-color:var(--mine)}
    Gathers one topic from jw.org into a bundle, then hands it to GemStash in a link (#focus=...).
    Terms: only jw.org's own lists of videos (the same open video catalogue GemStash uses) and GemStash's lists of
    narrated articles. It keeps titles, IDs and links only: no article text and no pictures from the website. */
-const BETA_NO = 4;
+const BETA_NO = 5;
 const GEMSTASH = '../beta/';                  // the Focus control is built in the GemStash beta first
 const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
 const LS = 'gemminer:';                       // GemStash lives on the same site, so keep our own names
@@ -368,17 +368,22 @@ function sendSheet(){
   document.body.appendChild(s);
   s.addEventListener('click', e => { if (e.target === s || e.target.id === 'closeS') s.remove(); });
   s.querySelector('#shareL').onclick = e => shareLink(e.target, {title: bundle.theme,
-    text: `A focused meditation on “${bundle.theme}” (${n} gems from jw.org) for GemStash. Tap to open it:`, url: link});
+    text: `A focused meditation on “${bundle.theme}” (${n} gems from jw.org) for GemStash. Tap to open it:
+${link}
+
+${START_LINE}`});
 }
 
 // beta 3 (Mike): share buttons. The phone's own share menu (messages, email…); without one, the link is copied.
 async function shareLink(btn, data){
   try { if (navigator.share){ await navigator.share(data); return; } } catch (e){ if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(data.url); if (btn) btn.textContent = 'Link copied ✓'; } catch { prompt('Copy this link:', data.url); }
+  const txt = data.url ? data.url : data.text;   // beta 5: the text holds its own links
+  try { await navigator.clipboard.writeText(txt); if (btn) btn.textContent = 'Link copied ✓'; } catch { prompt('Copy this:', txt); }
 }
+// beta 5 (Mike): share messages also send GemStash's Getting started video (a page that picks the Edge or Chrome version)
+const START_LINE = 'New to GemStash? This short video shows how to put it on your phone:\n' + new URL('../getting-started.html', location.href).href;
 const shareApp = btn => shareLink(btn, {title:'Gem Miner',
-  text:'Gem Miner gathers jw.org videos and narrated articles on one topic for a focused meditation in GemStash. Try it:',
-  url: new URL('./', location.href).href});
+  text:'Gem Miner gathers jw.org videos and narrated articles on one topic for a focused meditation in GemStash. Try it:\n' + new URL('./', location.href).href + '\n\n' + START_LINE});
 
 /* ---------- screens ---------- */
 function render(){

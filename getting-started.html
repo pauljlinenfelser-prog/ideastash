@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14121f">
+<title>GemStash: Getting started</title>
+<meta name="description" content="A short video showing how to put GemStash on your phone.">
+<link rel="icon" href="app/icon-192.png">
+<style>
+/* Beta 106 (Mike): the page the invite and share texts link to. It plays the Getting started video for this phone's browser. */
+:root{--bg:#14121f;--panel:#1e1b2e;--text:#f3f1fb;--muted:#a39fbd;--accent:#9b7cf2}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:18px 16px 32px}
+h1{font-size:22px;margin:4px 0 2px}
+p{color:var(--muted);margin:4px 0 12px}
+video{width:100%;max-height:70vh;border-radius:14px;background:#000;display:block}
+.row{display:flex;gap:8px;margin:12px 0}
+.row button{flex:1;padding:10px;border-radius:12px;border:1px solid #3a3456;background:var(--panel);color:var(--text);font-size:15px}
+.row button.on{border-color:var(--accent);background:#2d2550}
+a.btn{display:block;text-align:center;text-decoration:none;padding:13px;border-radius:12px;background:var(--accent);color:#fff;font-weight:600;margin-top:12px}
+.apple{background:var(--panel);border-radius:12px;padding:12px 14px;margin-top:12px;display:none}
+.apple b{color:var(--text)}
+</style></head>
+<body><main>
+  <h1>📲 Getting started with GemStash</h1>
+  <p>A short video showing how to put GemStash on your phone.</p>
+  <video id="v" controls playsinline preload="metadata"></video>
+  <div class="row"><button id="bE">Microsoft Edge</button><button id="bC">Chrome</button></div>
+  <div class="apple" id="apple"><p style="margin:0">On an <b>iPhone or iPad</b>: open GemStash in <b>Safari</b>, tap <b>Share</b> (on the newest iPhones it's under <b>⋯</b>), then <b>Add to Home Screen</b>, then <b>Add</b>.</p></div>
+  <a class="btn" id="go" href="beta/">Open GemStash</a><!-- the beta for now, like circles and Focus; change to app/ when they move -->
+</main>
+<script>
+const V = {edge: 'video/howto/GemStash-0-Getting-started.mp4', chrome: 'video/howto/GemStash-0-Getting-started-Chrome.mp4'};
+const ua = navigator.userAgent;
+const pick = k => { document.getElementById('v').src = V[k]; bE.classList.toggle('on', k === 'edge'); bC.classList.toggle('on', k === 'chrome'); };
+bE.onclick = () => pick('edge'); bC.onclick = () => pick('chrome');
+pick(/EdgA|Edg\//.test(ua) ? 'edge' : 'chrome');
+if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) document.getElementById('apple').style.display = 'block';
+</script>
+</body></html>

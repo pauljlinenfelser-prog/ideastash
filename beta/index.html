@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 105;
+const BETA_NO = 106;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [106, 'When you invite someone to your circle, the message also has a link to the Getting started video, so they can see how to put GemStash on their phone. The video page picks the Microsoft Edge or Chrome version for their phone (both are a tap away). Gem Miner’s share messages have it too.', ''],
   [105, 'New how-to videos for this beta (Settings → About → How-to videos): Getting started for Microsoft Edge and for Chrome, the seven updated videos, and three new ones: Gem Miner, Using a Focus, and the Gem Miner cart. They use sample cards instead of jw.org content.', ''],
   [104, 'The Daily Text setup now says it plainly: GemStash opens your own copy of Examining the Scriptures Daily, which stays on your phone. Buttons: “Get your copy from jw.org” and “Link your copy to GemStash”.', ''],
   [103, 'The opening screen is flipped: first the miner with the words and “Tap to begin”. Your tap plays the miner video with its sound (phones only allow sound after a tap), and GemStash opens when it ends. Tap again to skip.', ''],
@@ -1813,7 +1814,10 @@ async function leaveCircle(){
 }
 function shareInvite(){
   const c = db.circle;
-  shareLink(`Join my GemStash circle! Open the app, tap More → Friends, and enter the code ${c.code}`, APP_URL);
+  shareLink(`Join my GemStash circle! Open the app, tap More → Friends, and enter the code ${c.code}
+${APP_URL}
+
+${startLine()}`, '');
 }
 // ---- comments ----
 function commentBtn(url, title){
@@ -2437,7 +2441,15 @@ async function setupMe(){
 }
 const CIRCLE_HOME = 'beta/';   // beta 35: circles live in the beta for now; change to 'app/' when they move to the app
 const inviteUrl = () => APP_URL + CIRCLE_HOME + '?join=' + db.me.code;
-function shareMyCode(){ shareLink(`Join my circle on GemStash, a free app for daily gems from jw.org. Tap the link, type your name, and you're in. (My code is ${prettyCode(db.me.code)} if you need it.)`, inviteUrl()); }
+// beta 106 (Mike): invite and share texts also send the Getting started video (a page that picks the Edge or Chrome video)
+const START_URL = APP_URL + 'getting-started.html';
+const startLine = () => `New to GemStash? This short video shows how to put it on your phone:
+${START_URL}`;
+function shareMyCode(){ shareLink(`Join my circle on GemStash, a free app for daily gems from jw.org. Tap the link, type your name, and you're in:
+${inviteUrl()}
+(My code is ${prettyCode(db.me.code)} if you need it.)
+
+${startLine()}`, ''); }
 { const j = normCode(new URLSearchParams(location.search).get('join') || '');   // opened from an invite link
   if (j.length === 8){ window._joinFromLink = j; history.replaceState(null, '', location.pathname); } }
 async function joinPending(){                                  // send the invite's request once you're set up
@@ -3119,7 +3131,7 @@ function renderCirclePosts(){
 /* ================= share (v17) ================= */
 // Opens the phone's share menu (Messages, WhatsApp, email…) with jw.org's direct link. No phone share menu → copy the link.
 function shareLink(title, url){
-  if (navigator.share) return navigator.share({title, text: title, url}).catch(() => {});
+  if (navigator.share) return navigator.share(url ? {title, text: title, url} : {text: title}).catch(() => {});   // beta 106: no url → the text only (it holds its own links)
   const txt = url ? `${title}\n${url}` : title;
   (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Link copied — paste it in a message'), () => toast('Sharing isn’t available here'));
 }
