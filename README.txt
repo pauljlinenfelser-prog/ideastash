@@ -244,6 +244,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
       doom-scrolling into LIFE-scrolling" and Proverbs 2:4, 5. Also: switching lists on the same day shows only the new list.
   Beta 100: Circle has Mike's new picture: three miners (grandfather, boy and mother) sharing a blue gem.
   Beta 101: the opening screen plays every time GemStash is opened fresh (was once a day); switching back from another app doesn't replay it.
+  Beta 102: the opening screen plays the video's own sound (pickaxe and gem); 🔊 at the top right turns it off/on and remembers.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
@@ -257,6 +258,9 @@ GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/
   Gem Miner Beta 2: an opening screen every fresh open, like GemStash's: Mike's video of the miner picking at the ore
       and filling his cart (the jump between its two scenes smoothed with a dissolve; the mine scene melts into the
       purple at its edges), "Dig for the gems / Fill your cart" and Psalm 119:162.
+  Gem Miner Beta 3: 📤 Share at the top shares the Gem Miner link (the phone's share menu); "Share this list with a
+      friend" on the send screen shares a bundle's link. The send screen no longer says GemStash's Focus is coming.
+  Gem Miner Beta 4: the opening screen plays the video's own sound (with the same smooth dissolve); 🔊 button to turn it off.
 
 VERSIONS
   v1  Today feed, stashes, Add (books, jw.org links, paste, write), backup

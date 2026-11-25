@@ -23,6 +23,7 @@ input:focus{border-color:var(--mine)}
 .top img{width:46px;height:46px}
 .top h1{font-size:21px;margin:0;flex:1}.top h1 small{display:block;font-size:11px;font-weight:600;color:var(--mine);letter-spacing:.08em;text-transform:uppercase}
 .pill{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted);white-space:nowrap}
+.pill.share{color:var(--text);font-weight:700;padding:7px 13px}
 .back{background:var(--panel2);border-radius:999px;padding:7px 13px;font-size:13px}
 .searchrow{display:flex;gap:8px;margin-bottom:10px}.searchrow button{background:var(--mine);color:#00262e;font-weight:800;border-radius:14px;padding:0 16px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
@@ -80,6 +81,9 @@ input:focus{border-color:var(--mine)}
   animation:gmPop .7s 4.4s cubic-bezier(.2,1.6,.4,1) forwards,gmShine 3s 5.2s ease-in-out infinite alternate}
 #gmSplash .scr{position:relative;max-width:440px;margin-top:12px;font-style:italic;font-size:15px;line-height:1.5;color:#d9cdbb;opacity:0;animation:gmFade 1s 5s forwards}
 #gmSplash .scr span{display:block;font-style:normal;font-weight:700;font-size:12px;color:#ffc24a;margin-top:6px;letter-spacing:.05em}
+#gmSplash .sndb{position:absolute;top:calc(var(--safe-t, 0px) + 14px);right:14px;z-index:2;background:#ffffff1a;border:1px solid #ffffff33;color:#fff;
+  border-radius:999px;min-width:42px;height:42px;padding:0 12px;font-size:18px;opacity:0;animation:gmFade .6s .8s forwards}
+#gmSplash .sndb.wide{font-size:14px;font-weight:700;background:#ffc24a;color:#2a1700;border-color:#ffc24a}
 #gmSplash .tap{position:absolute;bottom:calc(var(--safe-b) + 26px);font-size:12px;color:#b9b0e0;opacity:0;animation:gmFade 1s 6s forwards}
 @keyframes gmFade{to{opacity:1}}
 @keyframes gmSpin{to{transform:rotate(360deg)}}
@@ -97,7 +101,7 @@ input:focus{border-color:var(--mine)}
    Gathers one topic from jw.org into a bundle, then hands it to GemStash in a link (#focus=...).
    Terms: only jw.org's own lists of videos (the same open video catalogue GemStash uses) and GemStash's lists of
    narrated articles. It keeps titles, IDs and links only: no article text and no pictures from the website. */
-const BETA_NO = 2;
+const BETA_NO = 4;
 const GEMSTASH = '../beta/';                  // the Focus control is built in the GemStash beta first
 const JW_API = 'https://b.jw-cdn.org/apis/mediator/v1/';
 const LS = 'gemminer:';                       // GemStash lives on the same site, so keep our own names
@@ -357,16 +361,24 @@ function sendSheet(){
     <img src="focus-loupe-320.png" alt="">
     <h2>${esc(bundle.theme)}</h2>
     <p>${n} gems are ready for a focused meditation in GemStash.<br>
-    <small>GemStash Beta learns to use them in its next update (the Focus control). Until then it opens as usual.</small></p>
+    <small>GemStash Beta opens and asks to start the focus. The list is kept in your Gem Miner cart there, too.</small></p>
     <a class="b main" href="${esc(link)}">Open in GemStash Beta</a>
-    <button class="b sec2" id="copyL">Copy the link</button>
+    <button class="b sec2" id="shareL">📤 Share this list with a friend</button>
     <button class="b sec2" id="closeS">Back</button></div>`;
   document.body.appendChild(s);
   s.addEventListener('click', e => { if (e.target === s || e.target.id === 'closeS') s.remove(); });
-  s.querySelector('#copyL').onclick = async e => {
-    try { await navigator.clipboard.writeText(link); e.target.textContent = 'Copied ✓'; } catch { prompt('Copy this link:', link); }
-  };
+  s.querySelector('#shareL').onclick = e => shareLink(e.target, {title: bundle.theme,
+    text: `A focused meditation on “${bundle.theme}” (${n} gems from jw.org) for GemStash. Tap to open it:`, url: link});
 }
+
+// beta 3 (Mike): share buttons. The phone's own share menu (messages, email…); without one, the link is copied.
+async function shareLink(btn, data){
+  try { if (navigator.share){ await navigator.share(data); return; } } catch (e){ if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(data.url); if (btn) btn.textContent = 'Link copied ✓'; } catch { prompt('Copy this link:', data.url); }
+}
+const shareApp = btn => shareLink(btn, {title:'Gem Miner',
+  text:'Gem Miner gathers jw.org videos and narrated articles on one topic for a focused meditation in GemStash. Try it:',
+  url: new URL('./', location.href).href});
 
 /* ---------- screens ---------- */
 function render(){
@@ -376,7 +388,7 @@ function render(){
     const counts = INDEX ? PACKS.map(p => search({words:p.w}).length) : null;
     const saved = load('bundles', []);
     app.innerHTML = `
-      <div class="top"><img src="logo-cart-160.png" alt=""><h1>Gem Miner<small>Beta ${BETA_NO}</small></h1><span class="pill">jw.org only</span></div>
+      <div class="top"><img src="logo-cart-160.png" alt=""><h1>Gem Miner<small>Beta ${BETA_NO}</small></h1><button class="pill share" id="shareApp" title="Share Gem Miner">📤 Share</button></div>
       ${loading ? `<div class="status"><span id="progT"></span><div class="bar"><i id="prog"></i></div></div>` : ''}
       <div class="searchrow"><input id="q" placeholder="Topic or verse… e.g. courage, Josh 1:9" enterkeyhint="search" autocomplete="off"><button id="go">Mine</button></div>
       <div class="chips">${[['all','All'],['v','🎬 Videos'],['a','🎧 Narrated articles']].map(([k, l]) => `<button class="chip ${kindFilter === k ? 'on' : ''}" data-kind="${k}">${l}</button>`).join('')}</div>
@@ -412,6 +424,7 @@ document.addEventListener('click', e => {
     view = 'bundle'; showMore = false; render(); return scrollTo(0, 0);
   }
   if (t.id === 'go') return runSearch();
+  if (t.id === 'shareApp') return shareApp(t);
   if (t.id === 'back'){ view = 'home'; return render(); }
   if (t.id === 'more'){ bundle.verse = $('#verse').value; showMore = !showMore; return render(); }
   if (t.id === 'sendBtn') return sendSheet();
@@ -427,11 +440,25 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id
     <div class="stage"><video muted playsinline preload="auto" src="miner-fills-cart.mp4"></video></div>
     <div class="gtag">Dig for the gems<b>Fill your cart</b></div>
     <div class="scr">“I rejoice over your saying<br>Like someone who finds great spoil.”<span>Psalm 119:162</span></div>
-    <div class="tap">Tap to begin</div>`;
+    <div class="tap">Tap to begin</div><button class="sndb" title="Sound on or off"></button>`;
   document.body.appendChild(el);
   const v = el.querySelector('video'); v.play().catch(() => {});
   let gone = false;
-  const close = () => { if (gone) return; gone = true; el.classList.add('out'); setTimeout(() => el.remove(), 500); };
+  const close = () => { if (gone) return; gone = true; fadeOut(); el.classList.add('out'); setTimeout(() => el.remove(), 500); };
+  // beta 4 (Mike 2026-11-25): the video's own sound. Phones may hold sound back until a tap: then the button says "Tap for sound".
+  const snd = new Audio('miner-fills-cart-sound.m4a'); snd.preload = 'auto'; snd.volume = 0.85;
+  const sb = el.querySelector('.sndb'); let soundOn = load('splashSound', true) !== false, started = false;
+  const drawSb = (blocked) => { sb.textContent = !soundOn ? '🔇' : blocked ? '🔈 Tap for sound' : '🔊'; sb.classList.toggle('wide', !!blocked && soundOn); };
+  const startSound = () => { if (!soundOn || gone) return; try { snd.currentTime = Math.min(v.currentTime || 0, 5.9); } catch(e){}
+    snd.play().then(() => { started = true; drawSb(false); }).catch(() => drawSb(true)); };
+  v.addEventListener('playing', startSound, {once: true});
+  sb.addEventListener('click', e => { e.stopPropagation();
+    if (soundOn && started && !snd.paused){ soundOn = false; snd.pause(); }
+    else { soundOn = true; startSound(); }
+    save('splashSound', soundOn); drawSb(false); });
+  drawSb(false);
+  const fadeOut = () => { const v0 = snd.volume; let k = 0; const h = setInterval(() => { k++; snd.volume = Math.max(0, v0 * (1 - k / 8)); if (k >= 8){ clearInterval(h); snd.pause(); } }, 50); };
+
   el.addEventListener('click', close); setTimeout(close, 11000);
 })();
 render();

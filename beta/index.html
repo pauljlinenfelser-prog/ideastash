@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 101;
+const BETA_NO = 102;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [102, 'The opening screen plays the video’s own sound (the pickaxe and the gem). The 🔊 button at the top right turns it off or on, and remembers. If the phone holds the sound back, the button says “Tap for sound”.', ''],
   [101, 'The opening screen with the miner video now plays every time you open GemStash fresh (after closing it completely), not just once a day. Switching back from another app doesn’t replay it. Tap to skip.', ''],
   [100, 'Circle has Mike’s new picture: three miners (grandfather, boy and mother) sharing a blue gem.', ''],
   [99, 'A new opening screen, once a day: the miner finds a gem and holds it up to the light, with “Turn your doom-scrolling into LIFE-scrolling” and Proverbs 2:4, 5. Tap to begin.', ''],
@@ -5166,18 +5167,31 @@ function gsSplash(then){
     <div class="stage vid"><video class="mvid" muted playsinline preload="auto"></video></div>
     <div class="tag">Turn your doom-scrolling into<b>LIFE-scrolling</b></div>
     <div class="scr">“If you keep seeking for it as for silver,<br>And you keep searching for it as for hidden treasures;<br>Then you will understand the fear of Jehovah,<br>And you will find the knowledge of God.”<span>Proverbs 2:4, 5</span></div>
-    <div class="tap">Tap to begin</div>`;
+    <div class="tap">Tap to begin</div><button class="sndb" title="Sound on or off"></button>`;
   document.body.appendChild(el);
   let gone = false;
-  const close = () => { if (gone) return; gone = true; el.classList.add('out'); setTimeout(() => { el.remove(); then && then(); }, 500); };
+  const close = () => { if (gone) return; gone = true; fadeOut(); el.classList.add('out'); setTimeout(() => { el.remove(); then && then(); }, 500); };
   // beta 99c (Mike): his video of the miner picking at the ore, finding the gem and examining it. The black background is
   // taken out (see-through WebM); iPhones can't show see-through WebM, so they get the MP4 blended onto the purple instead.
   const v = el.querySelector('.mvid'), stage = el.querySelector('.stage');
   const apple = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|CriOS|FxiOS|Android/.test(navigator.userAgent));
   const still = () => { stage.className = 'stage'; stage.innerHTML = '<div class="lift"><img class="miner" src="focus-loupe-320.webp" alt=""><i class="glow"></i><i class="glint"></i><i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i></div>'; };   // no video? the still miner, lifting the gem
   if (apple){ v.src = 'miner-finds-gem.mp4'; v.classList.add('blend'); } else v.src = 'miner-finds-gem.webm';
-  v.addEventListener('error', still);
-  v.play().catch(() => { if (!v.currentTime) still(); });
+  v.addEventListener('error', () => { still(); startSound(); });
+  v.play().catch(() => { if (!v.currentTime){ still(); startSound(); } });
+  // beta 102 (Mike 2026-11-25): the video's own sound. Phones may hold sound back until a tap: then the button says "Tap for sound".
+  const snd = new Audio('miner-finds-gem-sound.m4a'); snd.preload = 'auto'; snd.volume = 0.85;
+  const sb = el.querySelector('.sndb'); let soundOn = db.splashSound !== false, started = false;
+  const drawSb = (blocked) => { sb.textContent = !soundOn ? '🔇' : blocked ? '🔈 Tap for sound' : '🔊'; sb.classList.toggle('wide', !!blocked && soundOn); };
+  const startSound = () => { if (!soundOn || gone) return; try { snd.currentTime = Math.min(v.currentTime || 0, 5.9); } catch(e){}
+    snd.play().then(() => { started = true; drawSb(false); }).catch(() => drawSb(true)); };
+  v.addEventListener('playing', startSound, {once: true});
+  sb.addEventListener('click', e => { e.stopPropagation();
+    if (soundOn && started && !snd.paused){ soundOn = false; snd.pause(); }
+    else { soundOn = true; startSound(); }
+    db.splashSound = soundOn; save(); drawSb(false); });
+  drawSb(false);
+  const fadeOut = () => { const v0 = snd.volume; let k = 0; const h = setInterval(() => { k++; snd.volume = Math.max(0, v0 * (1 - k / 8)); if (k >= 8){ clearInterval(h); snd.pause(); } }, 50); };
   el.addEventListener('click', close); setTimeout(close, 12000);
 }
 function focusMode(m, n){                                 // beta 89
@@ -5248,6 +5262,9 @@ ${[...Array(14)].map((_, k) => `#gsSplash .dust i:nth-child(${k + 1}){left:${8 +
 #gsSplash .tag b{display:block;font-size:34px;letter-spacing:.03em;color:#ffc24a;text-shadow:0 0 18px #ffb84d99;margin-top:2px;opacity:0;transform:scale(.6);animation:gsPop .7s 5.1s cubic-bezier(.2,1.6,.4,1) forwards,gsShine 3s 5.9s ease-in-out infinite alternate}
 #gsSplash .scr{position:relative;max-width:440px;margin-top:12px;font-style:italic;font-size:14px;line-height:1.5;color:#d9cdbb;opacity:0;animation:gsFade 1s 5.8s forwards}
 #gsSplash .scr span{display:block;font-style:normal;font-weight:700;font-size:12px;color:#ffc24a;margin-top:6px;letter-spacing:.05em}
+#gsSplash .sndb{position:absolute;top:calc(var(--safe-t, 0px) + 14px);right:14px;z-index:2;background:#ffffff1a;border:1px solid #ffffff33;color:#fff;
+  border-radius:999px;min-width:42px;height:42px;padding:0 12px;font-size:18px;opacity:0;animation:gsFade .6s .8s forwards}
+#gsSplash .sndb.wide{font-size:14px;font-weight:700;background:#ffc24a;color:#2a1700;border-color:#ffc24a}
 #gsSplash .tap{position:absolute;bottom:calc(var(--safe-b) + 26px);font-size:12px;color:#b9b0e0;opacity:0;animation:gsFade 1s 6.6s forwards}
 @keyframes gsFade{to{opacity:1}}
 @keyframes gsLift{0%{transform:none}55%{transform:translateY(-14px) rotate(-3deg) scale(1.06)}100%{transform:translateY(-8px) rotate(-1deg) scale(1.04)}}
