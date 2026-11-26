@@ -496,9 +496,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 112;
+const BETA_NO = 113;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [113, 'Your treasures are safer: if Hearted and Gems ever come up empty on a device (its saved copy was lost), GemStash fetches them back from your other devices and never passes on a removal. Until the first sync each time you open it, empty Hearted/Gems say Loading…. Also fixed: the same listening spots went back and forth on every sync.', ''],
   [112, 'Three more how-to videos (Settings → About → How-to videos): Bible reading, Auto (hands-free) and Share a Gem Miner list. The Parental controls video now shows the separate circle and messages switches.', ''],
   [111, 'Your own videos in My treasures now have the round ▶ like the other cards, and play as soon as you open them, with sound. Tap the video to pause it, and ▶ to play it again.', ''],
   [110, 'Parental controls: the circle and messages are now two separate choices for while it’s locked. The circle: Hidden, Can look, or Open (they can share photos and comment). Messages: Off or On. Adding or removing people always needs the parent’s PIN.', ''],
@@ -2096,7 +2097,7 @@ function sj(v){                                              // JSON with sorted
 }
 const syncHash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
 const urlKey = i => i && i.url ? 'u' + i.url : 'i' + (i ? i.id : '');
-function syncU(){ db.syncU ||= {}; for (const k of ['r', 'd', 's']) db.syncU[k] ||= {}; return db.syncU; }
+function syncU(){ db.syncU ||= {}; for (const k of ['r', 'd', 's', 'l']) db.syncU[k] ||= {}; return db.syncU; }
 // rest / done / seen are kept by card id, but each device pulls its own copy of a jw.org card, so they travel by link
 function markColl(field, tag){
   return {
@@ -2148,6 +2149,7 @@ const SYNC_C = [
       for (const [k, v] of Object.entries(W.seenCore || {})) o['c|' + k] = v;
       for (const k of Object.keys(db.cpHearts || {})) o['h|' + k] = 1;
       for (const k of Object.keys(db.bibleHeard || {})) o['b|' + k] = 1;   // beta 71: Bible chapters heard
+      for (const [u, v] of Object.entries(syncU().l)) o['l|' + u] = v;   // beta 113: spots for links with no card here, kept as they came
       for (const i of db.ideas) if (i.url && (i.lpos > 0 || i.heard)){ const k = 'l|' + i.url, v = {p: i.lpos || 0, h: !!i.heard}; if (!o[k] || v.h || v.p > o[k].p) o[k] = v; }
     },
     in(k, v){
@@ -2161,7 +2163,12 @@ const SYNC_C = [
       else if (t === 'b|'){ db.bibleHeard ||= {}; if (v == null) delete db.bibleHeard[key]; else db.bibleHeard[key] = 1; }   // beta 71
       else if (t === 'c|'){ W.seenCore ||= {}; if (v == null) delete W.seenCore[key]; else W.seenCore[key] = v; }
       else if (t === 'h|'){ db.cpHearts ||= {}; if (v == null) delete db.cpHearts[key]; else db.cpHearts[key] = 1; }
-      else if (t === 'l|' && v) db.ideas.filter(i => i.url === key).forEach(i => { i.lpos = v.p; i.heard = v.h; });
+      else if (t === 'l|'){   // beta 113 (Mike's report: the same 11 came back on every sync): with no card for the link here, the spot was
+        // dropped, so this device always looked out of date and took it again. Now it's kept on the side until a card for it turns up.
+        const mine = db.ideas.filter(i => i.url === key), side = syncU().l;
+        if (v == null){ delete side[key]; return; }
+        if (mine.length){ mine.forEach(i => { i.lpos = v.p; i.heard = v.h; }); delete side[key]; } else side[key] = v;
+      }
     }},
   {n: 'usage', sh: 1,                                        // scrolling time: each device's own minutes, added up for the daily limit
     out(o){ for (const [d, u] of Object.entries(db.usageOther || {})) o[d] = u;
@@ -2214,6 +2221,8 @@ function syncMerge(cur, ent){                                // newest change pe
   for (const [k, e] of Object.entries(ent)) if (!cur[k] || e[1] > cur[k][1] || (e[1] === cur[k][1] && sj(e[0]) > sj(cur[k][0]))) cur[k] = e;
   for (const k of Object.keys(cur)) if (cur[k][0] === null && cur[k][1] < old) delete cur[k];
 }
+var syncFirstDone = false;                                    // beta 113: until the first sync this time the app is open, empty Hearted/Gems say Loading…
+var syncWait = () => syncOn() && !syncFirstDone;
 function syncSoon(ms){
   if (!syncOn() || syncApplying) return;
   if (syncTimer) return;
@@ -2235,6 +2244,11 @@ async function syncRun(){
         delete base.shelf; }
       ensureDailyShelf();
     }
+    // beta 113 (Mike: "all my treasures were gone", then came back): if this device's Hearted/Gems come up empty while the last sync
+    // had several, its saved copy was lost (storage cleared, a fresh install), not emptied by hand. Then forget the "last synced" list
+    // for them, so nothing is sent as removed and everything comes back from the other devices.
+    { const live = Object.values(base.ideas || {}).filter(e => e[0] !== null).length, here = db.ideas.filter(i => (i.stashes || []).length).length;
+      if (!first && live >= 3 && here === 0){ tlog('sync: treasures empty here but ' + live + ' last time: fetching them back, nothing removed'); base.ideas = {}; } }
     const now = Date.now(), dirty = new Set(), applied = [];
     for (const c of SYNC_C){                                 // 1. what changed on this device since the last sync
       const b = base[c.n] ||= {}, cur = {}; c.out(cur);
@@ -2270,9 +2284,11 @@ async function syncRun(){
     }
     syncBaseMem = {uid: be.uid, b: base}; try { await idb.set(bkey, base); } catch(e){}
     db.syncAt = Date.now(); syncState = 'ok'; syncApplying = true; save(); syncApplying = false;
+    if (!syncFirstDone){ syncFirstDone = true; if (!applied.length && currentView === 'library') renderLibrary(); }   // beta 113
     if (applied.length) syncRefresh();
     else if (currentView === 'more') renderMore();
   } catch(e){
+    if (!syncFirstDone){ syncFirstDone = true; if (currentView === 'library') renderLibrary(); }   // beta 113: stop saying Loading…
     syncState = 'error: ' + (e.message || e); tlog('sync ' + syncState);
     if (/permission|insufficient/i.test(e.message || '')) syncState = 'error: the sync rules aren’t published yet';
   } finally {
@@ -3350,8 +3366,8 @@ function renderLibrary(){
       <div class="chips" style="justify-content:center;margin:-4px 0 6px"><button class="chip" onclick="bibleMark=null;biblePicker()">📖 Bible reading</button><button class="chip" onclick="go('shelf')">📚 Shelf</button><button class="chip" onclick="go('more')">⚙️ Settings</button></div>   <!-- beta 67 -->
       <div class="sec">Your treasures</div>
       <div class="comps">
-        <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${hearts.length} thing${hearts.length === 1 ? '' : 's'}</small><span class="pk">${peek(hearts)}</span></button>
-        <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${gems.length} saved</small><span class="pk">${peek(gems)}</span></button>
+        <button class="comp" onclick="libOpen('fav')"><span class="e">❤️</span><b>Hearted</b><small>${!hearts.length && syncWait() ? 'Loading…' : hearts.length + ' thing' + (hearts.length === 1 ? '' : 's')}</small><span class="pk">${peek(hearts)}</span></button>
+        <button class="comp" onclick="libOpen('gem')"><span class="e">💎</span><b>Gems</b><small>${!gems.length && syncWait() ? 'Loading…' : gems.length + ' saved'}</small><span class="pk">${peek(gems)}</span></button>
         ${circleReady() ? `<button class="comp" onclick="libOpen('mine')"><span class="e">📸</span><b>My treasures</b><small>${postsState === 'loading' && !myPosts().length ? 'Loading…' : myPosts().length + ' shared'}</small><span class="pk">${postPeek(myPosts())}</span></button>
         ${circleHidden() ? '' : `<button class="comp" onclick="libOpen('circ')"><span class="e"><img src="circle-family-128.webp" alt="" style="width:34px;height:34px;vertical-align:middle"></span><b>From my circle</b><small>${postsState === 'loading' && !circPosts().length ? 'Loading…' : circPosts().length + ' shared'}</small><span class="pk">${postPeek(circPosts())}</span></button>`}` : ''}
         <button class="comp wide" onclick="libOpen('done')"><span class="e">🕘</span><span><b>Recently finished</b><small>What you watched, heard or read to the end, newest first</small></span></button>
