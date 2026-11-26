@@ -355,6 +355,9 @@ label.l{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .ccard .ctag{position:absolute;left:12px;top:12px;background:#000a;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;z-index:2;pointer-events:none}
 .ccard .cpsnd{position:absolute;top:12px;right:12px;background:#000a;border-radius:999px;padding:6px 11px;font-size:13px;z-index:2;pointer-events:none}
 .ccard.loud .cpsnd{display:none}
+.ccard .cpplay{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;border:0;
+  background:var(--accent);color:#1b1408;font-size:28px;font-weight:700;box-shadow:0 6px 24px #0008;z-index:2}
+.ccard.playing .cpplay{display:none}
 .cpost{position:relative;height:440px;margin-bottom:12px;border-radius:16px;overflow:hidden}
 .cpost .ccard{position:absolute;inset:0;border-radius:16px;margin:0}
 .ccode{display:block;font-size:26px;letter-spacing:3px;color:var(--accent)}
@@ -493,9 +496,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 110;
+const BETA_NO = 111;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [111, 'Your own videos in My treasures now have the round ▶ like the other cards, and play as soon as you open them, with sound. Tap the video to pause it, and ▶ to play it again.', ''],
   [110, 'Parental controls: the circle and messages are now two separate choices for while it’s locked. The circle: Hidden, Can look, or Open (they can share photos and comment). Messages: Off or On. Adding or removing people always needs the parent’s PIN.', ''],
   [109, 'A video you kept in Treasures now plays as soon as you open it, with sound. Tap the picture to pause it or play it again.', ''],
   [108, 'The “A book” row is gone from the bottom of the Shelf, so GemStash stays with jw.org. (A book already on your shelf keeps working.) The “A jw.org video link” row stays, for a video that isn’t in the channels.', ''],
@@ -2670,7 +2674,7 @@ function circleSlideHTML(p){ return `<div class="vslide pslide cslide" data-post
 function circlePostHTML(p){
   const mine = db.me && p.uid === db.me.uid, who = mine ? 'You' : esc(p.name);
   const media = p.kind === 'video'
-    ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="this.muted=!this.muted;this.closest('.ccard').classList.toggle('loud',!this.muted)"></video><div class="cpsnd">🔇 Tap for sound</div>`
+    ? `<video class="cpv" src="${esc(p.url)}" playsinline muted preload="metadata" onclick="cpvTap(this)" onplay="cpvState(this)" onpause="cpvState(this)" onended="cpvState(this)"></video><div class="cpsnd">🔇 Tap for sound</div><button class="cpplay" title="Play" onclick="cpvTap(this.closest('.ccard').querySelector('video'))">▶</button>`
     : postPhotoIds(p).length > 1 ? setStripHTML(postPhotoIds(p))   // beta 40: a set you swipe sideways
     : /^fs:/.test(p.url || '') ? `<img data-fsimg="${esc(p.url.slice(3))}" alt="">` : `<img src="${esc(p.url)}" alt="" loading="lazy">`;   // beta 24
   return `<div class="card pcard ccard" data-id="cp_${esc(p.id)}">${media}<div class="ctag">${avHTML(p.uid, p.name, 22)} ${mine ? 'Yours · ' + shareLabel(p) : 'From ' + who + ' · your circle'}</div>
@@ -2683,6 +2687,14 @@ async function cpHeart(id, btn){
   db.cpHearts ||= {}; const on = !db.cpHearts[id]; if (on) db.cpHearts[id] = 1; else delete db.cpHearts[id]; save();
   document.querySelectorAll(`.ccard[data-id="cp_${id}"] .side button:first-child`).forEach(b => b.textContent = on ? '❤️' : '🤍');
   try { const c = await cb(), me = c.uid(); if (on) await c.set(`posts/${id}/hearts/${me}`, {name: db.me.name, at: c.now()}); else await c.del(`posts/${id}/hearts/${me}`); } catch(e){ console.warn(e); }
+}
+// beta 111 (Mike): your own videos (My treasures) get the round ▶ like the other cards. Tap ▶ or the video: plays with sound; tap again: pause.
+function cpvState(v){ const c = v.closest('.ccard'); if (c){ c.classList.toggle('playing', !v.paused && !v.ended); c.classList.toggle('loud', !v.muted); } }
+function cpvTap(v){
+  if (v.paused || v.ended){ v.muted = false; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
+  else if (v.muted){ v.muted = false; }                            // playing silently in Today: the first tap turns the sound on
+  else v.pause();
+  cpvState(v);
 }
 function cpMenu(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
@@ -3390,6 +3402,7 @@ function openPost(id){
   const p = (db.circlePosts || []).find(x => x.id === id); if (!p) return;
   openSheet(`<div style="height:70vh;display:flex;position:relative">${circlePostHTML(p)}</div><button class="btn alt" onclick="closeSheet()">Close</button>`);
   fillPhotos(document.getElementById('sheetIn'));
+  const v = document.querySelector('#sheetIn .ccard video'); if (v) cpvTap(v);   // beta 111
 }
 function libOpen(f, tag){ libFilter = f; libTag = tag || 'all'; const q = document.getElementById('libQ'); if (q) q.value = ''; renderLibrary(); document.getElementById('library').scrollTop = 0; scrollTo(0, 0); }
 function thumbOf(i){                                       // beta 27: the picture for a saved item
