@@ -493,9 +493,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 108;
+const BETA_NO = 109;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [109, 'A video you kept in Treasures now plays as soon as you open it, with sound. Tap the picture to pause it or play it again.', ''],
   [108, 'The “A book” row is gone from the bottom of the Shelf, so GemStash stays with jw.org. (A book already on your shelf keeps working.) The “A jw.org video link” row stays, for a video that isn’t in the channels.', ''],
   [107, 'New words when your scrolling time is up. If a parent set the time, it says so, and only a parent can change it. If you set it yourself, it says you reached the time you set aside, and “Want more time? Settings” takes you there. Both suggest putting the phone down and doing something else.', ''],
   [106, 'When you invite someone to your circle, the message also has a link to the Getting started video, so they can see how to put GemStash on their phone. The video page picks the Microsoft Edge or Chrome version for their phone (both are a tap away). Gem Miner’s share messages have it too.', ''],
@@ -3392,6 +3393,12 @@ function delStash(sid){
 function viewIdea(id){
   openSheet(`<div style="height:70vh;display:flex;position:relative">${cardHTML(findIdea(id))}</div>
     <button class="btn alt" onclick="closeSheet()">Close</button>`);
+  // beta 109 (Mike): a saved video plays straight away when opened from Treasures (the tap allows sound), and tapping the picture pauses / plays it
+  const v = document.querySelector('#sheetIn .tcard video'); if (!v) return;
+  v.preload = 'auto'; v.muted = false;
+  v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  v.addEventListener('click', e => { const r = v.getBoundingClientRect(); if (e.clientY > r.bottom - 56) return;   // leave the control bar alone
+    e.preventDefault(); if (v.paused){ v.muted = false; v.play().catch(() => {}); } else v.pause(); });
 }
 
 /* ================= text → idea cards ================= */
