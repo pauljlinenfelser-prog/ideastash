@@ -1,0 +1,37 @@
+// how-to video 7 (redone for Beta 104, Mike 2026-11-25): Settings and help (now under Treasures → ⚙️ Settings). Pretend cards only.
+const {phone, sleep} = require('./howto-lib.js'); const fs = require('fs');
+const SP = process.argv[2];
+(async () => {
+  fs.rmSync(SP + '/p7', {recursive: true, force: true});
+  const P = await phone({port: 9387, prof: SP + '/p7'});
+  const {ev, cap, tap, smooth} = P;
+  await ev(`document.getElementById('gsSplash') && document.getElementById('gsSplash').remove(); db.limitMin = 20; db.auto = false; save(); 1`);
+  console.log(await P.pretend()); await ev(`window.toast = () => {}; navigator.clipboard.writeText = () => Promise.resolve(); go('feed'); 1`); await sleep(4000); console.log(await P.audit());
+  const btn = t => `[...document.querySelectorAll('#more button, #more summary')].find(b => b.textContent.includes('${t}'))`, sec = t => `[...document.querySelectorAll('#more .sec')].find(x => x.textContent.includes('${t}'))`;
+  const to = (t, ms) => smooth(`${sec(t)}.scrollIntoView({block: 'start', behavior: 'smooth'})`, ms);
+  await P.start();
+  cap('Settings: open Treasures, then tap ⚙️ Settings'); await tap(`document.querySelector('nav button[data-v=library]')`, `go('library')`); await sleep(1300);
+  await tap(`[...document.querySelectorAll('#library button')].find(b => b.textContent.includes('Settings'))`, `go('more')`); await sleep(1500);
+  cap('What’s new: every beta lists what it added'); await sleep(2600);
+  cap('Sign in with Google to keep your phone and computer in step'); await to('Sync', 2800);
+  cap('Daily scrolling time: Today ends with a friendly stop when it’s up'); await to('Daily scrolling', 1300);
+  await tap(`[...document.querySelectorAll('#more .seg button')].find(b => b.textContent.trim() === '30m')`, `setLimitMin(30)`); await sleep(2200);
+  cap('Volume: how loud GemStash is on a shared computer'); await to('Volume', 1200);
+  await tap(`document.getElementById('volRange')`, `(() => { const r = document.getElementById('volRange'); r.value = 70; setVol(70); })()`); await sleep(2000);
+  cap('Auto-scroll: how fast Today moves on by itself'); await to('Auto-scroll', 1300);
+  await tap(`[...document.querySelectorAll('#more .seg button')].find(b => b.textContent.trim() === 'Slow')`); await sleep(2200);
+  cap('Things you finish rest for a while. Choose how long, or Auto'); await to('finished', 1300);
+  await tap(`document.querySelector('#more .step button:last-child')`, `restStep(1)`); await sleep(1500);
+  await tap(btn('Auto'), `db.restMonths = 'auto'; save(); renderMore()`); await sleep(2000);
+  cap('Back up your treasures and shelf to a file, and bring them back any time'); await to('Backup', 2800);
+  cap('Something not working? Copy a problem report and send it'); await to('Something not', 1300);
+  await tap(btn('problem report'), `copyReport()`); await sleep(2000);
+  cap('How-to videos, and answers to “How does GemStash work?”'); await to('About', 1200);
+  await tap(btn('How does GemStash work'), `openFaq()`); await sleep(1400);
+  await tap(`document.querySelectorAll('.faq summary')[1]`, `document.querySelectorAll('.faq')[1].open = true`); await sleep(3200);
+  await ev(`closeSheet(); 1`); await sleep(500);
+  cap('That’s GemStash: a few gems from jw.org, every day'); await ev(`go('feed'); 1`); await sleep(3000);
+  console.log(await P.audit());
+  await P.stop('7-settings-v2', {title: 'Settings and help', sub: 'Everything in ⚙️ Settings', note: 'Sample cards stand in for jw.org content'});
+  console.log('errors', P.errs.slice(0, 5)); P.close(); process.exit(0);
+})().catch(e => { console.error(e); process.exit(1); });

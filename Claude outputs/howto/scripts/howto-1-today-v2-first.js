@@ -1,0 +1,50 @@
+// how-to video 1 (redone for Beta 101): Today, the daily feed
+const {phone, sleep} = require('./howto-lib.js');
+const OLD = 'C:/Users/inspe/AppData/Local/Temp/claude/45401958847c3b03/cf12fadd-6640-438e-9e46-2a4ac91764a7/scratchpad', SP = process.argv[2];
+(async () => {
+  const P = await phone({port: 9351, prof: SP + '/p1'});
+  const {ev, cap, tap, smooth} = P;
+  await ev(`document.getElementById('gsSplash') && document.getElementById('gsSplash').remove(); 1`);
+  await ev(`db.limitMin = 0; db.auto = false; db.streak = {count: 9, last: today()}; save(); renderStreak(); renderFeed()`); await sleep(6000);
+  console.log(await P.pretend()); await sleep(5000);
+  await ev(`document.getElementById('gsSplash') && document.getElementById('gsSplash').remove(); window.toast = () => {}; document.getElementById('feed').scrollTop = 0; 1`); await sleep(2500);
+  const F = `document.getElementById('feed')`, go2 = k => `${F}.scrollTo({top: ${F}.children[${k}].offsetTop, behavior: 'smooth'})`;
+  const idx = async sel => ev(`[...${F}.children].findIndex(s => s.querySelector('${sel}'))`);
+  const bib = await ev(`[...${F}.children].findIndex(s => { const c = s.querySelector('.lcard'); return c && (findIdea(c.dataset.id) || {}).lkind === 'nwt'; })`);
+  const vid = await idx('video:not(.clip):not(.art)');
+  const art = await ev(`[...${F}.children].findIndex((s, n) => n !== ${bib} && s.querySelector('.lcard .lplay:not(.lread)'))`);
+  console.log('bible', bib, 'video', vid, 'article', art);
+  await P.start();
+  await ev(`gsSplash(() => {}); 1`);
+  const SPL = `!!document.getElementById('gsSplash')`;
+  cap('Every time you open GemStash, tap to begin'); await sleep(2600); await tap(`document.querySelector('#gsSplash .tap')`, `document.getElementById('gsSplash').click()`);
+  cap('The miner finds a gem, and Today opens'); for (let n = 0; n < 16; n++){ await sleep(500); if (!(await ev(SPL))) break; }
+  if (await ev(SPL)){ await tap(`document.getElementById('gsSplash')`); await sleep(700); }
+  cap('Today: a few gems from jw.org every day'); await sleep(2600);
+  cap('It always starts with the Daily Text. Tap it to hear it read aloud'); await tap(`${F}.children[0].querySelector('.card')`, `listen(${F}.children[0].querySelector('.card').dataset.id)`); await sleep(3200);
+  await ev(`listen(${F}.children[0].querySelector('.card').dataset.id)`); await sleep(400);
+  cap('Swipe up for the next one. jw.org videos play right here'); await smooth(go2(vid), 3300);
+  cap('Tap a video once for sound, again to pause'); await tap(`${F}.children[${vid}].querySelector('video')`, `1`); await sleep(3000);
+  cap('Articles you can listen to: tap ▶ for jw.org’s own narration'); await smooth(go2(art), 2200);
+  await tap(`${F}.children[${art}].querySelector('.lplay')`, `layerToggle(${F}.children[${art}].querySelector('.lcard').dataset.id)`); await sleep(3500);
+  cap('Slide along the bar to move back or forward'); await tap(`${F}.children[${art}].querySelector('.lseek')`, `(() => { if (layer && layer.a && layer.a.duration) layer.a.currentTime = layer.a.duration * 0.45; })()`); await sleep(3200);
+  cap('❤️ keeps it in your Treasures'); await tap(`${F}.children[${art}].querySelector('.side .heart')`, `heartIdea(${F}.children[${art}].querySelector('.lcard').dataset.id)`); await sleep(2200);
+  cap('💎 saves it as a gem. Add a tag if you like, or tap 💎 again to skip');
+  await tap(`${F}.children[${art}].querySelector('.side .gem').closest('button')`, `gemTap(${F}.children[${art}].querySelector('.lcard').dataset.id)`); await sleep(3200);
+  await tap(`${F}.children[${art}].querySelector('.side .gem').closest('button')`, `gemTap(${F}.children[${art}].querySelector('.lcard').dataset.id)`); await sleep(1200);
+  await ev(`layerStop()`);
+  cap('Today’s Bible chapter is always 3rd. Tap ▶ to listen'); await smooth(go2(bib), 2400);
+  cap('◀ ▶ for the chapter before or after. Tap the name to pick any chapter'); await tap(`${F}.children[${bib}].querySelector('.bname')`); await sleep(3400);
+  await ev(`closeSheet()`); await sleep(600);
+  cap('⋯ has the rest: the Shelf, Refresh Today, and Settings'); await tap(`${F}.children[${bib}].querySelector('.side button[title=More]')`); await sleep(3400);
+  await ev(`closeSheet()`); await sleep(500);
+  await ev(`window._keepHdr = setInterval(() => { hdrUntil = performance.now() + 2000; }, 300); 1`);
+  cap('The rolling cart plays each gem and moves on by itself, hands free'); await tap(`document.getElementById('autoBtn')`, `toggleAuto()`); await sleep(5200);
+  cap('Touch the screen to stop it'); await tap(`document.getElementById('autoBtn')`, `toggleAuto()`); await sleep(1800);
+  cap('The lantern counts the days in a row. It burns brighter as you go'); await tap(`document.getElementById('streak')`, `1`); await sleep(3200); await ev(`clearInterval(window._keepHdr); 1`);
+  cap('Things you finish rest for a while, so each day brings new gems'); await smooth(`${F}.scrollBy({top: ${F}.clientHeight, behavior: 'smooth'})`, 3000);
+  cap('Choose from 70 jw.org video categories, or focus on one theme with Gem Miner'); await tap(`document.querySelector('nav button[data-v=focus]')`, `1`); await sleep(3800);
+  cap('Free · private · no account'); await smooth(`${F}.scrollTo({top: 0, behavior: 'smooth'})`, 2800);
+  await P.stop('1-today-v2', {title: 'How to use Today', sub: 'Swipe, listen, and keep what you love', note: 'Sample cards stand in for jw.org content'});
+  console.log('errors', P.errs.slice(0, 5)); P.close(); process.exit(0);
+})().catch(e => { console.error(e); process.exit(1); });

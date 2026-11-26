@@ -496,9 +496,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 111;
+const BETA_NO = 112;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [112, 'Three more how-to videos (Settings → About → How-to videos): Bible reading, Auto (hands-free) and Share a Gem Miner list. The Parental controls video now shows the separate circle and messages switches.', ''],
   [111, 'Your own videos in My treasures now have the round ▶ like the other cards, and play as soon as you open them, with sound. Tap the video to pause it, and ▶ to play it again.', ''],
   [110, 'Parental controls: the circle and messages are now two separate choices for while it’s locked. The circle: Hidden, Can look, or Open (they can share photos and comment). Messages: Off or On. Adding or removing people always needs the parent’s PIN.', ''],
   [109, 'A video you kept in Treasures now plays as soon as you open it, with sound. Tap the picture to pause it or play it again.', ''],
@@ -668,9 +669,11 @@ const FAQ = [
 const HOWTO = [['GemStash-0-Getting-started.mp4', '📲', 'Getting started (Microsoft Edge)', '0:38'], ['GemStash-0-Getting-started-Chrome.mp4', '📲', 'Getting started (Chrome)', '0:43'],
   ['GemStash-1-Today-v2.mp4', '✨', 'Today: your daily feed', '1:07'], ['GemStash-2-Treasures-v2.mp4', '💎', 'Treasures: hearts, gems and tags', '0:55'],
   ['GemStash-3-Shelf-v2.mp4', '📚', 'The Shelf: choose what comes each day', '1:08'], ['GemStash-4-Circle-v2.mp4', '👥', 'Your circle: invite family with one link', '0:57'],
-  ['GemStash-5-Sharing-v2.mp4', '📸', 'Sharing, comments and messages', '1:19'], ['GemStash-6-Parental-controls-v2.mp4', '🔒', 'Parental controls', '1:10'],
+  ['GemStash-5-Sharing-v2.mp4', '📸', 'Sharing, comments and messages', '1:19'], ['GemStash-6-Parental-controls-v3.mp4', '🔒', 'Parental controls', '1:14'],
   ['GemStash-7-Settings-and-help-v2.mp4', '⚙️', 'Settings and help', '0:50'], ['GemStash-8-Gem-Miner.mp4', '⛏️', 'Gem Miner: gather a topic', '0:53'],
-  ['GemStash-9-Using-a-Focus.mp4', '🔎', 'Using a Focus', '0:49'], ['GemStash-10-Gem-Miner-cart.mp4', '🛒', 'The Gem Miner cart: your saved lists', '0:35']];
+  ['GemStash-9-Using-a-Focus.mp4', '🔎', 'Using a Focus', '0:49'], ['GemStash-10-Gem-Miner-cart.mp4', '🛒', 'The Gem Miner cart: your saved lists', '0:35'],
+  ['GemStash-11-Bible-reading.mp4', '📖', 'Bible reading', '0:59'], ['GemStash-12-Auto.mp4', '🛞', 'Auto: hands-free', '0:42'],
+  ['GemStash-13-Share-a-Gem-Miner-list.mp4', '📤', 'Share a Gem Miner list', '0:35']];   // beta 112
 const howtoUrl = f => APP_URL + 'video/howto/' + f;
 function howtoHTML(){
   return `<div class="howto">${HOWTO.map(([f, e, t, d], n) => `<button class="shelfitem" onclick="playHowto(${n})"><span class="e">${e}</span>

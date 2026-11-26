@@ -254,6 +254,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 109: a video kept in Treasures plays as soon as you open it (with sound); tapping the picture pauses / plays it.
   Beta 110: parental controls: the circle and messages are separate choices for while it's locked. Circle: Hidden / Can look / Open (share and comment). Messages: Off / On. Adding or removing people always needs the PIN.
   Beta 111: your own videos in My treasures have the round ▶ like the other cards and play as soon as you open them, with sound; tap to pause.
+  Beta 112: three more how-to videos: Bible reading, Auto (hands-free), Share a Gem Miner list; the Parental controls video now shows the separate circle and messages switches (v3; v2 kept on the site).
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)

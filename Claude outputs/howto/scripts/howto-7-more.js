@@ -1,0 +1,30 @@
+// how-to video 7: More (settings and help)
+const {phone, sleep} = require('./howto-lib.js');
+const fs = require('fs');
+const SP = 'C:/Users/inspe/AppData/Local/Temp/claude/45401958847c3b03/cf12fadd-6640-438e-9e46-2a4ac91764a7/scratchpad';
+(async () => {
+  fs.rmSync(SP + '/howto/p7', {recursive: true, force: true});
+  const P = await phone({port: 9333, prof: SP + '/howto/p7'});
+  const {ev, cap, tap, smooth} = P;
+  await P.daily(SP + '/es26/es26_E.epub'); await ev(`db.limitMin = 20; save(); window.toast = () => {}; navigator.clipboard.writeText = () => Promise.resolve(); go('feed')`); await sleep(3000);
+  const btn = t => `[...document.querySelectorAll('#more button')].find(b => b.textContent.includes('${t}'))`, sec = t => `[...document.querySelectorAll('#more .sec')].find(x => x.textContent.includes('${t}'))`;
+  const to = (t, ms) => smooth(`${sec(t)}.scrollIntoView({block: 'start', behavior: 'smooth'})`, ms);
+  await P.start();
+  cap('More: settings and help'); await sleep(1800);
+  await tap(`document.querySelector('nav button[data-v=more]')`, `go('more')`); await sleep(1500);
+  cap('What’s new: every beta lists what it added'); await sleep(2800);
+  cap('Daily scrolling time: Today ends with a friendly stop when it’s up'); await to('Daily scrolling', 1400);
+  await tap(`[...document.querySelectorAll('#more .seg button')].find(b => b.textContent.trim() === '30m')`, `setLimitMin(30)`); await sleep(2600);
+  cap('Things you finish rest for a while. Choose how long, or Auto'); await to('finished', 1400);
+  await tap(`document.querySelector('#more .step button:last-child')`, `restStep(1)`); await sleep(1600);
+  await tap(btn('Auto'), `db.restMonths = 'auto'; save(); renderMore()`); await sleep(2400);
+  cap('Back up your treasures and shelf to a file, and bring them back any time'); await to('Backup', 3000);
+  cap('Something not working? Copy a problem report and send it'); await to('Something not', 1400);
+  await tap(btn('problem report'), `copyReport()`); await sleep(2400);
+  cap('And answers to “How does GemStash work?”'); await tap(btn('How does GemStash work'), `openFaq()`); await sleep(1500);
+  await tap(`document.querySelectorAll('.faq summary')[1]`, `document.querySelectorAll('.faq')[1].open = true`); await sleep(3800);
+  await ev(`closeSheet()`); await sleep(600);
+  cap('That’s GemStash: a few gems from jw.org, every day'); await tap(`document.querySelector('nav button[data-v=feed]')`, `go('feed')`); await sleep(3000);
+  await P.stop('7-more', {title: 'Settings and help', sub: 'Everything in More'});
+  console.log('errors', P.errs.slice(0, 5)); P.close(); process.exit(0);
+})().catch(e => { console.error(e); process.exit(1); });
