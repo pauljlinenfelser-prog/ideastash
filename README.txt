@@ -252,6 +252,7 @@ BETA (test copy): https://pauljlinenfelser-prog.github.io/ideastash/beta/
   Beta 107: new words when the scrolling time is up: a parent's limit says your parents chose it (only a parent can change it); your own limit says you reached the time you set aside, with "Want more time? Settings". Both suggest putting the phone down.
   Beta 108: the "A book" row is gone from the bottom of the Shelf (jw.org only); books already on a shelf keep working. The jw.org video link row stays. FAQ "What about books?" and the Gutenberg words in About are gone.
   Beta 109: a video kept in Treasures plays as soon as you open it (with sound); tapping the picture pauses / plays it.
+  Beta 110: parental controls: the circle and messages are separate choices for while it's locked. Circle: Hidden / Can look / Open (share and comment). Messages: Off / On. Adding or removing people always needs the PIN.
   To drop the beta: just stop using the link (or delete the beta folder). The real app is unaffected.
 
 GEM MINER (companion app, its own link: https://pauljlinenfelser-prog.github.io/ideastash/gemminer/)
