@@ -496,9 +496,10 @@ function load(){
   try { const s = localStorage.getItem(KEY); if (s) return Object.assign(blank(), JSON.parse(s)); } catch(e){}
   return blank();   // (v21) no starter guide cards
 }
-const BETA_NO = 113;
+const BETA_NO = 114;
 // beta 17 (Mike): what each beta added, newest first. app = the app version it moved to ('' = still only in the beta)
 const BETA_NEWS = [
+  [114, 'GemStash opens straight into the miner video, with its sound: no more “Tap to begin” screen first. If the phone holds the sound back (often an iPhone, or when GemStash isn’t installed on the home screen), the video waits with “Tap to open”. Skip is in the bottom corner, and tapping the screen skips too. It plays once each time you open GemStash. Settings → Opening video turns it off.', ''],
   [113, 'Your treasures are safer: if Hearted and Gems ever come up empty on a device (its saved copy was lost), GemStash fetches them back from your other devices and never passes on a removal. Until the first sync each time you open it, empty Hearted/Gems say Loading…. Also fixed: the same listening spots went back and forth on every sync.', ''],
   [112, 'Three more how-to videos (Settings → About → How-to videos): Bible reading, Auto (hands-free) and Share a Gem Miner list. The Parental controls video now shows the separate circle and messages switches.', ''],
   [111, 'Your own videos in My treasures now have the round ▶ like the other cards, and play as soon as you open them, with sound. Tap the video to pause it, and ▶ to play it again.', ''],
@@ -4940,6 +4941,9 @@ function renderMore(){
     <div class="sec">🔊 Volume on this device</div>
     <div class="row" style="display:flex;align-items:center;gap:10px"><span>🔈</span><input id="volRange" type="range" min="0" max="100" step="5" value="${Math.round(vol() * 100)}" oninput="setVol(this.value)" aria-label="Volume" style="flex:1;accent-color:var(--accent)"><span>🔊</span><b id="volPct" style="min-width:42px;text-align:right">${Math.round(vol() * 100)}%</b></div>
     <p style="color:var(--muted);font-size:13px;margin:4px 2px 12px">How loud GemStash is, under the device’s own volume. Handy on a shared computer; on a phone, leave it at 100% and use the phone’s buttons.</p>   <!-- beta 69 -->
+    <div class="sec">🎬 Opening video</div>   <!-- beta 114 -->
+    <div class="seg"><button class="${db.openVideo !== false ? 'on' : ''}" onclick="db.openVideo=true;save();renderMore()">On</button><button class="${db.openVideo === false ? 'on' : ''}" onclick="db.openVideo=false;save();renderMore()">Off</button></div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">The miner finding the gem, once each time you open GemStash. 🔊 on the video turns its sound on or off. <a href="#" onclick="event.preventDefault();gsSplash(null,true)" style="color:var(--accent,#ffc24a)">▶ Play it now</a></p>
     <div class="sec">Auto-scroll</div>${autoHTML()}
     <div class="sec">Daily</div>
     <button class="btn alt" onclick="db.daily.date='';save();go('feed')">🔄 New set of today's ideas</button>
@@ -5236,49 +5240,58 @@ function focusRepeat(){
 /* beta 99 (Mike): GemStash's opening screen (beta 101: every time the app is opened fresh). The miner finds a gem and holds it up to the light, the tagline
    and Proverbs 2:4, 5 (NWT, both verses in full, word for word as on wol.jw.org; Mike asked that it's never shortened) fade in. Tap anywhere to go on; it moves on by itself after a few seconds.
    Beta 99b (Mike): purple like the rest of GemStash, and more movement (lift, glow, glint, dust in the light, LIFE pops). Then a focus opening screen, if any. */
-function gsSplash(then){
-  if (document.getElementById('gsSplash')){ then && then(); return; }   // beta 101 (Mike): every fresh open (was once a day).
+function gsSplash(then, force){
+  const done = () => { then && then(); };
+  if (document.getElementById('gsSplash')) return done();   // beta 101 (Mike): every fresh open (was once a day).
+  // beta 114 (Mike 2026-11-28): the "Tap to begin" still screen is gone. The opening video plays straight away, with its sound
+  // when the phone allows it (an installed app usually does). Once per opening of the app (sessionStorage: a reload in the same
+  // window doesn't replay it). Off in Settings → Opening video, and skipped when the phone asks for less motion.
+  let seen = false; try { seen = !!sessionStorage.getItem('gsOpened'); sessionStorage.setItem('gsOpened', '1'); } catch(e){}
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!force && (seen || db.openVideo === false || still)) return done();
   db.gsSplash = today(); save();   // (kept for reference; not checked any more) Coming back from another app doesn't reload the page, so it doesn't play then.
-  const el = document.createElement('div'); el.id = 'gsSplash'; el.className = 'ready';
+  const el = document.createElement('div'); el.id = 'gsSplash'; el.className = 'ready play';
+  const stillHTML = '<div class="lift"><img class="miner" src="focus-loupe-320.webp" alt=""><i class="glow"></i><i class="glint"></i><i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i></div>';
   el.innerHTML = `<div class="rays"></div><div class="beam"></div>
     <div class="brand"><img src="logo-chest-128.png" alt="">GemStash</div>
     <div class="dust">${'<i></i>'.repeat(14)}</div>
-    <div class="stage"><div class="lift"><img class="miner" src="focus-loupe-320.webp" alt=""><i class="glow"></i><i class="glint"></i><i class="spark"></i><i class="spark s2"></i><i class="spark s3"></i></div></div>
+    <div class="stage vid"></div>
     <div class="tag">Turn your doom-scrolling into<b>LIFE-scrolling</b></div>
     <div class="scr">“If you keep seeking for it as for silver,<br>And you keep searching for it as for hidden treasures;<br>Then you will understand the fear of Jehovah,<br>And you will find the knowledge of God.”<span>Proverbs 2:4, 5</span></div>
-    <div class="tap">Tap to begin</div><button class="sndb" title="Sound on or off"></button>`;
+    <div class="tap">▶ Tap to open</div><button class="sndb" title="Sound on or off"></button><button class="skipb">Skip ›</button>`;
   document.body.appendChild(el);
-  let gone = false, playing = false;
-  const close = () => { if (gone) return; gone = true; fadeOut(); el.classList.add('out'); setTimeout(() => { el.remove(); then && then(); }, 500); };
-  // beta 99c (Mike): his video of the miner picking at the ore, finding the gem and examining it. The black background is
-  // taken out (see-through WebM); iPhones can't show see-through WebM, so they get the MP4 blended onto the purple instead.
-  // beta 103 (Mike 2026-11-25): flipped. Phones only allow sound after a tap, so the still opening screen comes first with
-  // "Tap to begin"; that tap plays the video and its sound together, and GemStash opens when the video ends (tap again to skip).
+  let gone = false, playing = false, waiting = false;
   const stage = el.querySelector('.stage');
+  // beta 99c (Mike): his video of the miner finding the gem. Black taken out (see-through WebM); iPhones can't show that,
+  // so they get the MP4 blended onto the purple. Beta 114: the sound is inside the video now (-v2 files), so one play() starts both.
   const apple = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|CriOS|FxiOS|Android/.test(navigator.userAgent));
-  const v = document.createElement('video'); v.className = 'mvid'; v.muted = true; v.playsInline = true; v.preload = 'auto';
-  if (apple){ v.src = 'miner-finds-gem.mp4'; v.classList.add('blend'); } else v.src = 'miner-finds-gem.webm';   // loads while the still screen shows
-  const snd = new Audio('miner-finds-gem-sound.m4a'); snd.preload = 'auto'; snd.volume = 0.85;
+  const v = document.createElement('video'); v.className = 'mvid'; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
+  if (apple){ v.src = 'miner-finds-gem-v2.mp4'; v.classList.add('blend'); } else v.src = 'miner-finds-gem-v2.webm';
+  v.volume = 0.85 * (typeof vol === 'function' ? vol() : 1);
+  stage.appendChild(v);
   const sb = el.querySelector('.sndb'); let soundOn = db.splashSound !== false;
   const drawSb = () => { sb.textContent = soundOn ? '🔊' : '🔇'; };
-  const startSound = () => { if (!soundOn || gone) return; try { snd.currentTime = Math.min(v.currentTime || 0, 5.9); } catch(e){} snd.play().catch(() => {}); };
-  sb.addEventListener('click', e => { e.stopPropagation(); soundOn = !soundOn; db.splashSound = soundOn; save(); drawSb();
-    if (!soundOn) snd.pause(); else if (playing) startSound(); });
-  drawSb();
-  const fadeOut = () => { const v0 = snd.volume; let k = 0; const h = setInterval(() => { k++; snd.volume = Math.max(0, v0 * (1 - k / 8)); if (k >= 8){ clearInterval(h); snd.pause(); } }, 50); };
-  const begin = () => {
-    playing = true; el.className = 'ready play';   // keeps 'ready' so the words already shown don't fade in again
-    if (soundOn){ snd.currentTime = 0; snd.play().catch(() => {}); }   // started inside the tap, so the phone allows it
-    const noVideo = () => { if (!stage.contains(v)) return; stage.className = 'stage'; stage.innerHTML = el.dataset.still; setTimeout(close, 6000); };
-    el.dataset.still = stage.innerHTML;
-    stage.className = 'stage vid'; stage.innerHTML = ''; stage.appendChild(v);
-    v.addEventListener('playing', startSound, {once: true});   // keeps the sound in step if the video starts a moment late
-    v.addEventListener('ended', () => setTimeout(close, 700));
-    v.addEventListener('error', noVideo);
-    v.play().catch(noVideo);
-    setTimeout(close, 12000);   // in case the video never reports its end
+  drawSb(); v.muted = !soundOn;
+  const close = () => {
+    if (gone) return; gone = true;
+    const v0 = v.volume; let k = 0; const h = setInterval(() => { k++; try { v.volume = Math.max(0, v0 * (1 - k / 8)); } catch(e){} if (k >= 8){ clearInterval(h); v.pause(); } }, 50);
+    el.classList.add('out'); setTimeout(() => { el.remove(); done(); }, 500);
   };
-  el.addEventListener('click', () => { if (!playing) begin(); else close(); });
+  const noVideo = () => { if (gone || !stage.contains(v)) return; v.pause(); stage.className = 'stage'; stage.innerHTML = stillHTML; el.className = 'ready play'; waiting = false; setTimeout(close, 6000); };
+  const started = () => { if (playing) return; playing = true; waiting = false; el.className = 'ready play'; setTimeout(close, 12000); };   // 12 s in case the end is never reported
+  const wait = () => { if (gone) return; waiting = true; el.className = 'ready wait'; try { v.currentTime = 0; } catch(e){} };   // first frame + "Tap to open"
+  const start = () => {
+    const p = v.play();
+    if (p && p.then) p.then(started).catch(err => { if (err && err.name === 'NotAllowedError') wait(); else if (!playing) noVideo(); });
+    else started();
+  };
+  sb.addEventListener('click', e => { e.stopPropagation(); soundOn = !soundOn; db.splashSound = soundOn; save(); drawSb(); v.muted = !soundOn;
+    if (waiting) start(); });
+  el.querySelector('.skipb').addEventListener('click', e => { e.stopPropagation(); close(); });
+  v.addEventListener('ended', () => setTimeout(close, 700));
+  v.addEventListener('error', noVideo);
+  el.addEventListener('click', () => { if (gone) return; if (waiting){ v.muted = !soundOn; start(); } else close(); });   // waiting: the tap plays it (with sound); playing: tap to skip
+  start();   // with sound, no tap needed when the browser allows it; if it says no, wait() shows the first frame and "Tap to open"
 }
 function focusMode(m, n){                                 // beta 89
   const f = db.focus, was = f.mode || 'full'; f.mode = m; if (n) f.perDay = n; save(); focusRedraw();
@@ -5356,6 +5369,11 @@ ${[...Array(14)].map((_, k) => `#gsSplash .dust i:nth-child(${k + 1}){left:${8 +
 #gsSplash.ready .tag{animation-delay:1.4s}#gsSplash.ready .tag b{animation-delay:1.9s,2.7s}#gsSplash.ready .scr{animation-delay:2.4s}
 #gsSplash.ready .tap{font-size:17px;font-weight:800;color:#2a1700;background:#ffc24a;border-radius:999px;padding:12px 30px;box-shadow:0 0 24px #ffb84d66;animation:gsFade .8s 3s forwards,gsTapPulse 1.6s 3.8s ease-in-out infinite alternate}
 #gsSplash.play .tap{display:none}
+/* beta 114: the video plays at once; "Tap to open" only shows if the phone held the sound back. Skip in the bottom corner. */
+#gsSplash.wait .tap{animation:gsFade .4s .1s forwards,gsTapPulse 1.6s 1s ease-in-out infinite alternate}
+#gsSplash.wait .mvid{animation:none;opacity:.9}
+#gsSplash .skipb{position:absolute;right:14px;bottom:calc(var(--safe-b, 0px) + 18px);z-index:2;background:#ffffff1a;border:1px solid #ffffff33;color:#fff;border-radius:999px;
+  padding:8px 16px;font-size:14px;font-weight:700;opacity:0;animation:gsFade .6s 1s forwards}
 @keyframes gsTapPulse{from{transform:scale(1)}to{transform:scale(1.07);box-shadow:0 0 34px #ffc24aaa}}
 @keyframes gsFade{to{opacity:1}}
 @keyframes gsLift{0%{transform:none}55%{transform:translateY(-14px) rotate(-3deg) scale(1.06)}100%{transform:translateY(-8px) rotate(-1deg) scale(1.04)}}
